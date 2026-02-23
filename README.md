@@ -2,16 +2,6 @@
 # Smart Parking Reservation System Using Mobile Application
 Graduation Project – College of Science & Arts, Unaizah – Qassim University (2025)
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
 
 # Students:
 
@@ -93,16 +83,26 @@ Unlike traditional systems that rely on expensive hardware such as cameras or se
 
 # Project Files
 
-- Smart_Parking_Report.docx – Full project report (Chapters 1–3).
+- Smart_Parking_Report.docx – Full project report (Chapters 1–7).
 
 - SRS_Document.docx – Software Requirements Specification.
 
 - Diagrams/ – UML, Use Case, and Sequence diagrams.
 
 - Presentation.pptx – Final project presentation.
-  
+
+  ## Getting Started
+
+This project is a starting point for a Flutter application.
+
+A few resources to get you started if this is your first Flutter project:
+
+- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
+- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
+- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+
 
 # Contact
 📧 Team Smart Parking – Qassim University
 🌍 https://qu.edu.sa
-6c692c2b3600b5aa41bb744aaead65b724daf2da
+
