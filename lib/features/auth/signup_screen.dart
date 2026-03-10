@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
+import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({super.key});
@@ -227,7 +227,6 @@ class _CountryCodeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 91,
       height: 48,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
@@ -235,20 +234,20 @@ class _CountryCodeField extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           CircleAvatar(radius: 11, backgroundColor: Color(0xFFE5E5E5)),
-          SizedBox(width: 8),
+          SizedBox(width: 6),
           Text(
             '+966',
             style: TextStyle(
               color: Color(0xFF19515B),
               fontSize: 12,
-              fontWeight: FontWeight.w400,
-              letterSpacing: -0.36,
+              fontWeight: FontWeight.w500,
             ),
           ),
-          Spacer(),
-          Icon(Icons.keyboard_arrow_down, color: Color(0xFF19515B), size: 16),
+          SizedBox(width: 4),
+          Icon(Icons.keyboard_arrow_down, color: Color(0xFF19515B), size: 18),
         ],
       ),
     );
