@@ -4,7 +4,8 @@ import 'widgets/home_header.dart';
 import 'widgets/home_search_bar.dart';
 import 'widgets/map_section.dart';
 import 'widgets/visited_parks_section.dart';
-import 'saved_parking.dart'; // استيراد ملف صفحة السيف الجديد
+import 'widgets/home_search_sheet.dart';
+import 'saved_parking.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,84 +15,128 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // هذا المتغير يحدد أي صفحة نعرض الآن (0 للهوم، 1 للسيف)
   int _currentIndex = 0;
+  bool _showSearchSheet = false;
 
-  // دالة لبناء محتوى صفحة الهوم (الخريطة والبحث)
   Widget _buildHomeBody() {
-    return Column(
+    return Stack(
       children: [
-        const HomeHeader(),
-        const MapSection(),
-        Expanded(
-          child: Transform.translate(
-            offset: const Offset(0, -18),
-            child: Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(30),
-                ),
-              ),
-              child: const SingleChildScrollView(
-                padding: EdgeInsets.only(bottom: 20),
-                child: Column(
-                  children: [
-                    SizedBox(height: 10),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 13),
-                      child: Row(
-                        children: [
-                          Expanded(child: HomeSearchBar()),
-                          SizedBox(width: 10),
-                          _FilterButton(),
-                        ],
-                      ),
+        Column(
+          children: [
+            const HomeHeader(),
+            const MapSection(),
+            Expanded(
+              child: Transform.translate(
+                offset: const Offset(0, -18),
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(30),
                     ),
-                    SizedBox(height: 18),
-                    VisitedParksSection(),
-                    SizedBox(height: 20),
-                  ],
+                  ),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 13),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: HomeSearchBar(
+                                  onTap: () {
+                                    setState(() {
+                                      _showSearchSheet = true;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              const _FilterButton(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        const VisitedParksSection(),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ),
+
+        if (_showSearchSheet)
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _showSearchSheet = false;
+                });
+              },
+              child: Container(color: Colors.black.withOpacity(0.08)),
+            ),
+          ),
+
+        if (_showSearchSheet)
+          DraggableScrollableSheet(
+            initialChildSize: 0.72,
+            minChildSize: 0.0,
+            maxChildSize: 0.92,
+            snap: true,
+            snapSizes: const [0.0, 0.72, 0.92],
+            builder: (context, scrollController) {
+              return NotificationListener<DraggableScrollableNotification>(
+                onNotification: (notification) {
+                  if (notification.extent <= 0.05) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (mounted) {
+                        setState(() {
+                          _showSearchSheet = false;
+                        });
+                      }
+                    });
+                  }
+                  return true;
+                },
+                child: HomeSearchSheet(scrollController: scrollController),
+              );
+            },
+          ),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    // قائمة الصفحات المتاحة للتنقل
     final List<Widget> pages = [
-      _buildHomeBody(),      // الصفحة رقم 0
-      const SavedParking(),  // الصفحة رقم 1
-      const Center(child: Text('Booking')), // الصفحة رقم 2 (مؤقتة)
-      const Center(child: Text('Profile')), // الصفحة رقم 3 (مؤقتة)
+      _buildHomeBody(),
+      const SavedParking(),
+      const Center(child: Text('Booking')),
+      const Center(child: Text('Profile')),
     ];
 
     return Scaffold(
       backgroundColor: Colors.white,
-      // نمرر الـ currentIndex والوظيفة للشريط السفلي
       bottomNavigationBar: HomeBottomNav(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
-            _currentIndex = index; // تحديث الصفحة عند الضغط
+            _currentIndex = index;
+            _showSearchSheet = false;
           });
         },
       ),
-      body: SafeArea(
-        // عرض الصفحة المختارة بناءً على الـ index
-        child: pages[_currentIndex],
-      ),
+      body: SafeArea(child: pages[_currentIndex]),
     );
   }
 }
 
-// زر الفلتر يبقى كما هو
 class _FilterButton extends StatelessWidget {
   const _FilterButton();
 
