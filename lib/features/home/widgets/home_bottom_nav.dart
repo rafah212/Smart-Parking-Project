@@ -4,9 +4,11 @@ class HomeBottomNav extends StatelessWidget {
   const HomeBottomNav({
     super.key,
     this.currentIndex = 0,
+    required this.onTap, // أضفنا هذا السطر لاستقبال وظيفة النقر
   });
 
   final int currentIndex;
+  final Function(int) onTap; // تعريف دالة النقر
 
   @override
   Widget build(BuildContext context) {
@@ -29,27 +31,25 @@ class HomeBottomNav extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _NavItem(
-            icon: Icons.home_rounded,
-            label: 'Home',
-            isActive: currentIndex == 0,
-          ),
-          _NavItem(
-            icon: Icons.bookmark_rounded,
-            label: 'Saved',
-            isActive: currentIndex == 1,
-          ),
-          _NavItem(
-            icon: Icons.qr_code_scanner_rounded,
-            label: 'Booking',
-            isActive: currentIndex == 2,
-          ),
-          _NavItem(
-            icon: Icons.person_outline_rounded,
-            label: 'Profile',
-            isActive: currentIndex == 3,
-          ),
+          // قمنا بتغليف كل عنصر بـ GestureDetector ليصبح قابلاً للنقر
+          _buildItem(0, Icons.home_rounded, 'Home'),
+          _buildItem(1, Icons.bookmark_rounded, 'Saved'),
+          _buildItem(2, Icons.qr_code_scanner_rounded, 'Booking'),
+          _buildItem(3, Icons.person_outline_rounded, 'Profile'),
         ],
+      ),
+    );
+  }
+
+  // دالة مساعدة لبناء العناصر وجعلها ترسل رقمها عند النقر
+  Widget _buildItem(int index, IconData icon, String label) {
+    return GestureDetector(
+      onTap: () => onTap(index), // عند النقر، نرسل رقم العنصر للهوم سكرين
+      behavior: HitTestBehavior.opaque, // لجعل منطقة النقر واسعة وسهلة
+      child: _NavItem(
+        icon: icon,
+        label: label,
+        isActive: currentIndex == index,
       ),
     );
   }
@@ -68,7 +68,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const activeColor = Color(0xFF237D8C);
+    // جعلنا اللون يتغير بناءً على حالة النشاط (نشط = أزرق، غير نشط = رمادي)
+    final Color color = isActive ? const Color(0xFF237D8C) : const Color(0xFFB8B8B8);
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -76,15 +77,15 @@ class _NavItem extends StatelessWidget {
         Icon(
           icon,
           size: 24,
-          color: activeColor,
+          color: color, // استخدام اللون المتغير
         ),
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: activeColor,
+          style: TextStyle(
+            color: color, // استخدام اللون المتغير
             fontSize: 12,
-            fontWeight: FontWeight.w400,
+            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
           ),
         ),
       ],

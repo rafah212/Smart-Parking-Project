@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// تأكد من أن المسار هنا يشير إلى ملف النوتفيكيشن الذي أنشأته
+import '../notifications.dart'; 
 
 class HomeHeader extends StatelessWidget {
   const HomeHeader({super.key});
@@ -36,36 +38,46 @@ class HomeHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                width: 36,
-                height: 36,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF3C3F46),
-                  shape: BoxShape.circle,
-                ),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    const Icon(
-                      Icons.notifications,
-                      color: Colors.white,
-                      size: 18,
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
+              // --- تم تغليف حاوية الجرس بـ GestureDetector للربط ---
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const Notifications()),
+                  );
+                },
+                child: Container(
+                  width: 36,
+                  height: 36,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF3C3F46),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      const Icon(
+                        Icons.notifications,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
+              // ------------------------------------------------
             ],
           ),
         ],
@@ -85,7 +97,7 @@ class _FakeStatusBar extends StatelessWidget {
         Text(
           '9:41',
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.black, // ملاحظة: قد يحتاج الفريق لتغيير هذا اللون للأبيض ليظهر فوق التدرج الداكن
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
