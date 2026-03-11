@@ -1,21 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/features/home/widgets/explore_category_screen.dart';
 
 class HomeSearchSheet extends StatelessWidget {
   final ScrollController scrollController;
 
-  const HomeSearchSheet({
-    super.key,
-    required this.scrollController,
-  });
+  const HomeSearchSheet({super.key, required this.scrollController});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(30),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         boxShadow: [
           BoxShadow(
             color: Color(0x14000000),
@@ -37,7 +33,7 @@ class HomeSearchSheet extends StatelessWidget {
             _SectionLabel('NEARBY'),
             SizedBox(height: 10),
             _NearbyPlaceCard(
-              title: 'Unaizah Collage of Pharmacy',
+              title: 'Unaizah College of Pharmacy',
               slotsText: '35 slots available',
               distance: '600m',
             ),
@@ -152,11 +148,7 @@ class _FilterButton extends StatelessWidget {
         border: Border.all(color: const Color(0x30777777)),
         shape: BoxShape.circle,
       ),
-      child: const Icon(
-        Icons.tune_rounded,
-        color: Color(0xFF237D8C),
-        size: 22,
-      ),
+      child: const Icon(Icons.tune_rounded, color: Color(0xFF237D8C), size: 22),
     );
   }
 }
@@ -267,7 +259,7 @@ class _ExploreSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
@@ -277,17 +269,37 @@ class _ExploreSection extends StatelessWidget {
                 imagePath: 'assets/images/explore_university.png',
                 title: 'University',
                 height: 170,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExploreCategoryScreen(
+                        category: ExploreCategoryType.university,
+                      ),
+                    ),
+                  );
+                },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _ExploreCard(
                 imagePath: 'assets/images/explore_cafes_farms.png',
                 title: 'Cafés & Farms',
                 height: 210,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExploreCategoryScreen(
+                        category: ExploreCategoryType.cafesAndFarms,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
         ),
-        SizedBox(width: 15),
+        const SizedBox(width: 15),
         Expanded(
           child: Column(
             children: [
@@ -295,12 +307,32 @@ class _ExploreSection extends StatelessWidget {
                 imagePath: 'assets/images/explore_hospitals.png',
                 title: 'Hospitals',
                 height: 210,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExploreCategoryScreen(
+                        category: ExploreCategoryType.hospitals,
+                      ),
+                    ),
+                  );
+                },
               ),
-              SizedBox(height: 15),
+              const SizedBox(height: 15),
               _ExploreCard(
                 imagePath: 'assets/images/explore_shopping.png',
                 title: 'Shopping',
                 height: 170,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ExploreCategoryScreen(
+                        category: ExploreCategoryType.shopping,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -314,62 +346,60 @@ class _ExploreCard extends StatelessWidget {
   final String imagePath;
   final String title;
   final double height;
+  final VoidCallback? onTap;
 
   const _ExploreCard({
     required this.imagePath,
     required this.title,
     required this.height,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      width: double.infinity,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: Container(
-              height: 52,
-              color: const Color(0x80237D8C),
-              padding: const EdgeInsets.symmetric(horizontal: 15),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: height,
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+        child: Stack(
+          children: [
+            Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Container(
+                height: 52,
+                color: const Color(0x80237D8C),
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ],
+                    const Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.white,
+                      size: 18,
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
