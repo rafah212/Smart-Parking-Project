@@ -1,19 +1,11 @@
 import 'package:flutter/material.dart';
 
-enum ExploreCategoryType {
-  hospitals,
-  university,
-  shopping,
-  cafesAndFarms,
-}
+enum ExploreCategoryType { hospitals, university, shopping, cafesAndFarms }
 
 class ExploreCategoryScreen extends StatelessWidget {
   final ExploreCategoryType category;
 
-  const ExploreCategoryScreen({
-    super.key,
-    required this.category,
-  });
+  const ExploreCategoryScreen({super.key, required this.category});
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +23,7 @@ class ExploreCategoryScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _HeroCard(
-                      imagePath: data.heroImage,
-                      title: data.title,
-                    ),
+                    _HeroCard(imagePath: data.heroImage, title: data.title),
                     const SizedBox(height: 16),
                     const _SectionTitle('POPULAR'),
                     const SizedBox(height: 12),
@@ -84,14 +73,9 @@ class _TopHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment(0.5, 0),
           end: Alignment(0.5, 1),
-          colors: [
-            Color(0xFF195A64),
-            Color(0xFF34B5CA),
-          ],
+          colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
         ),
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(10),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
       child: Stack(
         children: [
@@ -131,10 +115,7 @@ class _HeroCard extends StatelessWidget {
   final String imagePath;
   final String title;
 
-  const _HeroCard({
-    required this.imagePath,
-    required this.title,
-  });
+  const _HeroCard({required this.imagePath, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -142,17 +123,10 @@ class _HeroCard extends StatelessWidget {
       height: 160,
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
       child: Stack(
         children: [
-          Positioned.fill(
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-            ),
-          ),
+          Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
           Positioned(
             left: 0,
             right: 0,
@@ -208,16 +182,11 @@ class _PopularCard extends StatelessWidget {
       width: 150,
       height: 192,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
       child: Stack(
         children: [
           Positioned.fill(
-            child: Image.asset(
-              place.imagePath,
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset(place.imagePath, fit: BoxFit.cover),
           ),
           Positioned(
             left: 0,
@@ -270,11 +239,7 @@ class _NearbyPlaceCard extends StatelessWidget {
               color: place.iconBackgroundColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              place.icon,
-              color: const Color(0xFF1A485F),
-              size: 18,
-            ),
+            child: Icon(place.icon, color: const Color(0xFF1A485F), size: 18),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -356,7 +321,7 @@ class CategoryScreenData {
 const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
   ExploreCategoryType.hospitals: CategoryScreenData(
     title: 'Hospitals',
-    heroImage: 'assets/images/explore_hospitals.png',
+    heroImage: 'assets/images/explore_hospitals1.png',
     popularPlaces: [
       CategoryPlace(
         name: 'King Saud Hospital',
@@ -413,7 +378,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
 
   ExploreCategoryType.university: CategoryScreenData(
     title: 'University',
-    heroImage: 'assets/images/explore_university.png',
+    heroImage: 'assets/images/explore_university1.png',
     popularPlaces: [
       CategoryPlace(
         name: 'Unaizah College of Pharmacy',
@@ -432,7 +397,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Qassim University - Unaizah',
+        name: 'Onaizah Colleges',
         imagePath: 'assets/images/university_3.png',
         slots: 27,
         distance: '3.2 km',
@@ -458,7 +423,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Qassim University - Unaizah',
+        name: 'Onaizah Colleges',
         imagePath: 'assets/images/university_3.png',
         slots: 27,
         distance: '3.2 km',
@@ -470,7 +435,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
 
   ExploreCategoryType.shopping: CategoryScreenData(
     title: 'Shopping',
-    heroImage: 'assets/images/explore_shopping.png',
+    heroImage: 'assets/images/explore_shopping1.png',
     popularPlaces: [
       CategoryPlace(
         name: 'Al-Othaim Mall',
@@ -489,7 +454,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Al Nakheel Plaza',
+        name: 'Boulevard Unaizah',
         imagePath: 'assets/images/shopping_3.png',
         slots: 16,
         distance: '4.1 km',
@@ -515,7 +480,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Al Nakheel Plaza',
+        name: 'Boulevard Unaizah',
         imagePath: 'assets/images/shopping_3.png',
         slots: 16,
         distance: '4.1 km',
@@ -527,7 +492,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
 
   ExploreCategoryType.cafesAndFarms: CategoryScreenData(
     title: 'Cafés & Farms',
-    heroImage: 'assets/images/explore_cafes_farms.png',
+    heroImage: 'assets/images/explore_cafes_farms1.png',
     popularPlaces: [
       CategoryPlace(
         name: 'Jada Al-Nakheel',
@@ -538,7 +503,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFA1D5D9),
       ),
       CategoryPlace(
-        name: 'Palm View Farm',
+        name: 'Gomar Farm',
         imagePath: 'assets/images/cafe_2.png',
         slots: 14,
         distance: '6.2 km',
@@ -546,7 +511,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Nakhil Garden Café',
+        name: 'ًWaref Farm',
         imagePath: 'assets/images/cafe_3.png',
         slots: 11,
         distance: '7.1 km',
@@ -564,7 +529,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFA1D5D9),
       ),
       CategoryPlace(
-        name: 'Palm View Farm',
+        name: 'Gomar Farm',
         imagePath: 'assets/images/cafe_2.png',
         slots: 14,
         distance: '6.2 km',
@@ -572,7 +537,7 @@ const Map<ExploreCategoryType, CategoryScreenData> _categoryData = {
         iconBackgroundColor: Color(0xFFF7EDB3),
       ),
       CategoryPlace(
-        name: 'Nakhil Garden Café',
+        name: 'Waref Farm',
         imagePath: 'assets/images/cafe_3.png',
         slots: 11,
         distance: '7.1 km',
