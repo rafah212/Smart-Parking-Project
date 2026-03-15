@@ -1,89 +1,93 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
 
 class ParkingCard extends StatelessWidget {
-  const ParkingCard({
-    super.key,
-    required this.imagePath,
-    required this.title,
-    required this.location,
-    required this.statusText,
-    required this.distance,
-  });
+  const ParkingCard({super.key, required this.place});
 
-  final String imagePath;
-  final String title;
-  final String location;
-  final String statusText;
-  final String distance;
+  final Place place;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: Image.asset(
-            imagePath,
-            width: 87,
-            height: 72,
-            fit: BoxFit.cover,
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => PlaceDetailsScreen(place: place)),
+        );
+      },
+      borderRadius: BorderRadius.circular(10),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset(
+              place.imagePath,
+              width: 87,
+              height: 72,
+              fit: BoxFit.cover,
+            ),
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: SizedBox(
-            height: 72,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children:[
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+          const SizedBox(width: 12),
+          Expanded(
+            child: SizedBox(
+              height: 72,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          place.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF237D8C),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${place.distanceKm} km',
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      distance,
-                      style: const TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  location,
-                  style: const TextStyle(
-                    color: Color(0xFFA6ADB6),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
+                    ],
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  statusText,
-                  style: const TextStyle(
-                    color: Color(0xFF237D8C),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 6),
+                  Text(
+                    place.branchName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFA6ADB6),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  Text(
+                    '${place.availableSlots}/${place.totalSlots} Total slots available',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF237D8C),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

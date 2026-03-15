@@ -1,48 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-
-class PlaceDetails {
-  final String placeName;
-  final String searchText;
-  final String branchName;
-  final String slotsText;
-  final String distance;
-  final String priceLabel;
-  final LatLng location;
-  final IconData markerIcon;
-  final Color markerColor;
-
-  const PlaceDetails({
-    required this.placeName,
-    required this.searchText,
-    required this.branchName,
-    required this.slotsText,
-    required this.distance,
-    required this.priceLabel,
-    required this.location,
-    this.markerIcon = Icons.local_parking_rounded,
-    this.markerColor = const Color(0xFF237D8C),
-  });
-}
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PlaceDetailsScreen extends StatelessWidget {
-  final PlaceDetails place;
+  final Place place;
 
   const PlaceDetailsScreen({super.key, required this.place});
 
+  Future<void> _openDirections() async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}',
+    );
+
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final LatLng location = LatLng(place.lat, place.lng);
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
           Positioned.fill(
             child: FlutterMap(
-              options: MapOptions(
-                initialCenter: place.location,
-                initialZoom: 15.5,
-              ),
+              options: MapOptions(initialCenter: location, initialZoom: 15.5),
               children: [
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -51,7 +38,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                 MarkerLayer(
                   markers: [
                     Marker(
-                      point: place.location,
+                      point: location,
                       width: 56,
                       height: 56,
                       child: Container(
@@ -66,9 +53,9 @@ class PlaceDetailsScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: Icon(
-                          place.markerIcon,
-                          color: place.markerColor,
+                        child: const Icon(
+                          Icons.local_parking_rounded,
+                          color: Color(0xFF237D8C),
                           size: 28,
                         ),
                       ),
@@ -78,7 +65,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                 CircleLayer(
                   circles: [
                     CircleMarker(
-                      point: place.location,
+                      point: location,
                       radius: 45,
                       color: const Color(0x33237D8C),
                       borderColor: const Color(0x66237D8C),
@@ -108,7 +95,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 13),
-                  child: _SearchPreviewBar(text: place.searchText),
+                  child: _SearchPreviewBar(text: place.name),
                 ),
               ],
             ),
@@ -141,7 +128,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            place.placeName,
+                            place.name,
                             style: const TextStyle(
                               color: Color(0xFF1A485F),
                               fontSize: 16,
@@ -172,12 +159,13 @@ class PlaceDetailsScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _InfoRow(
                       icon: Icons.local_parking_outlined,
-                      text: place.slotsText,
+                      text:
+                          '${place.availableSlots}/${place.totalSlots} Total slots available',
                     ),
                     const SizedBox(height: 8),
                     _InfoRow(
                       icon: Icons.social_distance_outlined,
-                      text: place.distance,
+                      text: '${place.distanceKm} km',
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -194,7 +182,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                           child: _ActionButton(
                             icon: Icons.directions_outlined,
                             text: 'Get directions',
-                            onTap: () {},
+                            onTap: _openDirections,
                           ),
                         ),
                       ],
@@ -430,3 +418,4 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
+

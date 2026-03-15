@@ -1,13 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/features/home/data/places_dummy_data.dart';
+import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/explore_category_screen.dart';
+import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
 
-class HomeSearchSheet extends StatelessWidget {
+class HomeSearchSheet extends StatefulWidget {
   final ScrollController scrollController;
 
-  const HomeSearchSheet({super.key, required this.scrollController});
+  const HomeSearchSheet({
+    super.key,
+    required this.scrollController,
+  });
+
+  @override
+  State<HomeSearchSheet> createState() => _HomeSearchSheetState();
+}
+
+class _HomeSearchSheetState extends State<HomeSearchSheet> {
+  final TextEditingController _searchController = TextEditingController();
+
+  late List<Place> _nearbyPlaces;
+  late List<Place> _searchResults;
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nearbyPlaces = dummyPlaces.where((place) => place.isNearby).toList();
+    _searchResults = [];
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  void _onSearchChanged() {
+    final query = _searchController.text.trim();
+
+    if (query.isEmpty) {
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+      return;
+    }
+
+    final results = dummyPlaces.where((place) {
+      final q = query.toLowerCase();
+      return place.name.toLowerCase().contains(q) ||
+          place.branchName.toLowerCase().contains(q) ||
+          place.category.toLowerCase().contains(q);
+    }).toList();
+
+    setState(() {
+      _isSearching = true;
+      _searchResults = results;
+    });
+  }
+
+  void _openPlaceDetails(BuildContext context, Place place) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PlaceDetailsScreen(place: place),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final List<Place> visiblePlaces =
+        _isSearching ? _searchResults : _nearbyPlaces;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -21,39 +89,59 @@ class HomeSearchSheet extends StatelessWidget {
         ],
       ),
       child: SingleChildScrollView(
-        controller: scrollController,
+        controller: widget.scrollController,
         padding: const EdgeInsets.fromLTRB(13, 12, 13, 30),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Center(child: _TopHandle()),
-            SizedBox(height: 16),
-            _SearchRow(),
-            SizedBox(height: 20),
-            _SectionLabel('NEARBY'),
-            SizedBox(height: 10),
-            _NearbyPlaceCard(
-              title: 'Unaizah College of Pharmacy',
-              slotsText: '35 slots available',
-              distance: '600m',
-            ),
-            SizedBox(height: 14),
-            _NearbyPlaceCard(
-              title: 'Al-Othaim Mall',
-              slotsText: '45 slots available',
-              distance: '950m',
-            ),
-            SizedBox(height: 14),
-            _NearbyPlaceCard(
-              title: 'King Saud Hospital',
-              slotsText: '39 slots available',
-              distance: '1.2 km',
-            ),
-            SizedBox(height: 24),
-            _SectionLabel('EXPLORE'),
-            SizedBox(height: 14),
-            _ExploreSection(),
-            SizedBox(height: 30),
+          children: [
+            const Center(child: _TopHandle()),
+            const SizedBox(height: 16),
+            _SearchRow(controller: _searchController),
+            const SizedBox(height: 20),
+
+            _SectionLabel(_isSearching ? 'RESULTS' : 'NEARBY'),
+            const SizedBox(height: 10),
+
+            if (visiblePlaces.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xCCF5FBFC),
+                  border: Border.all(color: const Color(0x30777777)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text(
+                  'No places found',
+                  style: TextStyle(
+                    color: Color(0xFF4E5568),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            else
+              ...visiblePlaces.map(
+                (place) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: _NearbyPlaceCard(
+                    place: place,
+                    onTap: () => _openPlaceDetails(context, place),
+                  ),
+                ),
+              ),
+
+            if (!_isSearching) ...[
+              const SizedBox(height: 10),
+              const _SectionLabel('EXPLORE'),
+              const SizedBox(height: 14),
+              const _ExploreSection(),
+            ],
+
+            const SizedBox(height: 30),
           ],
         ),
       ),
@@ -78,22 +166,30 @@ class _TopHandle extends StatelessWidget {
 }
 
 class _SearchRow extends StatelessWidget {
-  const _SearchRow();
+  final TextEditingController controller;
+
+  const _SearchRow({
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: const [
-        Expanded(child: _SearchField()),
-        SizedBox(width: 10),
-        _FilterButton(),
+      children: [
+        Expanded(child: _SearchField(controller: controller)),
+        const SizedBox(width: 10),
+        const _FilterButton(),
       ],
     );
   }
 }
 
 class _SearchField extends StatelessWidget {
-  const _SearchField();
+  final TextEditingController controller;
+
+  const _SearchField({
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,14 +200,15 @@ class _SearchField extends StatelessWidget {
         border: Border.all(color: const Color(0x30777777)),
         borderRadius: BorderRadius.circular(22),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(width: 14),
-          Icon(Icons.search, color: Color(0xFF8D8D8D), size: 20),
-          SizedBox(width: 10),
+          const SizedBox(width: 14),
+          const Icon(Icons.search, color: Color(0xFF8D8D8D), size: 20),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
-              decoration: InputDecoration(
+              controller: controller,
+              decoration: const InputDecoration(
                 hintText: 'Search',
                 hintStyle: TextStyle(
                   color: Color(0xFF8D8D8D),
@@ -121,14 +218,14 @@ class _SearchField extends StatelessWidget {
                 border: InputBorder.none,
                 isCollapsed: true,
               ),
-              style: TextStyle(
+              style: const TextStyle(
                 color: Color(0xFF1A485F),
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          SizedBox(width: 14),
+          const SizedBox(width: 14),
         ],
       ),
     );
@@ -148,7 +245,11 @@ class _FilterButton extends StatelessWidget {
         border: Border.all(color: const Color(0x30777777)),
         shape: BoxShape.circle,
       ),
-      child: const Icon(Icons.tune_rounded, color: Color(0xFF237D8C), size: 22),
+      child: const Icon(
+        Icons.tune_rounded,
+        color: Color(0xFF237D8C),
+        size: 22,
+      ),
     );
   }
 }
@@ -173,82 +274,90 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _NearbyPlaceCard extends StatelessWidget {
-  final String title;
-  final String slotsText;
-  final String distance;
+  final Place place;
+  final VoidCallback onTap;
 
   const _NearbyPlaceCard({
-    required this.title,
-    required this.slotsText,
-    required this.distance,
+    required this.place,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: const Color(0xCCF5FBFC),
-        border: Border.all(color: const Color(0x30777777)),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: const Color(0xFFA1D5D9),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Center(
-              child: Text(
-                'P',
-                style: TextStyle(
-                  color: Color(0xFF1A485F),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
+    String formattedDistance;
+    if (place.distanceKm < 1) {
+      formattedDistance = '${(place.distanceKm * 1000).toInt()}m';
+    } else {
+      formattedDistance = '${place.distanceKm} km';
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: const Color(0xCCF5FBFC),
+          border: Border.all(color: const Color(0x30777777)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: const Color(0xFFA1D5D9),
+                borderRadius: BorderRadius.circular(10),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+              child: const Center(
+                child: Text(
+                  'P',
+                  style: TextStyle(
                     color: Color(0xFF1A485F),
-                    fontSize: 16,
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  slotsText,
-                  style: const TextStyle(
-                    color: Color(0xFF4E5568),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    place.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF1A485F),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${place.availableSlots} slots available',
+                    style: const TextStyle(
+                      color: Color(0xFF4E5568),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            distance,
-            style: const TextStyle(
-              color: Color(0xFF237D8C),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
+            const SizedBox(width: 8),
+            Text(
+              formattedDistance,
+              style: const TextStyle(
+                color: Color(0xFF237D8C),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -363,10 +472,17 @@ class _ExploreCard extends StatelessWidget {
         height: height,
         width: double.infinity,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(15),
+        ),
         child: Stack(
           children: [
-            Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
+            Positioned.fill(
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.cover,
+              ),
+            ),
             Positioned(
               left: 0,
               right: 0,
