@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../home/utils/navigation_helpers.dart';
+//import '../forgetPass/forget_pass1.dart';
+
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -200,7 +203,9 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      openForgotPassword(context);
+                    },
                     child: const Text(
                       'Forgot your password?',
                       style: TextStyle(
