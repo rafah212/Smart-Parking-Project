@@ -12,7 +12,7 @@ void openPlaceDetails(BuildContext context, Place place) {
   );
 }
 
-void ForgotPassword(BuildContext context) {
+void openForgotPassword(BuildContext context) {
   Navigator.push(
     context,
     MaterialPageRoute(
