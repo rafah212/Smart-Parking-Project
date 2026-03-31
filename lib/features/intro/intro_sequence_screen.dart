@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../pages/page1_screen.dart';
-import '../../core/widgets/responsive_preview.dart';
+
+import 'package:parkliapp/features/onboarding/onboarding_screen.dart';
+
 class IntroSequenceScreen extends StatefulWidget {
   const IntroSequenceScreen({super.key});
 
@@ -15,7 +16,7 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
   late final Animation<double> _logoRotation;
   late final Animation<double> _nameOpacity;
   late final Animation<double> _blackCardOpacity;
-  // late final Animation<Offset> _logoOffset;
+  late final Animation<Offset> _logoOffset;
 
   @override
   void initState() {
@@ -81,13 +82,31 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
 
     _nameOpacity = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.6, 1.0, curve: Curves.easeInOut),
+      curve: const Interval(0.8, 1.0, curve: Curves.easeInOut),
     );
+
+    _logoOffset =
+        Tween<Offset>(
+          begin: Offset.zero, // في البداية في النص
+          end: const Offset(
+            -0.35,
+            0.0,
+          ), // يتحرك لليسار (حسّيًا زي مكانه في Intro3)
+        ).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: const Interval(
+              0.6, // يبدأ يتحرك بعد ما يخلص التكبير/التصغير
+              0.8, // يوصل لمكانه النهائي قبل ما تبدأ الألوان
+              curve: Curves.easeInOut,
+            ),
+          ),
+        );
 
     _blackCardOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeInOut),
+        curve: const Interval(0.8, 1.0, curve: Curves.easeInOut),
       ),
     );
 
@@ -96,8 +115,10 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const Page1Screen()),
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const OnboardingScreen()),
         );
       }
     });
@@ -108,12 +129,16 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
     _controller.dispose();
     super.dispose();
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: ResponsivePreview(
-        child: AnimatedBuilder(
+      body: Center(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(25),
+          child: SizedBox(
+            width: 375,
+            height: 812,
+            child: AnimatedBuilder(
               animation: _controller,
               builder: (context, child) {
                 return Stack(
@@ -124,15 +149,18 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
                       child: Container(
                         color: Colors.black,
                         child: Center(
-                          child: Transform.scale(
-                            scale: _logoScale.value,
-                            child: Transform.rotate(
-                              angle: _logoRotation.value,
-                              child: Image.asset(
-                                'assets/images/intro_logo.png', // شعار
-                                width: 64,
-                                height: 64,
-                                fit: BoxFit.contain,
+                          child: FractionalTranslation(
+                            translation: _logoOffset.value,
+                            child: Transform.scale(
+                              scale: _logoScale.value,
+                              child: Transform.rotate(
+                                angle: _logoRotation.value,
+                                child: Image.asset(
+                                  'assets/images/intro_logo.png', // شعار
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
@@ -184,6 +212,8 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
               },
             ),
           ),
-        );
-     }
-   }
+        ),
+      ),
+    );
+  }
+}
