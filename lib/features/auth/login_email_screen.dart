@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:parkliapp/core/services/auth_service.dart';
+
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
 
@@ -25,21 +27,32 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final auth = AuthService();
 
-    setState(() {
-      isLoading = false;
-    });
+      final res = await auth.loginWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Logging in with ${_emailController.text}'),
-      ),
-    );
+      if (res.user == null) {
+        throw Exception('Login failed');
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacementNamed(context, '/home');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
+    }
   }
 
   @override
@@ -79,9 +92,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
                 const Text(
                   'Email Address',
                   style: TextStyle(
@@ -90,9 +101,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
@@ -131,9 +140,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 20),
-
                 const Text(
                   'Password',
                   style: TextStyle(
@@ -142,9 +149,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 TextFormField(
                   controller: _passwordController,
                   obscureText: obscurePassword,
@@ -194,9 +199,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     return null;
                   },
                 ),
-
                 const SizedBox(height: 14),
-
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -210,9 +213,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 10),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,

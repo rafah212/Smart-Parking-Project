@@ -1,10 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/user_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
 
-class CompleteInfoScreen extends StatelessWidget {
+class CompleteInfoScreen extends StatefulWidget {
   const CompleteInfoScreen({super.key, required this.phoneNumber});
 
   final String phoneNumber;
+
+  @override
+  State<CompleteInfoScreen> createState() => _CompleteInfoScreenState();
+}
+
+class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
+  late final TextEditingController _firstNameController;
+  late final TextEditingController _lastNameController;
+
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _firstNameController = TextEditingController();
+    _lastNameController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _goNext() async {
+    final firstName = _firstNameController.text.trim();
+    final lastName = _lastNameController.text.trim();
+
+    if (firstName.isEmpty || lastName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please complete all fields')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No authenticated user found')),
+        );
+        return;
+      }
+
+      final userService = UserService();
+
+      await userService.createUserProfile(
+        user: user,
+        fullName: '$firstName $lastName',
+        phoneNumber: widget.phoneNumber,
+        email: user.email ?? '',
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LocationPermissionScreen(),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save data: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,19 +111,20 @@ class CompleteInfoScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 28),
-
                     const _FieldLabel('First Name'),
                     const SizedBox(height: 8),
-                    const _CustomTextField(hintText: 'Enter first name'),
-
+                    _CustomTextField(
+                      controller: _firstNameController,
+                      hintText: 'Enter first name',
+                    ),
                     const SizedBox(height: 16),
-
                     const _FieldLabel('Last Name'),
                     const SizedBox(height: 8),
-                    const _CustomTextField(hintText: 'Enter last name'),
-
+                    _CustomTextField(
+                      controller: _lastNameController,
+                      hintText: 'Enter last name',
+                    ),
                     const SizedBox(height: 16),
-
                     const _FieldLabel('Mobile Number'),
                     const SizedBox(height: 8),
                     Row(
@@ -51,15 +133,13 @@ class CompleteInfoScreen extends StatelessWidget {
                         const SizedBox(width: 10),
                         Expanded(
                           child: _CustomTextField(
-                            hintText: phoneNumber,
+                            hintText: widget.phoneNumber,
                             readOnly: true,
                           ),
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 28),
-
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -87,21 +167,12 @@ class CompleteInfoScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 22),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LocationPermissionScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: _isLoading ? null : _goNext,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFA3D3DB),
                           foregroundColor: Colors.white,
@@ -110,14 +181,23 @@ class CompleteInfoScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(50),
                           ),
                         ),
-                        child: const Text(
-                          'Next',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Next',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.39,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -192,14 +272,20 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _CustomTextField extends StatelessWidget {
-  const _CustomTextField({required this.hintText, this.readOnly = false});
+  const _CustomTextField({
+    this.controller,
+    required this.hintText,
+    this.readOnly = false,
+  });
 
+  final TextEditingController? controller;
   final String hintText;
   final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       readOnly: readOnly,
       decoration: InputDecoration(
         hintText: hintText,

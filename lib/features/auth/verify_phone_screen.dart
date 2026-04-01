@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/complete_info_screen.dart';
 
 class VerifyPhoneScreen extends StatefulWidget {
-  const VerifyPhoneScreen({super.key, this.phoneNumber = '+966 567891234'});
+  const VerifyPhoneScreen({
+    super.key,
+    required this.phoneNumber,
+    required this.verificationId,
+    this.isAutoVerified = false,
+  });
 
   final String phoneNumber;
+  final String verificationId;
+  final bool isAutoVerified;
 
   @override
   State<VerifyPhoneScreen> createState() => _VerifyPhoneScreenState();
@@ -14,11 +21,26 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
 
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
-    _controllers = List.generate(4, (_) => TextEditingController());
-    _focusNodes = List.generate(4, (_) => FocusNode());
+    _controllers = List.generate(6, (_) => TextEditingController());
+    _focusNodes = List.generate(6, (_) => FocusNode());
+
+    if (widget.isAutoVerified) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CompleteInfoScreen(
+              phoneNumber: widget.phoneNumber,
+            ),
+          ),
+        );
+      });
+    }
   }
 
   @override
@@ -51,38 +73,56 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
     }
   }
 
-  void _verifyCode() {
+  Future<void> _verifyCode() async {
     final code = _otpCode;
 
-    if (code.length < 4) {
+    if (code.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the 4-digit code')),
+        const SnackBar(content: Text('Please enter the 6-digit code')),
       );
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Entered OTP: $code')));
+    setState(() {
+      _isLoading = true;
+    });
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CompleteInfoScreen(phoneNumber: widget.phoneNumber),
+    try {
+      // 🔥 مؤقت: نعتبر الكود صحيح
+      await Future.delayed(const Duration(seconds: 1));
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CompleteInfoScreen(
+            phoneNumber: widget.phoneNumber,
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Verification failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _resendCode() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Resend will be enabled later'),
       ),
     );
   }
 
-  void _resendCode() {
-    // TODO: resend OTP logic
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('OTP code resent')));
-  }
-
-  void _skip() {
-    // TODO: روحي للصفحة المناسبة عندك
-  }
+  void _skip() {}
 
   @override
   Widget build(BuildContext context) {
@@ -104,47 +144,24 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                         color: Color(0xFF237D8C),
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
-                        letterSpacing: -0.84,
-                        height: 1.2,
                       ),
                     ),
                     const SizedBox(height: 14),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          const TextSpan(
-                            text: 'Enter the code that was sent to\n',
-                            style: TextStyle(
-                              color: Color(0xFF237D8C),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                              height: 1.4,
-                              letterSpacing: -0.42,
-                            ),
-                          ),
-                          TextSpan(
-                            text: widget.phoneNumber,
-                            style: const TextStyle(
-                              color: Color(0xFF237D8C),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              height: 1.4,
-                              letterSpacing: -0.42,
-                            ),
-                          ),
-                        ],
+                    Text(
+                      'Enter the code sent to ${widget.phoneNumber}',
+                      style: const TextStyle(
+                        color: Color(0xFF237D8C),
+                        fontSize: 14,
                       ),
                     ),
                     const SizedBox(height: 24),
-
                     Row(
                       children: List.generate(
-                        4,
+                        6,
                         (index) => Expanded(
                           child: Padding(
-                            padding: EdgeInsets.only(
-                              right: index == 3 ? 0 : 10,
-                            ),
+                            padding:
+                                EdgeInsets.only(right: index == 5 ? 0 : 10),
                             child: _OtpInputBox(
                               controller: _controllers[index],
                               focusNode: _focusNodes[index],
@@ -161,76 +178,26 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 28),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: _verifyCode,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF237D8C),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                        ),
-                        child: const Text(
-                          'Verify',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
+                        onPressed: _isLoading ? null : _verifyCode,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text('Verify'),
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    const Text(
-                      'Did not receive the code?',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        height: 1.4,
-                        letterSpacing: -0.42,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
+                    const SizedBox(height: 20),
                     OutlinedButton(
                       onPressed: _resendCode,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF237D8C),
-                        side: const BorderSide(color: Color(0xFF237D8C)),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
-                      ),
-                      child: const Text(
-                        'Resend Code',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.39,
-                          height: 1.4,
-                        ),
-                      ),
+                      child: const Text('Resend Code'),
                     ),
                   ],
                 ),
               ),
             ),
-            const _BottomHandle(),
           ],
         ),
       ),
@@ -245,49 +212,14 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-        ),
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
       ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Color(0xFF237D8C),
-              size: 20,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: onSkip,
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF237D8C),
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            label: const Text(
-              'Skip',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.42,
-              ),
-            ),
-            icon: const Icon(Icons.arrow_forward_ios, size: 14),
-            iconAlignment: IconAlignment.end,
-          ),
-        ],
-      ),
+      actions: [
+        TextButton(onPressed: onSkip, child: const Text('Skip')),
+      ],
     );
   }
 }
@@ -305,54 +237,14 @@ class _OtpInputBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 50,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        keyboardType: TextInputType.number,
-        textAlign: TextAlign.center,
-        maxLength: 1,
-        style: const TextStyle(
-          color: Color(0xFF237D8C),
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          contentPadding: EdgeInsets.zero,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: Color(0xFF237D8C), width: 1.4),
-          ),
-        ),
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-class _BottomHandle extends StatelessWidget {
-  const _BottomHandle();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      color: Colors.white,
-      alignment: const Alignment(0, 0.3),
-      child: Container(
-        width: 134,
-        height: 5,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(100),
-        ),
-      ),
+    return TextField(
+      controller: controller,
+      focusNode: focusNode,
+      maxLength: 1,
+      textAlign: TextAlign.center,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(counterText: ''),
+      onChanged: onChanged,
     );
   }
 }

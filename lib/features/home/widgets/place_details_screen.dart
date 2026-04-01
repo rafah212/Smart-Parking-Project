@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:parkliapp/features/home/widgets/parking_lot_screen.dart';
 
 class PlaceDetailsScreen extends StatelessWidget {
   final Place place;
@@ -207,7 +208,15 @@ class PlaceDetailsScreen extends StatelessWidget {
                           child: SizedBox(
                             height: 44,
                             child: ElevatedButton(
-                              onPressed: () {},
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        ParkingLotScreen(place: place),
+                                  ),
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF237D8C),
                                 foregroundColor: Colors.white,
@@ -217,7 +226,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                                 ),
                               ),
                               child: const Text(
-                                'Select',
+                                'Choose Spot',
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -252,25 +261,30 @@ class _TopBar extends StatelessWidget {
     return SizedBox(
       height: 56,
       child: Stack(
-        alignment: Alignment.center,
         children: [
-          Positioned(
-            left: 8,
-            child: IconButton(
-              onPressed: onBack,
-              icon: const Icon(
-                Icons.arrow_back_ios_new,
+          Align(
+            alignment: Alignment.center,
+            child: Text(
+              title,
+              style: const TextStyle(
                 color: Colors.white,
-                size: 20,
+                fontSize: 22,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w500,
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: IconButton(
+                onPressed: onBack,
+                icon: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
             ),
           ),
         ],

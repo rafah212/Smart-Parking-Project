@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/features/auth/complete_info_email_screen.dart';
 
 class SignUpEmailScreen extends StatefulWidget {
@@ -10,17 +11,70 @@ class SignUpEmailScreen extends StatefulWidget {
 
 class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
   late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
+    _passwordController = TextEditingController();
   }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _signUp() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter email and password')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final auth = AuthService();
+
+      final res = await auth.signUpWithEmail(
+        email: email,
+        password: password,
+      );
+
+      if (res.user == null) {
+        throw Exception('Signup failed');
+      }
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CompleteInfoEmailScreen(email: email),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signup failed: ${e.toString()}')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -43,7 +97,6 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                         color: Color(0xFF237D8C),
                         fontSize: 28,
                         fontWeight: FontWeight.w600,
-                        letterSpacing: -0.84,
                       ),
                     ),
                     const SizedBox(height: 28),
@@ -54,7 +107,6 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                         color: Color(0xFF237D8C),
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        letterSpacing: -0.36,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -64,26 +116,31 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         hintText: 'Enter email address',
-                        hintStyle: const TextStyle(
-                          color: Color(0xFF777777),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 15,
-                        ),
-                        enabledBorder: OutlineInputBorder(
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE5E5E5),
-                          ),
                         ),
-                        focusedBorder: OutlineInputBorder(
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    const Text(
+                      'Password',
+                      style: TextStyle(
+                        color: Color(0xFF237D8C),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        hintText: 'Enter password',
+                        border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF237D8C),
-                          ),
                         ),
                       ),
                     ),
@@ -94,44 +151,15 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {
-                          final email = _emailController.text.trim();
-
-                          if (email.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Please enter your email address',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  CompleteInfoEmailScreen(email: email),
-                            ),
-                          );
-                        },
+                        onPressed: _isLoading ? null : _signUp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFA3D3DB),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
                         ),
-                        child: const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                            : const Text('Continue'),
                       ),
                     ),
 
@@ -146,27 +174,8 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                       height: 48,
                       child: OutlinedButton.icon(
                         onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
-                          Icons.phone_iphone_outlined,
-                          color: Color(0xFF237D8C),
-                          size: 20,
-                        ),
-                        label: const Text(
-                          'Continue with Phone',
-                          style: TextStyle(
-                            color: Color(0xFF237D8C),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF237D8C),
-                          side: const BorderSide(color: Color(0xFF237D8C)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                        ),
+                        icon: const Icon(Icons.phone),
+                        label: const Text('Continue with Phone'),
                       ),
                     ),
                   ],
@@ -186,50 +195,10 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 58,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Color(0xFF237D8C),
-              size: 20,
-            ),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: () {
-              // TODO: skip
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF237D8C),
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            label: const Text(
-              'Skip',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.42,
-              ),
-            ),
-            icon: const Icon(Icons.arrow_forward_ios, size: 14),
-            iconAlignment: IconAlignment.end,
-          ),
-        ],
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back),
+        onPressed: () => Navigator.pop(context),
       ),
     );
   }
@@ -242,20 +211,12 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Row(
       children: [
-        Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        Expanded(child: Divider()),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'OR',
-            style: TextStyle(
-              color: Color(0xFF777777),
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.36,
-            ),
-          ),
+          child: Text('OR'),
         ),
-        Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        Expanded(child: Divider()),
       ],
     );
   }
@@ -266,18 +227,6 @@ class _BottomHandle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      color: Colors.white,
-      alignment: const Alignment(0, 0.3),
-      child: Container(
-        width: 134,
-        height: 5,
-        decoration: BoxDecoration(
-          color: Colors.black,
-          borderRadius: BorderRadius.circular(100),
-        ),
-      ),
-    );
+    return const SizedBox(height: 20);
   }
 }

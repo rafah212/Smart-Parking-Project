@@ -31,8 +31,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.easeInOut,
       );
     } else {
-      // آخر صفحة: هنا تقدرين تودين المستخدم للـ Login/Home
-      // Navigator.pushReplacement(...);
     }
   }
 

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:parkliapp/core/services/user_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
 
 class CompleteInfoEmailScreen extends StatefulWidget {
@@ -16,6 +19,8 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
   late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
 
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -32,7 +37,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
     super.dispose();
   }
 
-  void _goNext() {
+  Future<void> _goNext() async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
     final email = _emailController.text.trim();
@@ -44,10 +49,48 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const LocationPermissionScreen()),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No authenticated user found')),
+        );
+        return;
+      }
+
+      final userService = UserService();
+
+      await userService.createUserProfile(
+        user: user,
+        fullName: '$firstName $lastName',
+        phoneNumber: '',
+        email: email,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const LocationPermissionScreen(),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save data: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -74,25 +117,20 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                       ),
                     ),
                     const SizedBox(height: 28),
-
                     const _FieldLabel('First Name'),
                     const SizedBox(height: 8),
                     _CustomTextField(
                       controller: _firstNameController,
                       hintText: 'Enter first name',
                     ),
-
                     const SizedBox(height: 16),
-
                     const _FieldLabel('Last Name'),
                     const SizedBox(height: 8),
                     _CustomTextField(
                       controller: _lastNameController,
                       hintText: 'Enter last name',
                     ),
-
                     const SizedBox(height: 16),
-
                     const _FieldLabel('Email Address'),
                     const SizedBox(height: 8),
                     _CustomTextField(
@@ -100,9 +138,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                       hintText: 'Enter email address',
                       readOnly: true,
                     ),
-
                     const SizedBox(height: 28),
-
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(
@@ -123,14 +159,12 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(height: 22),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: _goNext,
+                        onPressed: _isLoading ? null : _goNext,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFA3D3DB),
                           foregroundColor: Colors.white,
@@ -139,14 +173,23 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                             borderRadius: BorderRadius.circular(50),
                           ),
                         ),
-                        child: const Text(
-                          'Next',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Next',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.39,
+                                ),
+                              ),
                       ),
                     ),
                   ],

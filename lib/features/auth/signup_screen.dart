@@ -2,8 +2,86 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
 import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
+
+  @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController _phoneController = TextEditingController();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  String _buildFullPhoneNumber() {
+    String phone = _phoneController.text.trim();
+
+    phone = phone.replaceAll(' ', '').replaceAll('-', '');
+
+    if (phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
+    return '+966$phone';
+  }
+
+  Future<void> _sendOtp() async {
+    final rawPhone = _phoneController.text.trim();
+
+    if (rawPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your mobile number')),
+      );
+      return;
+    }
+
+    String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.startsWith('0')) {
+      digitsOnly = digitsOnly.substring(1);
+    }
+
+    if (digitsOnly.length != 9) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid Saudi mobile number'),
+        ),
+      );
+      return;
+    }
+
+    final phoneNumber = _buildFullPhoneNumber();
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VerifyPhoneScreen(
+          phoneNumber: phoneNumber,
+          verificationId: 'temp',
+          isAutoVerified: false,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +107,6 @@ class SignUpScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 28),
-
                     const Text(
                       'Mobile Number',
                       style: TextStyle(
@@ -40,16 +117,16 @@ class SignUpScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-
                     Row(
                       children: [
                         const _CountryCodeField(),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
+                            controller: _phoneController,
                             keyboardType: TextInputType.phone,
                             decoration: InputDecoration(
-                              hintText: 'Enter mobile number',
+                              hintText: '5XXXXXXXX',
                               hintStyle: const TextStyle(
                                 color: Color(0xFF777777),
                                 fontSize: 13,
@@ -76,25 +153,14 @@ class SignUpScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 16),
-
                     const _OtpInfoBox(),
-
                     const SizedBox(height: 28),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const VerifyPhoneScreen(),
-                            ),
-                          );
-                        },
+                        onPressed: _isLoading ? null : _sendOtp,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xA3237D8C),
                           foregroundColor: Colors.white,
@@ -103,23 +169,28 @@ class SignUpScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(50),
                           ),
                         ),
-                        child: const Text(
-                          'Continue',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
-                          ),
-                        ),
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Text(
+                                'Continue',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.39,
+                                ),
+                              ),
                       ),
                     ),
-
                     const SizedBox(height: 32),
-
                     const _OrDivider(),
-
                     const SizedBox(height: 32),
-
                     SizedBox(
                       width: double.infinity,
                       height: 48,
@@ -195,9 +266,7 @@ class _TopBar extends StatelessWidget {
           ),
           const Spacer(),
           TextButton.icon(
-            onPressed: () {
-              // TODO: روحي للـ Home أو Login حسب تدفقك
-            },
+            onPressed: () {},
             style: TextButton.styleFrom(
               foregroundColor: const Color(0xFF237D8C),
               padding: EdgeInsets.zero,

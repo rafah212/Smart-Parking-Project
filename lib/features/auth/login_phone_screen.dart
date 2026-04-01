@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'login_email_screen.dart';
+import 'verify_phone_screen.dart';
 
 class LoginPhoneScreen extends StatefulWidget {
   const LoginPhoneScreen({super.key});
@@ -21,6 +22,17 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
     super.dispose();
   }
 
+  String _buildFullPhoneNumber() {
+    String phone = _phoneController.text.trim();
+    phone = phone.replaceAll(' ', '').replaceAll('-', '');
+
+    if (selectedCode == '+966' && phone.startsWith('0')) {
+      phone = phone.substring(1);
+    }
+
+    return '$selectedCode$phone';
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -28,15 +40,22 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
       isLoading = true;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
+
+    if (!mounted) return;
 
     setState(() {
       isLoading = false;
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Logging in with $selectedCode ${_phoneController.text}'),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => VerifyPhoneScreen(
+          phoneNumber: _buildFullPhoneNumber(),
+          verificationId: 'temp',
+          isAutoVerified: false,
+        ),
       ),
     );
   }
@@ -78,7 +97,6 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-
                 const Text(
                   'Login to your account',
                   style: TextStyle(
@@ -87,9 +105,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-
                 const SizedBox(height: 32),
-
                 const Text(
                   'Mobile Number',
                   style: TextStyle(
@@ -98,9 +114,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-
                 const SizedBox(height: 8),
-
                 Row(
                   children: [
                     Container(
@@ -128,7 +142,10 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                               value: '+971',
                               child: Text('+971'),
                             ),
-                            DropdownMenuItem(value: '+20', child: Text('+20')),
+                            DropdownMenuItem(
+                              value: '+20',
+                              child: Text('+20'),
+                            ),
                           ],
                           onChanged: (value) {
                             if (value != null) {
@@ -140,9 +157,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 10),
-
                     Expanded(
                       child: TextFormField(
                         controller: _phoneController,
@@ -197,9 +212,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 40),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,
@@ -232,9 +245,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                           ),
                   ),
                 ),
-
                 const SizedBox(height: 28),
-
                 Row(
                   children: const [
                     Expanded(child: Divider(color: borderColor, thickness: 1)),
@@ -252,9 +263,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                     Expanded(child: Divider(color: borderColor, thickness: 1)),
                   ],
                 ),
-
                 const SizedBox(height: 28),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,

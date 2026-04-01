@@ -15,6 +15,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9935,
     imagePath: 'assets/images/university_1.png',
     isNearby: true,
+    availableInMinutes: 0,
   ),
   Place(
     id: 'u2',
@@ -29,6 +30,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9890,
     imagePath: 'assets/images/university_2.png',
     isNearby: true,
+    availableInMinutes: 15,
   ),
   Place(
     id: 'u3',
@@ -43,6 +45,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9850,
     imagePath: 'assets/images/university_3.png',
     isNearby: false,
+    availableInMinutes: 30,
   ),
 
   // Hospitals
@@ -59,6 +62,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9900,
     imagePath: 'assets/images/hospital_1.png',
     isNearby: true,
+    availableInMinutes: 0,
   ),
   Place(
     id: 'h2',
@@ -73,6 +77,7 @@ const List<Place> dummyPlaces = [
     lng: 44.0300,
     imagePath: 'assets/images/hospital_2.png',
     isNearby: false,
+    availableInMinutes: 60,
   ),
   Place(
     id: 'h3',
@@ -87,6 +92,7 @@ const List<Place> dummyPlaces = [
     lng: 43.8000,
     imagePath: 'assets/images/hospital_3.png',
     isNearby: false,
+    availableInMinutes: 180,
   ),
 
   // Shopping
@@ -103,6 +109,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9820,
     imagePath: 'assets/images/shopping_1.png',
     isNearby: true,
+    availableInMinutes: 0,
   ),
   Place(
     id: 's2',
@@ -117,6 +124,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9780,
     imagePath: 'assets/images/shopping_2.png',
     isNearby: false,
+    availableInMinutes: 15,
   ),
   Place(
     id: 's3',
@@ -131,6 +139,7 @@ const List<Place> dummyPlaces = [
     lng: 43.9700,
     imagePath: 'assets/images/shopping_3.png',
     isNearby: false,
+    availableInMinutes: 30,
   ),
 
   // Cafes & Farms
@@ -147,6 +156,7 @@ const List<Place> dummyPlaces = [
     lng: 44.0100,
     imagePath: 'assets/images/cafe_1.png',
     isNearby: false,
+    availableInMinutes: 30,
   ),
   Place(
     id: 'c2',
@@ -161,6 +171,7 @@ const List<Place> dummyPlaces = [
     lng: 44.0150,
     imagePath: 'assets/images/cafe_2.png',
     isNearby: false,
+    availableInMinutes: 60,
   ),
   Place(
     id: 'c3',
@@ -175,5 +186,6 @@ const List<Place> dummyPlaces = [
     lng: 44.0200,
     imagePath: 'assets/images/cafe_3.png',
     isNearby: false,
+    availableInMinutes: 1440,
   ),
 ];

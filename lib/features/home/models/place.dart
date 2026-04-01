@@ -11,6 +11,7 @@ class Place {
   final double lng;
   final String imagePath;
   final bool isNearby;
+  final int availableInMinutes;
 
   const Place({
     required this.id,
@@ -25,5 +26,6 @@ class Place {
     required this.lng,
     required this.imagePath,
     this.isNearby = false,
+    this.availableInMinutes = 0,
   });
 }
