@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../home/utils/navigation_helpers.dart';
+//import '../forgetPass/forget_pass1.dart';
+
 
 import 'package:parkliapp/core/services/auth_service.dart';
 
@@ -203,7 +206,9 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      openForgotPassword(context);
+                    },
                     child: const Text(
                       'Forgot your password?',
                       style: TextStyle(

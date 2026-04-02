@@ -9,6 +9,8 @@ import 'widgets/visited_parks_section.dart';
 import 'widgets/home_search_sheet.dart';
 import 'widgets/home_filter_sheet.dart';
 import 'saved_parking.dart';
+import 'user_profile.dart'; 
+import 'booking_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -58,6 +60,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }).take(4).toList();
   }
 
+  // جسد صفحة الهوم
   Widget _buildHomeBody() {
     return Stack(
       children: [
@@ -72,9 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(30),
-                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 20),
@@ -90,7 +91,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                   onTap: () {
                                     setState(() {
                                       _showSearchSheet = true;
-                                      _showFilterSheet = false;
                                     });
                                   },
                                 ),
@@ -109,9 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
-                        VisitedParksSection(
-                          visitedPlaces: _filteredVisitedPlaces,
-                        ),
+                        const VisitedParksSection(),
                         const SizedBox(height: 20),
                       ],
                     ),
@@ -122,20 +120,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
 
-        if (_showSearchSheet || _showFilterSheet)
+        if (_showSearchSheet)
           Positioned.fill(
             child: GestureDetector(
               onTap: () {
                 setState(() {
                   _showSearchSheet = false;
-                  _showFilterSheet = false;
                 });
               },
               child: Container(color: Colors.black.withOpacity(0.08)),
             ),
           ),
-
-        if (_showSearchSheet)
           DraggableScrollableSheet(
             initialChildSize: 0.72,
             minChildSize: 0.0,
@@ -160,59 +155,18 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-
-        if (_showFilterSheet)
-          DraggableScrollableSheet(
-            initialChildSize: 0.55,
-            minChildSize: 0.0,
-            maxChildSize: 0.82,
-            snap: true,
-            snapSizes: const [0.0, 0.55, 0.82],
-            builder: (context, scrollController) {
-              return NotificationListener<DraggableScrollableNotification>(
-                onNotification: (notification) {
-                  if (notification.extent <= 0.05) {
-                    WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (mounted) {
-                        setState(() {
-                          _showFilterSheet = false;
-                        });
-                      }
-                    });
-                  }
-                  return true;
-                },
-                child: HomeFilterSheet(
-                  scrollController: scrollController,
-                  initialDistance: _selectedDistance,
-                  initialSelectedTime: _selectedTime,
-                  onClose: () {
-                    setState(() {
-                      _showFilterSheet = false;
-                    });
-                  },
-                  onApply: (distance, selectedTime) {
-                    setState(() {
-                      _selectedDistance = distance;
-                      _selectedTime = selectedTime;
-                      _showFilterSheet = false;
-                    });
-                  },
-                ),
-              );
-            },
-          ),
       ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // الترتيب الحرج جداً (0, 1, 2, 3)
     final List<Widget> pages = [
-      _buildHomeBody(),
-      const SavedParking(),
-      const Center(child: Text('Booking')),
-      const Center(child: Text('Profile')),
+      _buildHomeBody(),         // Index 0
+      const SavedParking(),     // Index 1
+      const BookingScreen(),    // Index 2
+      const UserProfile(),      // Index 3
     ];
 
     return Scaffold(
@@ -233,42 +187,19 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _FilterButton extends StatelessWidget {
-  final VoidCallback onTap;
-  final bool isActive;
-
-  const _FilterButton({
-    required this.onTap,
-    required this.isActive,
-  });
+  const _FilterButton();
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      width: 46,
+      height: 46,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5FBFC),
+        border: Border.all(color: const Color(0x30777777)),
         borderRadius: BorderRadius.circular(22),
-        child: Ink(
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: isActive
-                ? const Color(0xFF237D8C)
-                : const Color(0xFFF5FBFC),
-            border: Border.all(
-              color: isActive
-                  ? const Color(0xFF237D8C)
-                  : const Color(0x30777777),
-            ),
-            borderRadius: BorderRadius.circular(22),
-          ),
-          child: Icon(
-            Icons.tune_rounded,
-            color: isActive ? Colors.white : const Color(0xFF237D8C),
-            size: 22,
-          ),
-        ),
       ),
+      child: const Icon(Icons.tune_rounded, color: Color(0xFF237D8C), size: 22),
     );
   }
 }

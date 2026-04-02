@@ -4,11 +4,11 @@ class HomeBottomNav extends StatelessWidget {
   const HomeBottomNav({
     super.key,
     this.currentIndex = 0,
-    required this.onTap, // أضفنا هذا السطر لاستقبال وظيفة النقر
+    required this.onTap,
   });
 
   final int currentIndex;
-  final Function(int) onTap; // تعريف دالة النقر
+  final Function(int) onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -16,79 +16,46 @@ class HomeBottomNav extends StatelessWidget {
       height: 72,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border.all(color: const Color(0xFFB8B8B8)),
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(13),
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x1F000000),
-            blurRadius: 5.3,
-            offset: Offset(0, -1),
-          ),
-        ],
+        border: const Border(top: BorderSide(color: Color(0xFFB8B8B8), width: 0.5)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          // قمنا بتغليف كل عنصر بـ GestureDetector ليصبح قابلاً للنقر
-          _buildItem(0, Icons.home_rounded, 'Home'),
+          _buildItem(0, Icons.home_filled, 'Home'),
           _buildItem(1, Icons.bookmark_rounded, 'Saved'),
-          _buildItem(2, Icons.qr_code_scanner_rounded, 'Booking'),
-          _buildItem(3, Icons.person_outline_rounded, 'Profile'),
+          _buildItem(2, Icons.calendar_month_rounded, 'Booking'), // يرسل رقم 2
+          _buildItem(3, Icons.person_rounded, 'Profile'),        // يرسل رقم 3
         ],
       ),
     );
   }
 
-  // دالة مساعدة لبناء العناصر وجعلها ترسل رقمها عند النقر
   Widget _buildItem(int index, IconData icon, String label) {
+    final bool isActive = currentIndex == index;
+    final Color color = isActive ? const Color(0xFF237D8C) : const Color(0xFF9E9E9E);
+
     return GestureDetector(
-      onTap: () => onTap(index), // عند النقر، نرسل رقم العنصر للهوم سكرين
-      behavior: HitTestBehavior.opaque, // لجعل منطقة النقر واسعة وسهلة
-      child: _NavItem(
-        icon: icon,
-        label: label,
-        isActive: currentIndex == index,
+      onTap: () => onTap(index),
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 65,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 26, color: color),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  const _NavItem({
-    required this.icon,
-    required this.label,
-    required this.isActive,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool isActive;
-
-  @override
-  Widget build(BuildContext context) {
-    // جعلنا اللون يتغير بناءً على حالة النشاط (نشط = أزرق، غير نشط = رمادي)
-    final Color color = isActive ? const Color(0xFF237D8C) : const Color(0xFFB8B8B8);
-
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          size: 24,
-          color: color, // استخدام اللون المتغير
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: color, // استخدام اللون المتغير
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-          ),
-        ),
-      ],
     );
   }
 }

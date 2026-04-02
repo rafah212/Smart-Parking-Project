@@ -129,8 +129,7 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
     _controller.dispose();
     super.dispose();
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
