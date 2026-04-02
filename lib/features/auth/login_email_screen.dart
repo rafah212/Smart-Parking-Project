@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import '../home/utils/navigation_helpers.dart';
-//import '../forgetPass/forget_pass1.dart';
-
-
 import 'package:parkliapp/core/services/auth_service.dart';
 
 class LoginEmailScreen extends StatefulWidget {
@@ -48,8 +45,19 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
       Navigator.pushReplacementNamed(context, '/home');
     } catch (e) {
       if (!mounted) return;
+
+      String message = e.toString();
+
+      if (message.contains('Email not confirmed')) {
+        message = 'Please verify your email first';
+      } else if (message.contains('Invalid login credentials')) {
+        message = 'Incorrect email or password';
+      } else {
+        message = 'Login failed: $message';
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${e.toString()}')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) {

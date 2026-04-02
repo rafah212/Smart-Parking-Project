@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
 import 'package:parkliapp/features/auth/verify_phone_screen.dart';
-
+import 'package:parkliapp/core/services/phone_auth_service.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -33,55 +33,63 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _sendOtp() async {
-    final rawPhone = _phoneController.text.trim();
+  final rawPhone = _phoneController.text.trim();
 
-    if (rawPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your mobile number')),
-      );
-      return;
-    }
+  if (rawPhone.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter your mobile number')),
+    );
+    return;
+  }
 
-    String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+  String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
 
-    if (digitsOnly.startsWith('0')) {
-      digitsOnly = digitsOnly.substring(1);
-    }
+  if (digitsOnly.startsWith('0')) {
+    digitsOnly = digitsOnly.substring(1);
+  }
 
-    if (digitsOnly.length != 9) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter a valid Saudi mobile number'),
-        ),
-      );
-      return;
-    }
+  if (digitsOnly.length != 9) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Enter a valid Saudi mobile number')),
+    );
+    return;
+  }
 
-    final phoneNumber = _buildFullPhoneNumber();
+  final phoneNumber = '+966$digitsOnly';
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    await Future.delayed(const Duration(seconds: 1));
+  try {
+    final phoneAuth = PhoneAuthService();
+    await phoneAuth.sendOtp(phoneNumber: phoneNumber);
 
     if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-    });
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => VerifyPhoneScreen(
           phoneNumber: phoneNumber,
-          verificationId: 'temp',
+          verificationId: '',
           isAutoVerified: false,
         ),
       ),
     );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to send OTP: $e')),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
+}
 
   @override
   Widget build(BuildContext context) {

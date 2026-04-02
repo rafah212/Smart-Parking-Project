@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/complete_info_screen.dart';
-
+import 'package:parkliapp/core/services/phone_auth_service.dart';
 class VerifyPhoneScreen extends StatefulWidget {
   const VerifyPhoneScreen({
     super.key,
@@ -72,47 +72,59 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
       _focusNodes[index - 1].requestFocus();
     }
   }
-
+  
   Future<void> _verifyCode() async {
-    final code = _otpCode;
+  final code = _otpCode;
 
-    if (code.length < 6) {
+  if (code.length < 6) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Please enter the 6-digit code')),
+    );
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final phoneAuth = PhoneAuthService();
+
+    final isValid = await phoneAuth.verifyOtp(
+      phoneNumber: widget.phoneNumber,
+      code: code,
+    );
+
+    if (!mounted) return;
+
+    if (!isValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter the 6-digit code')),
+        const SnackBar(content: Text('Invalid verification code')),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      // 🔥 مؤقت: نعتبر الكود صحيح
-      await Future.delayed(const Duration(seconds: 1));
-
-      if (!mounted) return;
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CompleteInfoScreen(
-            phoneNumber: widget.phoneNumber,
-          ),
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompleteInfoScreen(
+          phoneNumber: widget.phoneNumber,
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Verification failed: $e')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Verification failed: $e')),
+    );
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
 
   void _resendCode() {
     ScaffoldMessenger.of(context).showSnackBar(

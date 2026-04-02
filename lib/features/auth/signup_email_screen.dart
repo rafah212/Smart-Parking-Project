@@ -58,6 +58,16 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
 
       if (!mounted) return;
 
+      // إذا session كانت null فهذا يعني غالبًا أن تأكيد الإيميل مطلوب
+      if (res.session == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Check your email to verify your account'),
+          ),
+        );
+        return;
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -65,8 +75,15 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
         ),
       );
     } catch (e) {
+      String message = e.toString();
+
+      if (message.contains('User already registered')) {
+        message = 'This email is already registered';
+      }
+
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Signup failed: ${e.toString()}')),
+        SnackBar(content: Text('Signup failed: $message')),
       );
     } finally {
       if (mounted) {
