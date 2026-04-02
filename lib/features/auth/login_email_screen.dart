@@ -216,6 +216,22 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                   ),
                 ),
 
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      openChangePassword(context);
+                    },
+                    child: const Text(
+                      'Change password?',
+                      style: TextStyle(
+                        color: primaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 10),
 
                 SizedBox(

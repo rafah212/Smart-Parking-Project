@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/core/widgets/responsive_preview.dart';
+import 'check_email.dart';
+
 
 class ForgotPassword1 extends StatelessWidget {
   const ForgotPassword1({super.key});
@@ -147,9 +149,13 @@ class ForgotPassword1 extends StatelessWidget {
                           top: 348,
                           child: GestureDetector(
                             onTap: () {
-                              // هنا سنربط الصفحة الثانية لاحقاً
-                              print("Going to next page...");
-                            },
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ForgotPasswordCheckEmail(),
+                                ),
+                                );
+                             },
                             child: Container(
                               width: 335,
                               height: 48,
@@ -160,7 +166,8 @@ class ForgotPassword1 extends StatelessWidget {
                               child: const Center(
                                 child: Text(
                                   'Next',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                  style: TextStyle(color: Colors.white, 
+                                  fontWeight: FontWeight.w700),
                                 ),
                               ),
                             ),
