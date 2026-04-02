@@ -226,6 +226,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     ),
                   ),
                 ),
+
                 const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
