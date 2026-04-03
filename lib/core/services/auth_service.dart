@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AuthService {
   final _auth = Supabase.instance.client.auth;
 
-  // تسجيل جديد بالإيميل
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
@@ -15,7 +14,6 @@ class AuthService {
     );
   }
 
-  // تسجيل دخول بالإيميل
   Future<AuthResponse> loginWithEmail({
     required String email,
     required String password,
@@ -26,7 +24,6 @@ class AuthService {
     );
   }
 
-  // إعادة إرسال رابط/رسالة تأكيد الإيميل
   Future<void> sendEmailVerification({
     required String email,
   }) async {
@@ -37,21 +34,34 @@ class AuthService {
     );
   }
 
-  // تسجيل خروج
+  Future<void> sendPasswordResetEmail({
+    required String email,
+  }) async {
+    await _auth.resetPasswordForEmail(
+      email,
+      redirectTo: 'parkliapp://reset-password',
+    );
+  }
+
+  Future<UserResponse> updatePassword({
+    required String newPassword,
+  }) async {
+    return await _auth.updateUser(
+      UserAttributes(password: newPassword),
+    );
+  }
+
   Future<void> logout() async {
     await _auth.signOut();
   }
 
-  // المستخدم الحالي
   User? get currentUser => _auth.currentUser;
 
-  // هل الإيميل مؤكد؟
   bool get isEmailVerified {
     final user = _auth.currentUser;
     return user?.emailConfirmedAt != null;
   }
 
-  // تحديث بيانات المستخدم
   Future<User?> refreshUser() async {
     await _auth.refreshSession();
     return _auth.currentUser;

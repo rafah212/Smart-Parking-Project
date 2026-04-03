@@ -4,6 +4,8 @@ import 'core/theme/app_theme.dart';
 import 'features/intro/intro_sequence_screen.dart';
 import 'features/auth/email_verified_screen.dart';
 import 'features/auth/login_email_screen.dart';
+import 'features/forgotPass/change_pass.dart';
+import 'features/home/home_screen.dart';
 
 class App extends StatelessWidget {
   final GlobalKey<NavigatorState> navigatorKey;
@@ -19,14 +21,12 @@ class App extends StatelessWidget {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-
-      // أول شاشة
       home: const IntroSequenceScreen(),
-
-      // Routes
       routes: {
         '/loginEmail': (_) => const LoginEmailScreen(),
         '/emailVerified': (_) => const EmailVerifiedScreen(),
+        '/changePassword': (_) => const ChangePasswordScreen(),
+        '/home': (_) => const HomeScreen(),
       },
     );
   }

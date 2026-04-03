@@ -16,14 +16,6 @@ Future<void> main() async {
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJwdnJob3Fud2pncm51ZXZsb2ZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzM1MDksImV4cCI6MjA5MDY0OTUwOX0.thlqWQUzr9v0Kj9-wIaubmwDiZ5GNAs4dkGkLXfCSMM',
   );
 
-  try {
-    final response =
-        await Supabase.instance.client.from('users').select().limit(1);
-    debugPrint('Supabase connected: $response');
-  } catch (e) {
-    debugPrint('Supabase connection error: $e');
-  }
-
   runApp(const AppEntry());
 }
 
@@ -47,7 +39,7 @@ class _AppEntryState extends State<AppEntry> {
 
   Future<void> _listenToDeepLinks() async {
     try {
-      final initialUri = await _appLinks.getInitialLink();
+      final Uri? initialUri = await _appLinks.getInitialLink();
       if (initialUri != null) {
         await _handleUri(initialUri);
       }
@@ -56,7 +48,7 @@ class _AppEntryState extends State<AppEntry> {
     }
 
     _sub = _appLinks.uriLinkStream.listen(
-      (uri) async {
+      (Uri uri) async {
         await _handleUri(uri);
       },
       onError: (error) {
@@ -81,6 +73,23 @@ class _AppEntryState extends State<AppEntry> {
         '/emailVerified',
         (route) => false,
       );
+      return;
+    }
+
+    if (uri.scheme == 'parkliapp' && uri.host == 'reset-password') {
+      try {
+        await Supabase.instance.client.auth.getSessionFromUrl(uri);
+      } catch (e) {
+        debugPrint('Session error: $e');
+      }
+
+      if (!mounted) return;
+
+      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/changePassword',
+        (route) => false,
+      );
+      return;
     }
   }
 

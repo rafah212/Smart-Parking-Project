@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/core/widgets/responsive_preview.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -9,15 +10,83 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  // متغيرات للتحكم في ظهور كلمة المرور لكل حقل
-  bool _isOldPasswordObscure = true;
   bool _isNewPasswordObscure = true;
   bool _isConfirmPasswordObscure = true;
+  bool _isLoading = false;
 
-  // وحدات تحكم للنصوص (اختياري لو بغيتي تاخذين القيم لاحقاً)
-  final TextEditingController _oldPassController = TextEditingController();
   final TextEditingController _newPassController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
+
+  @override
+  void dispose() {
+    _newPassController.dispose();
+    _confirmPassController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final newPassword = _newPassController.text.trim();
+    final confirmPassword = _confirmPassController.text.trim();
+
+    if (newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password must be at least 6 characters')),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Passwords do not match')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthService().updatePassword(newPassword: newPassword);
+
+      if (!mounted) return;
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Success'),
+          content: const Text('Your password has been changed successfully.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/loginEmail',
+                  (route) => false,
+                );
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update password: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,19 +115,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           child: Column(
             children: [
               const SizedBox(height: 30),
-              
-              // حقل كلمة المرور القديمة
-              _buildPasswordField(
-                label: 'Old Password',
-                isObscure: _isOldPasswordObscure,
-                controller: _oldPassController,
-                onToggle: () {
-                  setState(() => _isOldPasswordObscure = !_isOldPasswordObscure);
-                },
-              ),
-              const SizedBox(height: 16),
 
-              // حقل كلمة المرور الجديدة
               _buildPasswordField(
                 label: 'New Password',
                 isObscure: _isNewPasswordObscure,
@@ -69,7 +126,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               ),
               const SizedBox(height: 16),
 
-              // حقل تأكيد كلمة المرور
               _buildPasswordField(
                 label: 'Confirm Password',
                 isObscure: _isConfirmPasswordObscure,
@@ -78,15 +134,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   setState(() => _isConfirmPasswordObscure = !_isConfirmPasswordObscure);
                 },
               ),
-              
+
               const SizedBox(height: 32),
 
-              // --- زر Save ---
               GestureDetector(
-                onTap: () {
-                  // هنا نضع التنبيه عند الضغط على حفظ
-                  _handleSave();
-                },
+                onTap: _isLoading ? null : _handleSave,
                 child: Container(
                   width: double.infinity,
                   height: 54,
@@ -94,15 +146,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     color: const Color(0xFF237D8C),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Center(
-                    child: Text(
-                      'Save',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                  child: Center(
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Save',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -113,35 +174,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
-  // دالة معالجة الحفظ (عرض رسالة نجاح)
-  void _handleSave() {
-    if (_newPassController.text != _confirmPassController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Passwords do not match!')),
-      );
-      return;
-    }
-
-    // عرض تنبيه بسيط عند النجاح
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Success'),
-        content: const Text('Your password has been changed successfully.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context); // إغلاق التنبيه
-              Navigator.pop(context); // الرجوع لصفحة اللوج ان
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Widget مساعد لبناء الحقول مع خاصية العين
   Widget _buildPasswordField({
     required String label,
     required bool isObscure,
@@ -157,7 +189,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       ),
       child: TextField(
         controller: controller,
-        obscureText: isObscure, // هنا يتم إخفاء أو إظهار النص
+        obscureText: isObscure,
         decoration: InputDecoration(
           hintText: label,
           hintStyle: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 16),
@@ -168,7 +200,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
               color: const Color(0xFFD0D0D0),
             ),
-            onPressed: onToggle, // عند الضغط على العين
+            onPressed: onToggle,
           ),
         ),
       ),

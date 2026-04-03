@@ -1,8 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/core/widgets/responsive_preview.dart';
 
-class ForgotPasswordCheckEmail extends StatelessWidget {
-  const ForgotPasswordCheckEmail({super.key});
+class ForgotPasswordCheckEmail extends StatefulWidget {
+  final String email;
+
+  const ForgotPasswordCheckEmail({
+    super.key,
+    required this.email,
+  });
+
+  @override
+  State<ForgotPasswordCheckEmail> createState() => _ForgotPasswordCheckEmailState();
+}
+
+class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
+  bool _isResending = false;
+
+  Future<void> _resendEmail() async {
+    setState(() => _isResending = true);
+
+    try {
+      await AuthService().sendPasswordResetEmail(email: widget.email);
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Password reset email sent again')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to resend email: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isResending = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +74,11 @@ class ForgotPasswordCheckEmail extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 40),
-                    // أيقونة بسيطة (اختياري) أو مساحة كما في التصميم
-                    const Icon(Icons.mark_email_read_outlined, size: 50, color: Color(0xFF237D8C)),
+                    const Icon(
+                      Icons.mark_email_read_outlined,
+                      size: 50,
+                      color: Color(0xFF237D8C),
+                    ),
                     const SizedBox(height: 24),
                     const Text(
                       'Check your email',
@@ -51,18 +89,22 @@ class ForgotPasswordCheckEmail extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    const Text.rich(
+                    Text.rich(
                       TextSpan(
                         children: [
-                          TextSpan(
+                          const TextSpan(
                             text: 'We sent a link to ',
                             style: TextStyle(color: Color(0xFF777777), fontSize: 14),
                           ),
                           TextSpan(
-                            text: 'test@testemail.com ', // هنا لاحقاً بنخليها تاخذ الإيميل الحقيقي
-                            style: TextStyle(color: Color(0xFF777777), fontSize: 14, fontWeight: FontWeight.bold),
+                            text: '${widget.email} ',
+                            style: const TextStyle(
+                              color: Color(0xFF777777),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          TextSpan(
+                          const TextSpan(
                             text: 'to help set up a new password if you have an account with us.',
                             style: TextStyle(color: Color(0xFF777777), fontSize: 14),
                           ),
@@ -75,11 +117,8 @@ class ForgotPasswordCheckEmail extends StatelessWidget {
                       style: TextStyle(color: Color(0xFF777777), fontSize: 14),
                     ),
                     const SizedBox(height: 40),
-                    // زر إعادة الإرسال
                     GestureDetector(
-                      onTap: () {
-                        print("Resending Email...");
-                      },
+                      onTap: _isResending ? null : _resendEmail,
                       child: Container(
                         width: double.infinity,
                         height: 48,
@@ -87,19 +126,30 @@ class ForgotPasswordCheckEmail extends StatelessWidget {
                           color: const Color(0xFF237D8C),
                           borderRadius: BorderRadius.circular(50),
                         ),
-                        child: const Center(
-                          child: Text(
-                            'Resend Email Address',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                          ),
+                        child: Center(
+                          child: _isResending
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text(
+                                  'Resend Email Address',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
                         ),
                       ),
                     ),
                   ],
-                  ),
+                ),
               ),
             ),
-            // تذييل الصفحة (Footer)
             Container(
               width: double.infinity,
               height: 65,
