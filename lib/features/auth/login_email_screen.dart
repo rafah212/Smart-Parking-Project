@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../home/utils/navigation_helpers.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
+import 'package:parkliapp/features/forgotPass/forgot_pass1.dart';
+import 'package:parkliapp/features/forgotPass/change_pass.dart';
+
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -211,6 +214,11 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                   },
                 ),
                 const SizedBox(height: 14),
+    // استخدمنا Column هنا عشان نرتب الرابطين تحت بعض في جهة اليمين
+                Column(
+                crossAxisAlignment: CrossAxisAlignment.end, 
+                children: [
+    // 1. رابط نسيت كلمة المرور (الموجود أصلاً)
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -220,12 +228,37 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     child: const Text(
                       'Forgot your password?',
                       style: TextStyle(
+                        color: primaryColor, // تأكدي أن primaryColor معرفة في ملفك
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                // 2. الرابط الجديد (تغيير كلمة المرور) اللي كان مختفي
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      // الكود اللي يفتح صفحة تغيير الباسورد
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ChangePasswordScreen(),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      'Change Password?',
+                      style: TextStyle(
                         color: primaryColor,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
 
                 const SizedBox(height: 10),
                 SizedBox(

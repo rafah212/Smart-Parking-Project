@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
-import 'package:parkliapp/core/widgets/responsive_preview.dart';
 
 class ForgotPasswordCheckEmail extends StatefulWidget {
   final String email;
@@ -19,10 +18,8 @@ class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
 
   Future<void> _resendEmail() async {
     setState(() => _isResending = true);
-
     try {
       await AuthService().sendPasswordResetEmail(email: widget.email);
-
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Password reset email sent again')),
@@ -41,50 +38,35 @@ class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
 
   @override
   Widget build(BuildContext context) {
-    return ResponsivePreview(
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF237D8C), size: 18),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text(
-            'Forgot Password?',
-            style: TextStyle(
-              color: Color(0xFF3E3E3E),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          centerTitle: true,
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(0.5),
-            child: Container(color: const Color(0xFFE5E5E5), height: 0.5),
-          ),
-        ),
-        body: Column(
+    // شلنا الـ ResponsivePreview عشان الصفحة تأخذ حجم الشاشة كاملة
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
           children: [
+            // --- الهيدر الموحد لضمان التناسق ---
+            _CustomHeader(title: 'Forgot Password?'),
+
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 40),
-                    const Icon(
-                      Icons.mark_email_read_outlined,
-                      size: 50,
-                      color: Color(0xFF237D8C),
+                    const SizedBox(height: 60),
+                    const Center(
+                      child: Icon(
+                        Icons.mark_email_read_outlined,
+                        size: 100, // كبرنا الأيقونة شوي لتناسب شاشة اللابتوب
+                        color: Color(0xFF237D8C),
+                      ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 40),
                     const Text(
                       'Check your email',
                       style: TextStyle(
                         color: Color(0xFF237D8C),
-                        fontSize: 28,
+                        fontSize: 32,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -94,67 +76,66 @@ class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
                         children: [
                           const TextSpan(
                             text: 'We sent a link to ',
-                            style: TextStyle(color: Color(0xFF777777), fontSize: 14),
+                            style: TextStyle(color: Color(0xFF777777), fontSize: 16),
                           ),
                           TextSpan(
                             text: '${widget.email} ',
                             style: const TextStyle(
-                              color: Color(0xFF777777),
-                              fontSize: 14,
+                              color: Color(0xFF237D8C), // غيرنا اللون للتمييز
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                           const TextSpan(
                             text: 'to help set up a new password if you have an account with us.',
-                            style: TextStyle(color: Color(0xFF777777), fontSize: 14),
+                            style: TextStyle(color: Color(0xFF777777), fontSize: 16),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
                     const Text(
                       'Check your spam folder if you don’t see the email.',
-                      style: TextStyle(color: Color(0xFF777777), fontSize: 14),
+                      style: TextStyle(color: Color(0xFF999999), fontSize: 14, fontStyle: FontStyle.italic),
                     ),
-                    const SizedBox(height: 40),
-                    GestureDetector(
-                      onTap: _isResending ? null : _resendEmail,
-                      child: Container(
-                        width: double.infinity,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF237D8C),
-                          borderRadius: BorderRadius.circular(50),
+                    const SizedBox(height: 50),
+                    
+                    // زر إعادة الإرسال بعرض كامل
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        onPressed: _isResending ? null : _resendEmail,
+  style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF237D8C),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          elevation: 0,
                         ),
-                        child: Center(
-                          child: _isResending
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Text(
-                                  'Resend Email Address',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                        child: _isResending
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                'Resend Email Address',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
                                 ),
-                        ),
+                              ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
+            
+            // --- التذييل السفلي (Footer) ---
             Container(
               width: double.infinity,
-              height: 65,
+              height: 60,
               color: const Color(0xFFF3F3F3),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               alignment: Alignment.centerLeft,
               child: const Text(
                 '2025, PARKLI. All rights reserved',
@@ -163,6 +144,43 @@ class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// الهيدر الموحد المستعمل في كل صفحاتك الآن
+class _CustomHeader extends StatelessWidget {
+  final String title;
+  const _CustomHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 70,
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5)),
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            left: 10,
+            top: 0,
+            bottom: 0,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF237D8C), size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+          Center(
+            child: Text(
+              title,
+              style: const TextStyle(color: Color(0xFF3E3E3E), fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
       ),
     );
   }

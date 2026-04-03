@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/features/home/data/parking_spots_dummy_data.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
+import 'package:parkliapp/features/parking/parking_detail1.dart';
 
 class ParkingLotScreen extends StatefulWidget {
   final Place place;
@@ -136,7 +137,15 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
                           ),
                         ),
                       );
-                    },
+                      
+        // ثانياً الانتقال لصفحة بيانات الحجز (ParkingDetail1) بعد الضغط مباشرة
+                      Navigator.push(
+                        context,
+                       MaterialPageRoute(
+                         builder: (context) => const ParkingDetail1(),
+                     ),
+                     );
+            },
             ),
           ],
         ),
