@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'parking_detail2.dart';
+import 'payment_method.dart';
 
 class ParkingDetail1 extends StatefulWidget {
   const ParkingDetail1({super.key});
@@ -188,6 +189,10 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
             child: ElevatedButton(
               onPressed: () {
                 // هنا  نربط بصفحة "تم الدفع بنجاح"
+                Navigator.push (
+                  context,
+                  MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF237D8C),
