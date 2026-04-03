@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'parking_detail2.dart';
 
 class ParkingDetail1 extends StatefulWidget {
   const ParkingDetail1({super.key});
@@ -153,37 +154,57 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
 
   // منطقة الأزرار السفلية
   Widget _buildBottomActionArea() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-      decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(blurRadius: 10, color: Color(0x12000000), offset: Offset(0, -2))]),
-      child: Row(
-        children: [
-          Container(
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+    decoration: const BoxDecoration(
+      color: Colors.white, 
+      boxShadow: [BoxShadow(blurRadius: 10, color: Color(0x12000000), offset: Offset(0, -2))]
+    ),
+    child: Row(
+      children: [
+        // --- تعديل أيقونة التاريخ هنا ---
+        InkWell(
+          onTap: () {
+            // هذا الكود يفتح صفحة التقويم 
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ParkingDetail2()),
+            );
+          },
+          child: Container(
             padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(color: Color(0xFFC3E6EC), shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Color(0xFFC3E6EC), 
+              shape: BoxShape.circle
+            ),
             child: const Icon(Icons.calendar_month_outlined, color: Color(0xFF237D8C)),
           ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                   // هنا الربط بالصفحة التالية (Detail2)
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF237D8C),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                  elevation: 0,
-                ),
-                child: const Text('Confirm & Pay', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)),
+        ),
+        
+        const SizedBox(width: 15),
+        Expanded(
+          child: SizedBox(
+            height: 52,
+            child: ElevatedButton(
+              onPressed: () {
+                // هنا  نربط بصفحة "تم الدفع بنجاح"
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF237D8C),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Confirm & Pay', 
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   String _formatTime(double value) {
     int hours = value.toInt();
