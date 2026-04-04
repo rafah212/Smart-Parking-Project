@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'payment_success.dart';
 
 class PaymentMethodScreen extends StatelessWidget {
   const PaymentMethodScreen({super.key});
@@ -195,8 +196,12 @@ class PaymentMethodScreen extends StatelessWidget {
         height: 52,
         child: ElevatedButton(
           onPressed: () {
-            // هنا الربط بصفحة "تم الدفع بنجاح" أو التذكرة
-            Navigator.pop(context);
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
+             );
+            // هنا الربط بصفحة "تم الدفع بنجاح" 
+           // Navigator.pop(context);
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF237D8C),
