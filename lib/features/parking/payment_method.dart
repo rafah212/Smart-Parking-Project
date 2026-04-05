@@ -1,65 +1,105 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart'; 
 import 'payment_success.dart';
 
 class PaymentMethodScreen extends StatelessWidget {
   const PaymentMethodScreen({super.key});
 
+  // --- دالة حساب السعر الذكية ---
+  double _calculateTotal() {
+    double pricePerHour = 3.25;
+    
+    // إذا كان الموقف مستشفى أو جهة حكومية (حسب اختيار المستخدم للموقع)
+    bool isGovernment = AppData.selectedLocation.contains('Hospital') || 
+                        AppData.selectedLocation.contains('University') ||
+                        AppData.selectedLocation.contains('مستشفى') ||
+                        AppData.selectedLocation.contains('جامعة');
+
+    if (isGovernment) {
+      return pricePerHour; // سعر ثابت مهما كانت الساعات
+    } else {
+      return pricePerHour * AppData.durationHours; // سعر الساعة * عدد الساعات
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // النظام الجديد: Scaffold مرن يفرش على أي شاشة
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- 1. الهيدر الموحد (الفرش) ---
-            _CustomHeader(title: 'Payment method'),
+    double totalPrice = _calculateTotal();
 
-            // --- 2. محتوى الصفحة القابل للتمرير (الفرش) ---
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Select payment method',
-                      style: TextStyle(
-                        color: Color(0xFF25054D),
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _CustomHeader(title: AppData.translate('Payment method', 'طريقة الدفع')),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppData.translate('Select payment method', 'اختر طريقة الدفع'),
+                        style: const TextStyle(color: Color(0xFF25054D), fontSize: 22, fontWeight: FontWeight.w600),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                    // خيارات الدفع (Apple Pay, etc)
-                    _buildPaymentOption('Apple pay'),
-                    _buildPaymentOption('Stc pay'),
-                    _buildPaymentOption('CARD'),
+                      _buildPaymentOption('Apple pay'),
+                      _buildPaymentOption('Stc pay'),
+                      _buildPaymentOption(AppData.translate('CARD', 'بطاقة ائتمان')),
 
-                    const SizedBox(height: 40),
+                      const SizedBox(height: 40),
+                      _buildCreditCardView(),
+                      const SizedBox(height: 40),
 
-                    // --- 3. عرض بطاقة الائتمان الزرقاء (باستخدام الصورة والبيانات) ---
-                    _buildCreditCardView(),
-                    
-                    const SizedBox(height: 40),
-
-                    // --- 4. عرض المجموع (Total) ---
-                    _buildTotalCard(),
-                  ],
+                      // --- عرض المجموع المحسوب تلقائياً ---
+                      _buildTotalCard(totalPrice),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // --- 5. زر الدفع النهائي (Pay) (ثابت في الأسفل) ---
-            _buildBottomPayButton(context),
-          ],
+              _buildBottomPayButton(context),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ويدجت خيارات الدفع
+  // --- ويدجت المجموع بتنسيق السعر الجديد ---
+  Widget _buildTotalCard(double price) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F6FF),
+        border: Border(
+          left: AppData.isArabic ? BorderSide.none : const BorderSide(color: Color(0xFF237D8C), width: 5),
+          right: AppData.isArabic ? const BorderSide(color: Color(0xFF237D8C), width: 5) : BorderSide.none,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            AppData.translate('TOTAL', 'الإجمالي'), 
+            style: const TextStyle(color: Color(0xFF677191), fontSize: 16, fontWeight: FontWeight.bold)
+          ),
+          Text(
+            '${price.toStringAsFixed(2)} ${AppData.translate('SR', 'ريال')}', 
+            style: const TextStyle(color: Color(0xFF237D8C), fontSize: 22, fontWeight: FontWeight.bold)
+          ),
+        ],
+      ),
+    );
+  }
+
+  // (باقي الويدجت مثل _buildPaymentOption و _buildCreditCardView تبقى كما هي في الكود السابق)
+  
   Widget _buildPaymentOption(String title) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -79,7 +119,6 @@ class PaymentMethodScreen extends StatelessWidget {
     );
   }
 
-  // ويدجت بطاقة الائتمان الزرقاء (الفرش مع البيانات)
   Widget _buildCreditCardView() {
     return Center(
       child: ConstrainedBox(
@@ -87,74 +126,61 @@ class PaymentMethodScreen extends StatelessWidget {
         child: Container(
           width: double.infinity,
           height: 200,
-        decoration: BoxDecoration(
-          color: const Color(0xFF567DF4),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            )
-          ],
-        ),
-        child: Stack(
-          children: [
-            // الدائرة الداكنة الخلفية
-            Positioned(
-              right: -50,
-              top: -80,
-              child: Container(
-                width: 250,
-                height: 250,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF192242),
-                  shape: BoxShape.circle,
+          decoration: BoxDecoration(
+            color: const Color(0xFF567DF4),
+            borderRadius: BorderRadius.circular(15),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+            ],
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: AppData.isArabic ? null : -50,
+                left: AppData.isArabic ? -50 : null,
+                top: -80,
+                child: Container(
+                  width: 250,
+                  height: 250,
+                  decoration: const BoxDecoration(color: Color(0xFF192242), shape: BoxShape.circle),
                 ),
               ),
-            ),
-            // بيانات البطاقة (CVV, Holder, EXP, Number)
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // الصف العلوي (CVV واللوجو)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildCardDataColumn('CVV', '985'),
-                      // استدعاء الصورة (Logo)
-                      Image.asset(
-                        'assets/images/credit_card.png', 
-                        height: 25,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.credit_card, size: 25, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                  // الصف الأوسط (رقم البطاقة المخفي)
-                  const Text(
-                    '**** ** ** 6478',
-                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
-                  ),
-                  // الصف السفلي (HOLDER والـ EXP)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildCardDataColumn('HOLDER', 'name'),
-                      _buildCardDataColumn('EXP', '07/29'),
-                    ],
-                  ),
-                ],
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildCardDataColumn('CVV', '985'),
+                        Image.asset(
+                          'assets/images/credit_card.png', 
+                          height: 25,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.credit_card, size: 25, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                    const Text(
+                      '**** 6478',
+                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildCardDataColumn(AppData.translate('HOLDER', 'صاحب البطاقة'), 'Rafah Aljabri'),
+                        _buildCardDataColumn('EXP', '07/29'),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-     ),
     );
   }
 
@@ -168,26 +194,6 @@ class PaymentMethodScreen extends StatelessWidget {
     );
   }
 
-  // ويدجت المجموع
-  Widget _buildTotalCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F6FF),
-        border: const Border(left: BorderSide(color: Color(0xFF237D8C), width: 5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          Text('TOTAL', style: TextStyle(color: Color(0xFF677191), fontSize: 16, fontWeight: FontWeight.bold)),
-          Text('15 SR', style: TextStyle(color: Color(0xFF237D8C), fontSize: 22, fontWeight: FontWeight.bold)),
-        ],
-      ),
-    );
-  }
-
-  // ويدجت زر الدفع السفلي
   Widget _buildBottomPayButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -196,22 +202,16 @@ class PaymentMethodScreen extends StatelessWidget {
         height: 52,
         child: ElevatedButton(
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
-             );
-            // هنا الربط بصفحة "تم الدفع بنجاح" 
-           // Navigator.pop(context);
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()));
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF237D8C),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-            elevation: 4,
-            shadowColor: Colors.black45,
+            elevation: 0,
           ),
-          child: const Text(
-            'Pay',
-            style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          child: Text(
+            AppData.translate('Pay', 'ادفع الآن'),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -219,7 +219,6 @@ class PaymentMethodScreen extends StatelessWidget {
   }
 }
 
-// الهيدر الموحد لضمان التناسق
 class _CustomHeader extends StatelessWidget {
   final String title;
   const _CustomHeader({required this.title});
@@ -235,11 +234,15 @@ class _CustomHeader extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: 10,
+            left: AppData.isArabic ? null : 10,
+            right: AppData.isArabic ? 10 : null,
             top: 0,
             bottom: 0,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+              icon: Icon(
+                AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios, 
+                color: Colors.white, size: 20
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),

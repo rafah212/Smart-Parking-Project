@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'check_email.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class ForgotPassword1 extends StatefulWidget {
   const ForgotPassword1({super.key});
@@ -12,17 +13,15 @@ class _ForgotPassword1State extends State<ForgotPassword1> {
   final TextEditingController _emailController = TextEditingController();
   bool _isLoading = false;
 
-  // دالة الإرسال اللي كانت معطلة الزر إذا الإيميل فارغ
   void _handleNext() {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your email')),
+        SnackBar(content: Text(AppData.translate('Please enter your email', 'يرجى إدخال بريدك الإلكتروني'))),
       );
       return;
     }
     
-    // الانتقال لصفحة التحقق مع تمرير الإيميل
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -33,109 +32,113 @@ class _ForgotPassword1State extends State<ForgotPassword1> {
 
   @override
   Widget build(BuildContext context) {
-   //حجم الصفحة 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- 1. الهيدر الموحد  ---
-            _CustomHeader(title: 'Forgot Password?'),
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // --- 1. الهيدر الموحد ---
+              _CustomHeader(title: AppData.translate('Forgot Password?', 'نسيت كلمة المرور؟')),
 
-            // --- 2. محتوى الصفحة المرن ---
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 40),
-                    const Text(
-                      'Let’s reset your password.',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'We will email you a link you can use to reset your password.',
-                      style: TextStyle(color: Color(0xFF777777), fontSize: 14),
-                    ),
-                    const SizedBox(height: 40),
-                    const Text(
-                      'Email Address',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    // حقل الإدخال بعرض كامل
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Enter your email',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+              // --- 2. محتوى الصفحة المرن ---
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 40),
+                      Text(
+                        AppData.translate('Let’s reset your password.', 'لنقم بإعادة تعيين كلمة المرور.'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      Text(
+                        AppData.translate(
+                          'We will email you a link you can use to reset your password.',
+                          'سنرسل لك رابطاً عبر البريد الإلكتروني يمكنك استخدامه لإعادة تعيين كلمة المرور.'
+                        ),
+                        style: const TextStyle(color: Color(0xFF777777), fontSize: 14),
+                      ),
+                      const SizedBox(height: 40),
+                      Text(
+                        AppData.translate('Email Address', 'البريد الإلكتروني'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                        decoration: InputDecoration(
+                          hintText: AppData.translate('Enter your email', 'أدخل بريدك الإلكتروني'),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(color: Color(0xFFE5E5E5)),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // --- 3. البار السفلي (الزر والتذييل) ---
-            Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: _handleNext,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF72ACB6),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(50),
+              // --- 3. البار السفلي (الزر والتذييل) ---
+              Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    child: SizedBox(
+      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: _handleNext,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF72ACB6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(50),
+                          ),
+                          elevation: 0,
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                        child: Text(
+                          AppData.translate('Next', 'التالي'),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                Container(
-                  width: double.infinity,
-                  height: 60,
-                  color: const Color(0xFFF3F3F3),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  alignment: Alignment.centerLeft,
-                  child: const Text(
-                    '2025, PARKLI. All rights reserved',
-                    style: TextStyle(color: Color(0xFF777777), fontSize: 14),
+                  Container(
+                    width: double.infinity,
+                    height: 60,
+                    color: const Color(0xFFF3F3F3),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    alignment: AppData.isArabic ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Text(
+                      AppData.translate('2026, PARKLI. All rights reserved', '٢٠٢٦، باركلي. جميع الحقوق محفوظة'),
+                      style: const TextStyle(color: Color(0xFF777777), fontSize: 14),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-// الهيدر الموحد  للتناسق مع الصفحات 
 class _CustomHeader extends StatelessWidget {
   final String title;
   const _CustomHeader({required this.title});
@@ -152,11 +155,16 @@ class _CustomHeader extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: 10,
+            left: AppData.isArabic ? null : 10,
+            right: AppData.isArabic ? 10 : null,
             top: 0,
             bottom: 0,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF237D8C), size: 20),
+              icon: Icon(
+                AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios, 
+                color: const Color(0xFF237D8C), 
+                size: 20
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),

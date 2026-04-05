@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 import 'package:parkliapp/core/services/user_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
+
 
 class CompleteInfoEmailScreen extends StatefulWidget {
   const CompleteInfoEmailScreen({super.key, required this.email});
@@ -44,7 +46,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
 
     if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please complete all fields')),
+        SnackBar(content: Text(AppData.translate('Please complete all fields', 'يرجى إكمال جميع الحقول'))),
       );
       return;
     }
@@ -58,7 +60,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
 
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No authenticated user found')),
+          SnackBar(content: Text(AppData.translate('No authenticated user found', 'لم يتم العثور على مستخدم مسجل'))),
         );
         return;
       }
@@ -82,7 +84,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to save data: $e')),
+        SnackBar(content: Text(AppData.translate('Failed to save data: $e', 'فشل في حفظ البيانات: $e'))),
       );
     } finally {
       if (mounted) {
@@ -95,109 +97,115 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const _TopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Complete your info',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.84,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    const _FieldLabel('First Name'),
-                    const SizedBox(height: 8),
-                    _CustomTextField(
-                      controller: _firstNameController,
-                      hintText: 'Enter first name',
-                    ),
-                    const SizedBox(height: 16),
-                    const _FieldLabel('Last Name'),
-                    const SizedBox(height: 8),
-                    _CustomTextField(
-                      controller: _lastNameController,
-                      hintText: 'Enter last name',
-                    ),
-                    const SizedBox(height: 16),
-                    const _FieldLabel('Email Address'),
-                    const SizedBox(height: 8),
-                    _CustomTextField(
-                      controller: _emailController,
-                      hintText: 'Enter email address',
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 28),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F3F3),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'By selecting done, I agree to PARKLI\'s terms of service,\npayment terms of service & privacy policy',
-                        style: TextStyle(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const _TopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppData.translate('Complete your info', 'أكمل معلوماتك'),
+                        style: const TextStyle(
                           color: Color(0xFF237D8C),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          height: 1.35,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -0.84,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 22),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _goNext,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFA3D3DB),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
+                      const SizedBox(height: 28),
+                      _FieldLabel(AppData.translate('First Name', 'الاسم الأول')),
+                      const SizedBox(height: 8),
+                      _CustomTextField(
+                        controller: _firstNameController,
+                        hintText: AppData.translate('Enter first name', 'أدخل الاسم الأول'),
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel(AppData.translate('Last Name', 'اسم العائلة')),
+                      const SizedBox(height: 8),
+                      _CustomTextField(
+                        controller: _lastNameController,
+                        hintText: AppData.translate('Enter last name', 'أدخل اسم العائلة'),
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel(AppData.translate('Email Address', 'البريد الإلكتروني')),
+                      const SizedBox(height: 8),
+                      _CustomTextField(
+                        controller: _emailController,
+                        hintText: AppData.translate('Enter email address', 'أدخل البريد الإلكتروني'),
+                        readOnly: true,
+                      ),
+                      const SizedBox(height: 28),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F3F3),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          AppData.translate(
+                            'By selecting done, I agree to PARKLI\'s terms of service,\npayment terms of service & privacy policy',
+                            'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية'
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFF237D8C),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            height: 1.35,
                           ),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Next',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.39,
-                                ),
-                              ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 22),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _goNext,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFA3D3DB),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  AppData.translate('Next', 'التالي'),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.39,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const _BottomHandle(),
-          ],
+              const _BottomHandle(),
+            ],
+          ),
         ),
       ),
     );
@@ -214,7 +222,7 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(
+          border: Border(
           bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
         ),
       ),
@@ -222,18 +230,18 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Color(0xFF237D8C),
+            icon: Icon(
+              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+              color: const Color(0xFF237D8C),
               size: 20,
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
           const Spacer(),
-          const Text(
-            'Step 1/2',
-            style: TextStyle(
+          Text(
+            AppData.translate('Step 1/2', 'خطوة ١/٢'),
+            style: const TextStyle(
               color: Color(0xFF8EB8C0),
               fontSize: 12,
               fontWeight: FontWeight.w600,

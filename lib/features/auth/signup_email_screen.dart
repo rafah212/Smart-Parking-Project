@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/features/auth/complete_info_email_screen.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class SignUpEmailScreen extends StatefulWidget {
   const SignUpEmailScreen({super.key});
@@ -35,7 +36,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
 
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter email and password')),
+        SnackBar(content: Text(AppData.translate('Please enter email and password', 'يرجى إدخال البريد الإلكتروني وكلمة المرور'))),
       );
       return;
     }
@@ -53,16 +54,15 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       );
 
       if (res.user == null) {
-        throw Exception('Signup failed');
+        throw Exception(AppData.translate('Signup failed', 'فشل إنشاء الحساب'));
       }
 
       if (!mounted) return;
 
-      // إذا session كانت null فهذا يعني غالبًا أن تأكيد الإيميل مطلوب
       if (res.session == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Check your email to verify your account'),
+          SnackBar(
+            content: Text(AppData.translate('Check your email to verify your account', 'تحقق من بريدك الإلكتروني لتفعيل حسابك')),
           ),
         );
         return;
@@ -78,12 +78,14 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       String message = e.toString();
 
       if (message.contains('User already registered')) {
-        message = 'This email is already registered';
+        message = AppData.translate('This email is already registered', 'هذا البريد الإلكتروني مسجل مسبقاً');
+      } else {
+        message = AppData.translate('Signup failed: $message', 'فشل التسجيل: $message');
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Signup failed: $message')),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) {
@@ -96,111 +98,125 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const _TopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    const Text(
-                      'Email Address',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'Enter email address',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const _TopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppData.translate('Sign Up', 'إنشاء حساب'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 28),
 
-                    const SizedBox(height: 16),
-
-                    const Text(
-                      'Password',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        hintText: 'Enter password',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                      Text(
+                        AppData.translate('Email Address', 'البريد الإلكتروني'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
 
-                    const SizedBox(height: 24),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _signUp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFA3D3DB),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                        decoration: InputDecoration(
+                          hintText: AppData.translate('Enter email address', 'أدخل البريد الإلكتروني'),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text('Continue'),
                       ),
-                    ),
 
-                    const SizedBox(height: 32),
+                      const SizedBox(height: 16),
 
-                    const _OrDivider(),
-
-                    const SizedBox(height: 32),
-
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.phone),
-                        label: const Text('Continue with Phone'),
+                      Text(
+                        AppData.translate('Password', 'كلمة المرور'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                        decoration: InputDecoration(
+                          hintText: AppData.translate('Enter password', 'أدخل كلمة المرور'),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _signUp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFA3D3DB),
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                )
+                              : Text(
+                                  AppData.translate('Continue', 'استمرار'),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                                ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      const _OrDivider(),
+
+                      const SizedBox(height: 32),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.phone),
+                          label: Text(
+                            AppData.translate('Continue with Phone', 'الاستمرار باستخدام الجوال'),
+                            style: const TextStyle(color: Color(0xFF237D8C)),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFF237D8C)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const _BottomHandle(),
-          ],
+              const _BottomHandle(),
+            ],
+          ),
         ),
       ),
     );
@@ -213,8 +229,13 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
+        icon: Icon(
+          AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back,
+          color: const Color(0xFF237D8C),
+        ),
         onPressed: () => Navigator.pop(context),
       ),
     );
@@ -226,14 +247,17 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider()),
+        const Expanded(child: Divider()),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
-          child: Text('OR'),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text(
+            AppData.translate('OR', 'أو'),
+            style: const TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+          ),
         ),
-        Expanded(child: Divider()),
+        const Expanded(child: Divider()),
       ],
     );
   }

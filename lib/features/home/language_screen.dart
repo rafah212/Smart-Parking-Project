@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'dart:io'; // للخروج من التطبيق
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'home_screen.dart'; // استيراد الرئيسية للتحويل إليها
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -9,69 +10,56 @@ class LanguageScreen extends StatefulWidget {
 }
 
 class _LanguageScreenState extends State<LanguageScreen> {
-  // القيمة الحالية المختارة (افتراضياً إنجليزي)
-  String _selectedLanguage = 'English';
+  
+  // دالة إظهار نافذة التأكيد وتغيير اللغة
+  void _showLanguageDialog(String languageCode) {
+    // تحديد النصوص بناءً على اللغة التي اختارها المستخدم حالاً
+    bool isArabicChoice = languageCode == 'ar';
+    String title = isArabicChoice ? 'تغيير اللغة' : 'Change Language';
+    String message = isArabicChoice 
+        ? 'هل أنت متأكد أنك تريد تغيير اللغة إلى العربية؟' 
+        : 'Are you sure you want to change the language to English?';
+    String yesBtn = isArabicChoice ? 'نعم' : 'Yes';
+    String noBtn = isArabicChoice ? 'لا' : 'No';
 
-  // دالة إظهار التنبيه عند تغيير اللغة
-  void _showLanguageConfirmation(String lang) {
     showDialog(
       context: context,
-      barrierDismissible: false, // يمنع الإغلاق بالضغط خارج النافذة لضمان القرار
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text(
-            'Change Language',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                'The app will close to apply the language change. It will work in the selected language the next time you open it. Do you want to proceed?',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Poppins', fontSize: 14, color: Color(0xFF414141)),
+      builder: (context) {
+        return Directionality(
+          // نجعل اتجاه النافذة يتبع الخيار الجديد ليعرف المستخدم كيف ستكون الواجهة
+          textDirection: isArabicChoice ? TextDirection.rtl : TextDirection.ltr,
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+            content: Text(message),
+            actions: [
+              // زر "لا" - لا يغير شيئاً
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(noBtn, style: const TextStyle(color: Colors.grey)),
               ),
-              SizedBox(height: 10),
-              Text(
-                'سيتم إغلاق التطبيق لتطبيق تغيير اللغة، وسيعمل باللغة المختارة عند فتحه مرة أخرى. هل تريد المتابعة؟',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Colors.grey),
+              // زر "نعم" - هو الذي يغير اللغة ويحول للرئيسية
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    AppData.isArabic = (languageCode == 'ar'); // تحديث اللغة في المخ
+                  });
+                  
+                  // العودة للرئيسية وتصفير الـ Stack
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF237D8C),
+                  foregroundColor: Colors.white,
+                ),
+                child: Text(yesBtn),
               ),
             ],
           ),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: [
-            // زر لا (إلغاء)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _selectedLanguage = 'English'; // إعادة الاختيار للوضع الأصلي إذا تراجع
-                });
-                Navigator.pop(context);
-              },
-              child: const Text(
-                'No / لا',
-                style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600),
-              ),
-            ),
-            // زر نعم (تأكيد)
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF237D8C),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
-              ),
-              onPressed: () {
-                exit(0); // إغلاق التطبيق
-              },
-              child: const Text(
-                'Yes / نعم',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ],
         );
       },
     );
@@ -79,63 +67,85 @@ class _LanguageScreenState extends State<LanguageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Language',
-          style: TextStyle(
-            color: Color(0xFF2A2A2A),
-            fontSize: 18,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
+            onPressed: () => Navigator.pop(context),
           ),
+          title: Text(
+            AppData.translate('Language', 'اللغة'),
+            style: const TextStyle(color: Color(0xFF2A2A2A), fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-        child: Column(
-          children: [
-            // خيار اللغة الإنجليزية
-            _buildLanguageOption('English', 'English'),
-            const Divider(height: 1, thickness: 0.5),
-            // خيار اللغة العربية
-            _buildLanguageOption('العربية', 'Arabic'),
-          ],
+        body: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppData.translate('Select your preferred language', 'اختر لغتك المفضلة'),
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+              const SizedBox(height: 25),
+              
+              // خيار اللغة العربية
+              _buildLanguageOption(
+                title: 'العربية',
+                isSelected: AppData.isArabic,
+                onTap: () => _showLanguageDialog('ar'),
+              ),
+              
+              const SizedBox(height: 15),
+              
+              // خيار اللغة الإنجليزية
+              _buildLanguageOption(
+                title: 'English',
+                isSelected: !AppData.isArabic,
+                onTap: () => _showLanguageDialog('en'),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildLanguageOption(String title, String value) {
-    return RadioListTile<String>(activeColor: const Color(0xFF237D8C),
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontFamily: 'Poppins',
-          fontSize: 16,
-          color: Color(0xFF414141),
-          fontWeight: FontWeight.w500,
+  Widget _buildLanguageOption({required String title, required bool isSelected, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF5FBFC) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF237D8C) : const Color(0xFFE0E0E0),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected ? const Color(0xFF237D8C) : const Color(0xFF414141),
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Color(0xFF237D8C)),
+          ],
         ),
       ),
-      value: value,
-      groupValue: _selectedLanguage,
-      onChanged: (String? val) {
-        if (val != null) {
-          setState(() {
-            _selectedLanguage = val;
-          });
-          _showLanguageConfirmation(val);
-        }
-      },
     );
   }
 }

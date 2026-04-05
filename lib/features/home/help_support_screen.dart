@@ -1,71 +1,100 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:url_launcher/url_launcher.dart'; // حزمة اختيارية لفتح الاتصال/الإيميل
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
+  // دالة اختيارية لفتح تطبيق الاتصال
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    }
+  }
+
+  // دالة اختيارية لفتح تطبيق الإيميل
+  Future<void> _sendEmail(String email) async {
+    final Uri launchUri = Uri(scheme: 'mailto', path: email);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Help & Support',
-          style: TextStyle(
-            color: Color(0xFF2A2A2A),
-            fontSize: 18,
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.w500,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(
+              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new, 
+              color: const Color(0xFF414141), 
+              size: 20
+            ),
+            onPressed: () => Navigator.pop(context),
           ),
+          title: Text(
+            AppData.translate('Help & Support', 'الدعم والمساعدة'),
+            style: const TextStyle(
+              color: Color(0xFF2A2A2A),
+              fontSize: 18,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Contact Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF237D8C),
-                fontFamily: 'Poppins',
+        body: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                AppData.translate('Contact Information', 'معلومات التواصل'),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF237D8C),
+                ),
               ),
-            ),
-            const SizedBox(height: 25),
-            
-            // صندوق رقم الهاتف
-            _buildContactCard(
-              icon: Icons.phone_android_rounded,
-              title: 'Phone Number',
-              value: '0569225194',
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // صندوق البريد الإلكتروني
-            _buildContactCard(
-              icon: Icons.email_outlined,
-              title: 'Email Address',
-              value: 'norah.n.mu@gmail.com',
-            ),
-            
-            const Spacer(),
-            const Center(
-              child: Text(
-                'We are here to help you 24/7',
-                style: TextStyle(color: Colors.grey, fontSize: 12, fontFamily: 'Poppins'),
+              const SizedBox(height: 25),
+              
+              // بطاقة رقم الهاتف
+              GestureDetector(
+                onTap: () => _makePhoneCall('0569225194'),
+                child: _buildContactCard(
+                  icon: Icons.phone_android_rounded,
+                  title: AppData.translate('Phone Number', 'رقم الجوال'),
+                  value: '0569225194',
+                ),
               ),
-            ),
-            const SizedBox(height: 10),
-          ],
+              
+              const SizedBox(height: 16),
+              
+              // بطاقة البريد الإلكتروني
+              GestureDetector(
+                onTap: () => _sendEmail('norah.n.mu@gmail.com'),
+                child: _buildContactCard(
+                  icon: Icons.email_outlined,
+                  title: AppData.translate('Email Address', 'البريد الإلكتروني'),
+                  value: 'norah.n.mu@gmail.com',
+                ),
+              ),
+              
+              const Spacer(),
+              Center(
+                child: Text(
+                  AppData.translate('We are here to help you 24/7', 'نحن هنا لمساعدتك على مدار الساعة'),
+                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
         ),
       ),
     );
@@ -86,13 +115,13 @@ class HelpSupportScreen extends StatelessWidget {
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
             child: Icon(icon, color: const Color(0xFF237D8C), size: 24),
           ),
-          const SizedBox(width: 15),
+           const SizedBox(width: 15),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: const TextStyle(fontSize: 12, color: Colors.grey, fontFamily: 'Poppins'),
+                style: const TextStyle(fontSize: 12, color: Colors.grey),
               ),
               Text(
                 value,
@@ -100,7 +129,6 @@ class HelpSupportScreen extends StatelessWidget {
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF414141),
-                  fontFamily: 'Poppins',
                 ),
               ),
             ],

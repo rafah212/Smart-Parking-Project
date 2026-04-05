@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class MyVehiclesScreen extends StatefulWidget {
   const MyVehiclesScreen({super.key});
@@ -16,15 +17,15 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   final TextEditingController _numbersController = TextEditingController();
   final TextEditingController _otherPlateController = TextEditingController();
 
+  // قائمة أنواع اللوحات معربة
   final List<Map<String, dynamic>> plateTypes = [
-    {'name': 'Private', 'color': Colors.white},
-    {'name': 'Public Transport', 'color': const Color(0xFFEAB308)},
-    {'name': 'Private Transport', 'color': const Color(0xFF3B82F6)},
-    {'name': 'Public Bus', 'color': const Color(0xFFEAB308)},
-    {'name': 'Private Bus', 'color': const Color(0xFF3B82F6)},
-    {'name': 'Taxi', 'color': const Color(0xFFEAB308)},
-    {'name': 'Diplomatic', 'color': const Color(0xFF22C55E)},
-    {'name': 'Motorcycle', 'color': Colors.white},
+    {'name': 'Private', 'ar': 'خصوصي', 'color': Colors.white},
+    {'name': 'Public Transport', 'ar': 'نقل عام', 'color': const Color(0xFFEAB308)},
+    {'name': 'Private Transport', 'ar': 'نقل خاص', 'color': const Color(0xFF3B82F6)},
+    {'name': 'Public Bus', 'ar': 'حافلة عامة', 'color': const Color(0xFFEAB308)},
+    {'name': 'Taxi', 'ar': 'أجرة', 'color': const Color(0xFFEAB308)},
+    {'name': 'Diplomatic', 'ar': 'دبلوماسي', 'color': const Color(0xFF22C55E)},
+    {'name': 'Motorcycle', 'ar': 'دراجة نارية', 'color': Colors.white},
   ];
 
   void _addNewVehicle() {
@@ -33,16 +34,16 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         if (_lettersController.text.isNotEmpty && _numbersController.text.isNotEmpty) {
           myVehicles.add({
             'plate': '${_lettersController.text} | ${_numbersController.text}',
-            'type': selectedPlateType,
-            'country': 'Saudi Arabia'
+            'type': AppData.translate(selectedPlateType, plateTypes.firstWhere((e) => e['name'] == selectedPlateType)['ar']),
+            'country': AppData.translate('Saudi Arabia', 'المملكة العربية السعودية')
           });
         }
       } else {
         if (_otherPlateController.text.isNotEmpty) {
           myVehicles.add({
             'plate': _otherPlateController.text,
-            'type': 'Other',
-            'country': 'International'
+            'type': AppData.translate('Other', 'أخرى'),
+            'country': AppData.translate('International', 'دولي')
           });
         }
       }
@@ -53,63 +54,49 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
     Navigator.pop(context);
   }
 
-  // --- نافذة توثيق نفاذ الجديدة ---
   void _showNafathVerification(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0A0A0A), // خلفية سوداء كما في الصورة
+      backgroundColor: const Color(0xFF0A0A0A),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            top: 20, left: 20, right: 20
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 10),
-              // شعار نفاذ
-              const Text(
-                'نفاذ',
-                style: TextStyle(color: Color(0xFF237D8C), fontSize: 48, fontWeight: FontWeight.bold, fontFamily: 'Cairo'),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'التحقق من خلال تطبيق نفاذ الرجاء إدخال رقم الهوية الخاص بك',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              const SizedBox(height: 30),
-              // حقل رقم الهوية
-              TextField(
-                textAlign: TextAlign.right,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: '* أدخل رقم الهوية',
-                  hintStyle: const TextStyle(color: Colors.white24),
-                  filled: true,
-                  fillColor: Colors.white.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white12)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Colors.white12)),
-                ),
-              ),
-              const SizedBox(height: 40),
-              // زر التالي
-              SizedBox(
-                width: double.infinity, height: 54,child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF237D8C).withOpacity(0.6), // لون الزر الباهت كما في الصورة
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        return Directionality(
+          textDirection: TextDirection.rtl, // نفاذ دائماً عربي
+          child: Padding(
+            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 10),
+                const Text('نفاذ', style: TextStyle(color: Color(0xFF237D8C), fontSize: 48, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                const Text('التحقق من خلال تطبيق نفاذ، الرجاء إدخال رقم الهوية الخاص بك', textAlign: TextAlign.center, style: TextStyle(color: Colors.white70, fontSize: 14)),
+                const SizedBox(height: 30),
+                TextField(
+                  textAlign: TextAlign.right,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: '* أدخل رقم الهوية',
+                    hintStyle: const TextStyle(color: Colors.white24),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.05),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   ),
-                  child: const Text('التالي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
-              ),
-              const SizedBox(height: 30),
-            ],
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity, height: 54,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C).withOpacity(0.6)),
+                    child: const Text('التالي', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         );
       },
@@ -118,69 +105,77 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
-          onPressed: () => Navigator.pop(context),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(AppData.translate('My Vehicles', 'مركباتي'), style: const TextStyle(color: Color(0xFF2A2A2A), fontSize: 18, fontWeight: FontWeight.w500)),
+          centerTitle: true,
         ),
-        title: const Text('My Vehicles', style: TextStyle(color: Color(0xFF2A2A2A), fontSize: 18, fontWeight: FontWeight.w500)),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            if (myVehicles.isEmpty) ...[
-              const SizedBox(height: 30),
-              Center(
-                child: Container(
-                  width: 180, height: 120,
-                  decoration: BoxDecoration(color: const Color(0x1A237D8C), borderRadius: BorderRadius.circular(20)),
-                  child: const Icon(Icons.directions_car_filled_rounded, size: 100, color: Color(0xFF237D8C)),
+        body: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              if (myVehicles.isEmpty) ...[
+                const SizedBox(height: 30),
+                Center(
+                  child: Container(
+                    width: 180, height: 120,
+                    decoration: BoxDecoration(color: const Color(0x1A237D8C), borderRadius: BorderRadius.circular(20)),
+                    child: const Icon(Icons.directions_car_filled_rounded, size: 100, color: Color(0xFF237D8C)),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Text(AppData.translate('No vehicles found', 'لا توجد مركبات'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A485F))),
+                const SizedBox(height: 10),
+                Text(AppData.translate(
+                  'Add a vehicle manually or verify your account to retrieve your registered vehicles automatically.',
+                  'أضف مركبة يدوياً أو وثق حسابك لسحب بيانات مركباتك المسجلة تلقائياً.'
+                ), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF898989), height: 1.5)),
+                const SizedBox(height: 40),
+                _buildVerifyCard(),
+              ] else ...[
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: myVehicles.length,
+                    itemBuilder: (context, index) => _buildVehicleListItem(index),
+                  ),
+                ),
+              ],
+              const Spacer(),
+              if (myVehicles.isEmpty)
+                SizedBox(
+                  width: double.infinity, height: 54,
+                  child: ElevatedButton(
+                    onPressed: () => _showNafathVerification(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text(AppData.translate('Verify Account', 'توثيق الحساب'), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              TextButton(
+                onPressed: () => _showAddVehicleSheet(context),
+                child: Text(
+                  myVehicles.isEmpty ? AppData.translate('Add Vehicle Manually', 'إضافة مركبة يدوياً') : AppData.translate('+ Add Another Vehicle', '+ إضافة مركبة أخرى'),
+                  style: const TextStyle(color: Color(0xFF237D8C), fontSize: 15, decoration: TextDecoration.underline)
                 ),
               ),
               const SizedBox(height: 30),
-              const Text('No vehicles found', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF1A485F))),
-              const SizedBox(height: 10),
-              const Text('Add a vehicle manually or verify your account to retrieve your registered vehicles automatically.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF898989), height: 1.5)),
-              const SizedBox(height: 40),
-              _buildVerifyCard(),
-            ] else ...[
-              Expanded(
-                child: ListView.builder(
-                  itemCount: myVehicles.length,
-                  itemBuilder: (context, index) => _buildVehicleListItem(index),
-                ),
-              ),
             ],
-            const Spacer(),
-            if (myVehicles.isEmpty)
-              SizedBox(
-                width: double.infinity, height: 54,
-                child: ElevatedButton(
-                  onPressed: () => _showNafathVerification(context), // هنا نفتح نافذة نفاذ
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: const Text('Verify Account', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => _showAddVehicleSheet(context),
-              child: Text(myVehicles.isEmpty ? 'Add Vehicle Manually' : '+ Add Another Vehicle', style: const TextStyle(color: Color(0xFF237D8C), fontSize: 15, decoration: TextDecoration.underline)),
-            ),
-            const SizedBox(height: 30),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  // الدوال المساعدة (Verify Card, List Item, etc.)
   Widget _buildVerifyCard() {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -188,15 +183,15 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [
-            Icon(Icons.verified_user_outlined, color: Color(0xFF237D8C), size: 20),
-            SizedBox(width: 10),
-            Text('Why verify your account?', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A485F))),
+          Row(children: [
+            const Icon(Icons.verified_user_outlined, color: Color(0xFF237D8C), size: 20),
+            const SizedBox(width: 10),
+            Text(AppData.translate('Why verify your account?', 'لماذا توثق حسابك؟'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF1A485F))),
           ]),
           const SizedBox(height: 12),
-          _buildBenefitItem('Retrieve vehicle data automatically.'),
-          _buildBenefitItem('Required for residential permits.'),
-          _buildBenefitItem('Ensures accuracy of vehicle data.'),
+          _buildBenefitItem(AppData.translate('Retrieve vehicle data automatically.', 'استرجاع بيانات المركبات تلقائياً.')),
+          _buildBenefitItem(AppData.translate('Required for residential permits.', 'مطلب أساسي لتصاريح السكن.')),
+          _buildBenefitItem(AppData.translate('Ensures accuracy of vehicle data.', 'ضمان دقة بيانات المركبة.')),
         ],
       ),
     );
@@ -236,6 +231,7 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
     );
   }
 
+  // --- دوال إضافة المركبة (BottomSheet) ---
   void _showAddVehicleSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -244,48 +240,52 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Container(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              decoration: const BoxDecoration(color: Color(0xFF121212), borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+            return Directionality(
+              textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
               child: Container(
-                constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const SizedBox(height: 12),
-                    Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
-                    const SizedBox(height: 20),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('Add Vehicle Information', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 25),
-                            Container(
-                              height: 50, padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-                              child: Row(
-                                children: [
-                                  _buildTabButton(setSheetState, 'Saudi Arabia', isSaudiSelected, () => setSheetState(() => isSaudiSelected = true)),_buildTabButton(setSheetState, 'Other', !isSaudiSelected, () => setSheetState(() => isSaudiSelected = false)),
-                                ],
+                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+                decoration: const BoxDecoration(color: Color(0xFF121212), borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+                child: Container(
+                  constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.85),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 12),
+                      Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2)))),
+                      const SizedBox(height: 20),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(AppData.translate('Add Vehicle Information', 'إضافة معلومات المركبة'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 25),
+                              Container(
+                                height: 50, padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  children: [
+                                    _buildTabButton(setSheetState, AppData.translate('Saudi Arabia', 'السعودية'), isSaudiSelected, () => setSheetState(() => isSaudiSelected = true)),
+                                    _buildTabButton(setSheetState, AppData.translate('Other', 'أخرى'), !isSaudiSelected, () => setSheetState(() => isSaudiSelected = false)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 30),
-                            isSaudiSelected ? _buildSaudiForm(setSheetState) : _buildOtherForm(),
-                          ],
+                              const SizedBox(height: 30),
+                              isSaudiSelected ? _buildSaudiForm(setSheetState) : _buildOtherForm(),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 20),
-                      child: SizedBox(
-                        width: double.infinity, height: 54,
-                        child: ElevatedButton(onPressed: _addNewVehicle, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Add Vehicle', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        child: SizedBox(
+                          width: double.infinity, height: 54,
+                          child: ElevatedButton(onPressed: _addNewVehicle, style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: Text(AppData.translate('Add Vehicle', 'إضافة المركبة'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -297,25 +297,27 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
 
   Widget _buildSaudiForm(StateSetter setSheetState) {
     Color plateColor = plateTypes.firstWhere((e) => e['name'] == selectedPlateType)['color'];
+    String plateAr = plateTypes.firstWhere((e) => e['name'] == selectedPlateType)['ar'];
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Plate Type*', style: TextStyle(color: Colors.white70, fontSize: 14)),
+        Text(AppData.translate('Plate Type*', 'نوع اللوحة*'), style: const TextStyle(color: Colors.white70, fontSize: 14)),
         const SizedBox(height: 8),
         GestureDetector(
           onTap: () => _showPlateTypePicker(context, setSheetState),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
             decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-            child: Row(children: [const Icon(Icons.keyboard_arrow_down, color: Colors.white70), const Spacer(), Text(selectedPlateType, style: const TextStyle(color: Colors.white)), const SizedBox(width: 10), _buildSmallPlateIcon(plateColor)]),
+            child: Row(children: [const Icon(Icons.keyboard_arrow_down, color: Colors.white70), const Spacer(), Text(AppData.translate(selectedPlateType, plateAr), style: const TextStyle(color: Colors.white)), const SizedBox(width: 10), _buildSmallPlateIcon(plateColor)]),
           ),
         ),
         const SizedBox(height: 30),
         _buildPlateDesign(plateColor),
         const SizedBox(height: 30),
-        _buildInputField('Plate Letters*', 'ABC', _lettersController),
+        _buildInputField(AppData.translate('Plate Letters*', 'حروف اللوحة*'), 'أ ب ج', _lettersController),
         const SizedBox(height: 15),
-        _buildInputField('Plate Numbers*', '1234', _numbersController),
+        _buildInputField(AppData.translate('Plate Numbers*', 'أرقام اللوحة*'), '١ ٢ ٣ ٤', _numbersController),
       ],
     );
   }
@@ -328,11 +330,20 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         child: IntrinsicHeight(
           child: Row(
             children: [
-              const Expanded(child: Center(child: Text('ح ر و ف', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
-              const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
-              const Expanded(child: Center(child: Text('1 2 3 4', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
-              const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
-              Container(width: 40, padding: const EdgeInsets.symmetric(vertical: 8), color: plateColor, child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('🇸🇦', style: TextStyle(fontSize: 14)), Text('K\nS\nA', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black))])),
+              // عكس ترتيب اللوحة ليتناسب مع العربي (العلم يمين)
+              if (!AppData.isArabic) ...[
+                const Expanded(child: Center(child: Text('A B C', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
+                const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
+                const Expanded(child: Center(child: Text('1 2 3 4', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
+                const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
+                Container(width: 40, padding: const EdgeInsets.symmetric(vertical: 8), color: plateColor, child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('🇸🇦', style: TextStyle(fontSize: 14)), Text('K\nS\nA', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black))])),
+              ] else ...[
+                Container(width: 40, padding: const EdgeInsets.symmetric(vertical: 8), color: plateColor, child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text('🇸🇦', style: TextStyle(fontSize: 14)), Text('K\nS\nA', textAlign: TextAlign.center, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, height: 1.1, color: Colors.black))])),
+                const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
+                const Expanded(child: Center(child: Text('١ ٢ ٣ ٤', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
+                const VerticalDivider(color: Color(0xFF757575), thickness: 2, width: 2),
+                const Expanded(child: Center(child: Text('أ ب ج', style: TextStyle(fontSize: 16, color: Color(0xFF757575))))),
+              ],
             ],
           ),
         ),
@@ -348,7 +359,8 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         shrinkWrap: true,
         itemCount: plateTypes.length,
         itemBuilder: (context, index) => ListTile(
-          title: Text(plateTypes[index]['name'], style: const TextStyle(color: Colors.white)),trailing: _buildSmallPlateIcon(plateTypes[index]['color']),
+          title: Text(AppData.translate(plateTypes[index]['name'], plateTypes[index]['ar']), style: const TextStyle(color: Colors.white)),
+          trailing: _buildSmallPlateIcon(plateTypes[index]['color']),
           onTap: () { parentSetState(() => selectedPlateType = plateTypes[index]['name']); Navigator.pop(context); },
         ),
       ),
@@ -364,7 +376,7 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   }
 
   Widget _buildOtherForm() {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Plate Information*', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)), const SizedBox(height: 15), _buildInputField('Plate Information*', 'Enter plate number', _otherPlateController)]);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(AppData.translate('Plate Information*', 'معلومات اللوحة*'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500)), const SizedBox(height: 15), _buildInputField(AppData.translate('Plate Information*', 'بيانات اللوحة*'), AppData.translate('Enter plate number', 'أدخل رقم اللوحة'), _otherPlateController)]);
   }
 
   Widget _buildTabButton(StateSetter setSheetState, String title, bool isActive, VoidCallback onTap) {

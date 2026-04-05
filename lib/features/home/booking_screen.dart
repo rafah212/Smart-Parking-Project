@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -8,28 +9,33 @@ class BookingScreen extends StatefulWidget {
 }
 
 class _BookingScreenState extends State<BookingScreen> {
-  // المتغير الذي يحدد الحالة المختارة حالياً
-  String selectedTab = 'Completed';
+  // نجعل الحالة الافتراضية تعتمد على الترجمة في المخ
+  late String selectedTab;
+
+  @override
+  void initState() {
+    super.initState();
+    // نبدأ بتبويب المكتملة كافتراضي
+    selectedTab = 'Completed';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          
-          // شريط التبديل التفاعلي
-          _buildTabSwitcher(),
-          
-          const SizedBox(height: 20),
-          
-          // عرض المحتوى بناءً على التبويب المختار
-          Expanded(
-            child: _buildBodyContent(),
-          ),
-        ],
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildTabSwitcher(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: _buildBodyContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -44,15 +50,14 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
-      child: const Center(
+      child: Center(
         child: Padding(
-          padding: EdgeInsets.only(top: 30),
+          padding: const EdgeInsets.only(top: 30),
           child: Text(
-            'Booking',
-            style: TextStyle(
+            AppData.translate('Booking', 'حجوزاتي'),
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -72,21 +77,21 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       child: Row(
         children: [
-          _buildTabItem('Upcoming'),
-          _buildTabItem('Completed'),
-          _buildTabItem('Cancelled'),
+          _buildTabItem('Upcoming', AppData.translate('Upcoming', 'القادمة')),
+          _buildTabItem('Completed', AppData.translate('Completed', 'المكتملة')),
+          _buildTabItem('Cancelled', AppData.translate('Cancelled', 'الملغاة')),
         ],
       ),
     );
   }
 
-  Widget _buildTabItem(String label) {
-    bool isSelected = selectedTab == label;
+  Widget _buildTabItem(String key, String label) {
+    bool isSelected = selectedTab == key;
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
-            selectedTab = label; // تحديث التبويب المختار عند النقر
+            selectedTab = key;
           });
         },
         child: Container(
@@ -100,7 +105,6 @@ class _BookingScreenState extends State<BookingScreen> {
             style: TextStyle(
               color: isSelected ? Colors.white : const Color(0xFF5A5A5A),
               fontSize: 12,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -109,26 +113,42 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  // دالة لعرض محتوى مختلف لكل حالة
   Widget _buildBodyContent() {
     if (selectedTab == 'Completed') {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         children: [
-          _buildBookingItem('Hayit Harken Public Parking-Area 1', 'Spot No.H04', 'Done', Color(0xFF43A048)),
-          _buildBookingItem('Al-Othaim-North Parking', 'Spot No.N33', 'Done', Color(0xFF43A048)),
-          _buildBookingItem('College of Medicine-Staff Parking', 'Spot No.M02', 'Done', Color(0xFF43A048)),
+          _buildBookingItem(
+            AppData.translate('Hayit Harken Public Parking', 'مواقف هايت هاركن العامة'), 
+            '${AppData.translate('Spot No.', 'رقم الموقف')} H04', 
+            AppData.translate('Done', 'مكتمل'), 
+            const Color(0xFF43A048)
+          ),
+          _buildBookingItem(
+            AppData.translate('Al-Othaim-North Parking', 'مواقف العثيم - الشمال'), 
+            '${AppData.translate('Spot No.', 'رقم الموقف')} N33', 
+            AppData.translate('Done', 'مكتمل'), 
+            const Color(0xFF43A048)
+          ),
         ],
       );
     } else if (selectedTab == 'Upcoming') {
-      return const Center(
-        child: Text('No upcoming bookings found', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Text(
+          AppData.translate('No upcoming bookings found', 'لا توجد حجوزات قادمة حالياً'),
+          style: const TextStyle(color: Colors.grey)
+        ),
       );
     } else {
       return ListView(
         padding: const EdgeInsets.symmetric(horizontal: 15),
         children: [
-          _buildBookingItem('King Saud Hospital', 'Spot No.V15', 'Cancelled', Colors.red),
+          _buildBookingItem(
+            AppData.translate('King Saud Hospital', 'مستشفى الملك سعود'), 
+            '${AppData.translate('Spot No.', 'رقم الموقف')} V15', 
+            AppData.translate('Cancelled', 'ملغى'), 
+            Colors.red
+          ),
         ],
       );
     }
@@ -139,7 +159,8 @@ class _BookingScreenState extends State<BookingScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFF237D8C), width: 0.5),
         boxShadow: [
           BoxShadow(

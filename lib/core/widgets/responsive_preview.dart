@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../app_data.dart'; 
 
 class ResponsivePreview extends StatelessWidget {
   final Widget child;
-  final String? title; // 
+  final String? title; 
 
   const ResponsivePreview({
     super.key, 
@@ -12,33 +13,46 @@ class ResponsivePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // النظام الجديد: Scaffold مرن يفرش على أي شاشة
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 1. الهيدر الموحد (يظهر فقط إذا أرسلنا عنوان)
-            if (title != null)
-              Container(
-                height: 70,
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      left: 10, top: 0, bottom: 0,
-                      child: IconButton(
-                        icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+    // 1. نغلف الشاشة كاملة باتجاه اللغة المختار من المخ
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // الهيدر الموحد
+              if (title != null)
+                Container(
+                  height: 70,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
                     ),
-                    Center(
-                      child: Text(
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center, // يضمن توسيط العنوان
+                    children: [
+                      // زر الرجوع: الآن مكانه يتغير تلقائياً (يمين أو يسار)
+                      Positioned(
+                        // إذا عربي يروح لليمين، إذا إنجليزي يروح لليسار
+                        right: AppData.isArabic ? 10 : null,
+                        left: AppData.isArabic ? null : 10,
+                        top: 0, bottom: 0,
+                        child: IconButton(
+                          // أيقونة السهم تقلب اتجاهها حسب اللغة
+                          icon: Icon(
+                            AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios, 
+                            color: Colors.white, 
+                            size: 20
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                      
+                      // عنوان الصفحة
+                      Text(
                         title!,
                         style: const TextStyle(
                           color: Colors.white, 
@@ -46,16 +60,16 @@ class ResponsivePreview extends StatelessWidget {
                           fontWeight: FontWeight.bold
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-            // محتوى الصفحة اللي "يفرش" تلقائياً
-            Expanded(
-              child: child, // 
-            ),
-          ],
+              // محتوى الصفحة
+              Expanded(
+                child: child, 
+              ),
+            ],
+          ),
         ),
       ),
     );

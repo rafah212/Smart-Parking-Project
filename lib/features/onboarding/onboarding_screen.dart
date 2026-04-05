@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:parkliapp/app_data.dart'; 
 import 'onboarding_page1_content.dart';
 import 'onboarding_page2_content.dart';
 import 'onboarding_page3_content.dart';
@@ -30,7 +30,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         duration: const Duration(milliseconds: 350),
         curve: Curves.easeInOut,
       );
-    } else {
     }
   }
 
@@ -43,126 +42,110 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFFF6F6),
-      body: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(25),
-          child: Container(
-            width: 375,
-            height: 812,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment(0.10, 0.08),
-                end: Alignment(0.91, 0.87),
-                colors: [Color(0xFF45B8CB), Color(0xFF0E3339)],
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFF6F6),
+        body: Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(25),
+            child: Container(
+              // --- رجعنا الحجم الأصلي اللي كان في كودك ---
+              width: 375, 
+              height: 812,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment(0.10, 0.08),
+                  end: Alignment(0.91, 0.87),
+                  colors: [Color(0xFF45B8CB), Color(0xFF0E3339)],
+                ),
               ),
-            ),
-            child: SafeArea(
-              child: Stack(
-                children: [
-                  // الصفحات
-                  PageView(
-                    controller: _pageController,
-                    onPageChanged: (i) => setState(() => _index = i),
-                    children: [
-                      const OnboardingPage1Content(),
-                      const OnboardingPage2Content(),
-                      OnboardingPage3Content(
-                        onCreateAccount: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignUpScreen(),
-                            ),
-                          );
-                        },
-                        onLogin: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginPhoneScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                  // Top bar: 1/3 + Skip
-                  Positioned(
-                    left: 17,
-                    right: 17,
-                    top: 16,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    PageView(
+                      controller: _pageController,
+                      onPageChanged: (i) => setState(() => _index = i),
                       children: [
-                        RichText(
-                          text: TextSpan(
-                            children: [
-                              TextSpan(
-                                text: '${_index + 1}',
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const TextSpan(
-                                text: '/3',
-                                style: TextStyle(
-                                  color: Color(0x7F0F3339),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: _skip,
-                          child: const Text(
-                            'Skip',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                        const OnboardingPage1Content(),
+                        const OnboardingPage2Content(),
+                        OnboardingPage3Content(
+                          onCreateAccount: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const SignUpScreen()),
+                            );
+                          },
+                          onLogin: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginPhoneScreen()),
+                            );
+                          },
                         ),
                       ],
                     ),
-                  ),
-
-                  // Bottom controls (dots + Next) - نخفيها في الصفحة الأخيرة (عشان فيها أزرار)
-                  if (_index != 2)
+                    
+                    // شريط التحكم العلوي
                     Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 24,
+                      left: 17,
+                      right: 17,
+                      top: 16,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _Pill(isActive: _index == 0),
-                          const SizedBox(width: 10),
-                          _Dot(isActive: _index == 1),
-                          const SizedBox(width: 10),
-                          _Dot(isActive: _index == 2),
-                          const SizedBox(width: 60),
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: AppData.isArabic ? '3/' : '${_index + 1}',
+                                  style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
+                                ),
+                                TextSpan(
+                                  text: AppData.isArabic ? '${_index + 1}' : '/3',
+                                  style: const TextStyle(color: Color(0x7F0F3339), fontSize: 18, fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            ),
+                          ),
                           GestureDetector(
-                            onTap: _goNext,
-                            child: const Text(
-                              'Next',
-                              style: TextStyle(
-                                color: Color(0xFF2E4154),
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
+                            onTap: _skip,
+                            child: Text(
+                              AppData.translate('Skip', 'تخطي'),
+                              style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
                       ),
                     ),
-                ],
+
+                    // شريط التحكم السفلي
+                    if (_index != 2)
+                      Positioned(
+                        left: 20,
+                        right: 20,
+                        bottom: 24,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _Pill(isActive: _index == 0),
+                            const SizedBox(width: 10),
+                            _Dot(isActive: _index == 1),
+                            const SizedBox(width: 10),
+                            _Dot(isActive: _index == 2),
+                            const Spacer(), 
+                            GestureDetector(
+                              onTap: _goNext,
+                              child: Text(
+                                AppData.translate('Next', 'التالي'),
+                                style: const TextStyle(color: Color(0xFF2E4154), fontSize: 18, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -172,38 +155,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
+// الـ Dot و الـ Pill كما هي في كودك الأصلي
 class _Dot extends StatelessWidget {
-  const _Dot({required this.isActive});
   final bool isActive;
-
+  const _Dot({required this.isActive});
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF72ACB6) : const Color(0xB23A455D),
-        borderRadius: BorderRadius.circular(100),
-      ),
+      width: 10, height: 10,
+      decoration: BoxDecoration(color: isActive ? const Color(0xFF72ACB6) : const Color(0xB23A455D), borderRadius: BorderRadius.circular(100)),
     );
   }
 }
 
 class _Pill extends StatelessWidget {
-  const _Pill({required this.isActive});
   final bool isActive;
-
+  const _Pill({required this.isActive});
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      width: isActive ? 40 : 10,
-      height: 8,
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF72ACB6) : const Color(0xB23A455D),
-        borderRadius: BorderRadius.circular(100),
-      ),
+      width: isActive ? 40 : 10, height: 8,
+      decoration: BoxDecoration(color: isActive ? const Color(0xFF72ACB6) : const Color(0xB23A455D), borderRadius: BorderRadius.circular(100)),
     );
   }
 }

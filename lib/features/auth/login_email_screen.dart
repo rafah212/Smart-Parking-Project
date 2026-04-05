@@ -3,7 +3,7 @@ import '../home/utils/navigation_helpers.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/features/forgotPass/forgot_pass1.dart';
 import 'package:parkliapp/features/forgotPass/change_pass.dart';
-
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -41,7 +41,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
       );
 
       if (res.user == null) {
-        throw Exception('Login failed');
+        throw Exception(AppData.translate('Login failed', 'فشل تسجيل الدخول'));
       }
 
       if (!mounted) return;
@@ -51,12 +51,13 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
 
       String message = e.toString();
 
+      // تعريب رسائل الخطأ التقنية للمستخدم
       if (message.contains('Email not confirmed')) {
-        message = 'Please verify your email first';
+        message = AppData.translate('Please verify your email first', 'يرجى تفعيل بريدك الإلكتروني أولاً');
       } else if (message.contains('Invalid login credentials')) {
-        message = 'Incorrect email or password';
+        message = AppData.translate('Incorrect email or password', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
       } else {
-        message = 'Login failed: $message';
+        message = AppData.translate('Login failed: $message', 'فشل الدخول: $message');
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,224 +76,217 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
     const borderColor = Color(0xFFE5E5E5);
     const fieldBg = Color(0xFFF9F9F9);
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
         backgroundColor: Colors.white,
-        elevation: 0,
-        surfaceTintColor: Colors.white,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: primaryColor,
-            size: 20,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          surfaceTintColor: Colors.white,
+          leading: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(
+              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+              color: primaryColor,
+              size: 20,
+            ),
           ),
         ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Login to your account',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Email Address',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: 'example@email.com',
-                    filled: true,
-                    fillColor: fieldBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 18,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: primaryColor),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Please enter your email';
-                    }
-
-                    if (!RegExp(
-                      r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$',
-                    ).hasMatch(value.trim())) {
-                      return 'Enter a valid email';
-                    }
-
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Password',
-                  style: TextStyle(
-                    color: primaryColor,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: obscurePassword,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your password',
-                    filled: true,
-                    fillColor: fieldBg,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 18,
-                    ),
-                    suffixIcon: IconButton(
-                      onPressed: () {
-                        setState(() {
-                          obscurePassword = !obscurePassword;
-                        });
-                      },
-                      icon: Icon(
-                        obscurePassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined,
-                        color: primaryColor,
-                      ),
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: primaryColor),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
-
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-    // استخدمنا Column هنا عشان نرتب الرابطين تحت بعض في جهة اليمين
-                Column(
-                crossAxisAlignment: CrossAxisAlignment.end, 
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-    // 1. رابط نسيت كلمة المرور (الموجود أصلاً)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      openForgotPassword(context);
-                    },
-                    child: const Text(
-                      'Forgot your password?',
-                      style: TextStyle(
-                        color: primaryColor, // تأكدي أن primaryColor معرفة في ملفك
-                        fontWeight: FontWeight.w600,
-                      ),
+                  Text(
+                    AppData.translate('Login to your account', 'تسجيل الدخول إلى حسابك'),
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-                
-                // 2. الرابط الجديد (تغيير كلمة المرور) اللي كان مختفي
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      // الكود اللي يفتح صفحة تغيير الباسورد
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ChangePasswordScreen(),
+                  const SizedBox(height: 32),
+                  Text(
+                    AppData.translate('Email Address', 'البريد الإلكتروني'),
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                   TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: InputDecoration(
+                      hintText: 'example@email.com',
+                      filled: true,
+                      fillColor: fieldBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryColor),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return AppData.translate('Please enter your email', 'يرجى إدخال البريد الإلكتروني');
+                      }
+                      if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
+                        return AppData.translate('Enter a valid email', 'أدخل بريداً إلكترونياً صحيحاً');
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    AppData.translate('Password', 'كلمة المرور'),
+                    style: const TextStyle(
+                      color: primaryColor,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: obscurePassword,
+                    textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                    decoration: InputDecoration(
+                      hintText: AppData.translate('Enter your password', 'أدخل كلمة المرور'),
+                      filled: true,
+                      fillColor: fieldBg,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 18,
+                      ),
+                      suffixIcon: IconButton(
+                        onPressed: () {
+                          setState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          color: primaryColor,
                         ),
-                      );
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: const BorderSide(color: primaryColor),
+                      ),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return AppData.translate('Please enter your password', 'يرجى إدخال كلمة المرور');
+                      }
+                      if (value.length < 6) {
+                        return AppData.translate('Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 خانات على الأقل');
+                      }
+                      return null;
                     },
-                    child: const Text(
-                      'Change Password?',
-                      style: TextStyle(
-                        color: primaryColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
                   ),
-                ),
-              ],
-            ),
-
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryColor.withOpacity(0.7),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(50),
-                      ),
-                    ),
-                    child: isLoading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                  const SizedBox(height: 14),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Align(
+                        alignment: AppData.isArabic ? Alignment.centerLeft : Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            openForgotPassword(context);
+                          },
+                          child: Text(
+                            AppData.translate('Forgot your password?', 'نسيت كلمة المرور؟'),
+                            style: const TextStyle(
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ),
+                      ),
+                      Align(
+                        alignment: AppData.isArabic ? Alignment.centerLeft : Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ChangePasswordScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            AppData.translate('Change Password?', 'تغيير كلمة المرور؟'),
+                            style: const TextStyle(
+                              color: primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: isLoading ? null : _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor.withOpacity(0.7),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(50),
+                        ),
+                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              AppData.translate('Login', 'تسجيل الدخول'),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
