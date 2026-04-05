@@ -1,18 +1,149 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:parkliapp/core/services/saved_places_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:parkliapp/features/home/widgets/parking_lot_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-class PlaceDetailsScreen extends StatelessWidget {
+class PlaceDetailsScreen extends StatefulWidget {
   final Place place;
 
   const PlaceDetailsScreen({super.key, required this.place});
 
+  @override
+  State<PlaceDetailsScreen> createState() => _PlaceDetailsScreenState();
+}
+
+class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
+  final SavedPlacesService _savedPlacesService = SavedPlacesService();
+
+  bool _isSaved = false;
+  bool _isLoadingSavedState = true;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedState();
+  }
+
+  Future<void> _loadSavedState() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+      setState(() {
+        _isSaved = false;
+        _isLoadingSavedState = false;
+      });
+      return;
+    }
+
+    try {
+      final isSaved = await _savedPlacesService.isPlaceSaved(
+        userId: user.id,
+        placeId: widget.place.id,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isSaved = isSaved;
+        _isLoadingSavedState = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isLoadingSavedState = false;
+      });
+    }
+  }
+
+  Future<void> _toggleSavedPlace() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('You need to log in first'),
+        ),
+      );
+      return;
+    }
+
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      if (_isSaved) {
+        await _savedPlacesService.removeSavedPlace(
+          userId: user.id,
+          placeId: widget.place.id,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _isSaved = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('${widget.place.name} removed from saved'),
+          ),
+        );
+      } else {
+        await _savedPlacesService.savePlace(
+          userId: user.id,
+          placeId: widget.place.id,
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _isSaved = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            content: Text('${widget.place.name} saved successfully'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+      });
+    }
+  }
+
   Future<void> _openDirections() async {
+    if (widget.place.lat == 0 && widget.place.lng == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Location is not available for this place'),
+        ),
+      );
+      return;
+    }
+
     final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=${place.lat},${place.lng}',
+      'https://www.google.com/maps/dir/?api=1&destination=${widget.place.lat},${widget.place.lng}',
     );
 
     if (await canLaunchUrl(uri)) {
@@ -20,64 +151,88 @@ class PlaceDetailsScreen extends StatelessWidget {
     }
   }
 
+  String _formattedDistance() {
+    if (widget.place.distanceKm < 1) {
+      return '${(widget.place.distanceKm * 1000).toInt()} m';
+    }
+    return '${widget.place.distanceKm.toStringAsFixed(1)} km';
+  }
+
   @override
   Widget build(BuildContext context) {
-    final LatLng location = LatLng(place.lat, place.lng);
+    final LatLng location = LatLng(widget.place.lat, widget.place.lng);
+    final bool hasLocation = widget.place.lat != 0 || widget.place.lng != 0;
 
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
         children: [
           Positioned.fill(
-            child: FlutterMap(
-              options: MapOptions(initialCenter: location, initialZoom: 15.5),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.example.parkliapp',
-                ),
-                MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: location,
-                      width: 56,
-                      height: 56,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x14000000),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
+            child: hasLocation
+                ? FlutterMap(
+                    options: MapOptions(
+                      initialCenter: location,
+                      initialZoom: 15.5,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.parkliapp',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: location,
+                            width: 56,
+                            height: 56,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Color(0x14000000),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.local_parking_rounded,
+                                color: Color(0xFF237D8C),
+                                size: 28,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.local_parking_rounded,
-                          color: Color(0xFF237D8C),
-                          size: 28,
-                        ),
+                          ),
+                        ],
+                      ),
+                      CircleLayer(
+                        circles: [
+                          CircleMarker(
+                            point: location,
+                            radius: 45,
+                            color: const Color(0x33237D8C),
+                            borderColor: const Color(0x66237D8C),
+                            borderStrokeWidth: 1.5,
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                : Container(
+                    color: const Color(0xFFF4F7F8),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'Location is not available',
+                      style: TextStyle(
+                        color: Color(0xFF607176),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ],
-                ),
-                CircleLayer(
-                  circles: [
-                    CircleMarker(
-                      point: location,
-                      radius: 45,
-                      color: const Color(0x33237D8C),
-                      borderColor: const Color(0x66237D8C),
-                      borderStrokeWidth: 1.5,
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
           ),
-
           Container(
             height: 120,
             decoration: const BoxDecoration(
@@ -88,7 +243,6 @@ class PlaceDetailsScreen extends StatelessWidget {
               ),
             ),
           ),
-
           SafeArea(
             child: Column(
               children: [
@@ -96,12 +250,11 @@ class PlaceDetailsScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 13),
-                  child: _SearchPreviewBar(text: place.name),
+                  child: _SearchPreviewBar(text: widget.place.name),
                 ),
               ],
             ),
           ),
-
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -129,7 +282,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            place.name,
+                            widget.place.name,
                             style: const TextStyle(
                               color: Color(0xFF1A485F),
                               fontSize: 16,
@@ -145,9 +298,25 @@ class PlaceDetailsScreen extends StatelessWidget {
                             shape: BoxShape.circle,
                             border: Border.all(color: const Color(0x1F000000)),
                           ),
-                          child: const Icon(
-                            Icons.star_border_rounded,
-                            color: Color(0xFF237D8C),
+                          child: IconButton(
+                            onPressed: _isLoadingSavedState || _isSaving
+                                ? null
+                                : _toggleSavedPlace,
+                            icon: _isLoadingSavedState
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Color(0xFF237D8C),
+                                    ),
+                                  )
+                                : Icon(
+                                    _isSaved
+                                        ? Icons.star_rounded
+                                        : Icons.star_border_rounded,
+                                    color: const Color(0xFF237D8C),
+                                  ),
                           ),
                         ),
                       ],
@@ -155,18 +324,20 @@ class PlaceDetailsScreen extends StatelessWidget {
                     const SizedBox(height: 14),
                     _InfoRow(
                       icon: Icons.place_outlined,
-                      text: place.branchName,
+                      text: widget.place.branchName.isNotEmpty
+                          ? widget.place.branchName
+                          : widget.place.category,
                     ),
                     const SizedBox(height: 8),
                     _InfoRow(
                       icon: Icons.local_parking_outlined,
                       text:
-                          '${place.availableSlots}/${place.totalSlots} Total slots available',
+                          '${widget.place.availableSlots}/${widget.place.totalSlots} Total slots available',
                     ),
                     const SizedBox(height: 8),
                     _InfoRow(
                       icon: Icons.social_distance_outlined,
-                      text: '${place.distanceKm} km',
+                      text: _formattedDistance(),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -194,7 +365,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(left: 6),
                           child: Text(
-                            place.priceLabel,
+                            widget.place.priceLabel,
                             style: const TextStyle(
                               color: Color(0xFF237D8C),
                               fontSize: 22,
@@ -213,7 +384,7 @@ class PlaceDetailsScreen extends StatelessWidget {
                                   context,
                                   MaterialPageRoute(
                                     builder: (_) =>
-                                        ParkingLotScreen(place: place),
+                                        ParkingLotScreen(place: widget.place),
                                   ),
                                 );
                               },

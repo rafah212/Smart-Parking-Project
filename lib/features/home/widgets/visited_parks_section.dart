@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/features/home/models/place.dart';
-import 'parking_card.dart';
+import 'package:parkliapp/features/home/widgets/parking_card.dart';
 
 class VisitedParksSection extends StatelessWidget {
   final List<Place> visitedPlaces;

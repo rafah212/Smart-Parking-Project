@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/features/home/data/places_dummy_data.dart';
+import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/explore_category_screen.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
@@ -18,21 +18,47 @@ class HomeSearchSheet extends StatefulWidget {
 
 class _HomeSearchSheetState extends State<HomeSearchSheet> {
   final TextEditingController _searchController = TextEditingController();
+  final PlaceService _placeService = PlaceService();
 
-  late List<Place> _nearbyPlaces;
-  late List<Place> _searchResults;
+  List<Place> _allPlaces = [];
+  List<Place> _nearbyPlaces = [];
+  List<Place> _searchResults = [];
   bool _isSearching = false;
+  bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _nearbyPlaces = dummyPlaces.where((place) => place.isNearby).toList();
-    _searchResults = [];
+    _loadPlaces();
     _searchController.addListener(_onSearchChanged);
   }
 
+  Future<void> _loadPlaces() async {
+    try {
+      final places = await _placeService.getAllPlaces();
+
+      if (!mounted) return;
+      setState(() {
+        _allPlaces = places;
+        _nearbyPlaces = places.where((place) => place.isNearby).toList();
+        if (_nearbyPlaces.isEmpty) {
+          _nearbyPlaces = places.take(6).toList();
+        }
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
   void _onSearchChanged() {
-    final query = _searchController.text.trim();
+    final query = _searchController.text.trim().toLowerCase();
 
     if (query.isEmpty) {
       setState(() {
@@ -42,11 +68,10 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
       return;
     }
 
-    final results = dummyPlaces.where((place) {
-      final q = query.toLowerCase();
-      return place.name.toLowerCase().contains(q) ||
-          place.branchName.toLowerCase().contains(q) ||
-          place.category.toLowerCase().contains(q);
+    final results = _allPlaces.where((place) {
+      return place.name.toLowerCase().contains(query) ||
+          place.branchName.toLowerCase().contains(query) ||
+          place.category.toLowerCase().contains(query);
     }).toList();
 
     setState(() {
@@ -73,8 +98,7 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Place> visiblePlaces =
-        _isSearching ? _searchResults : _nearbyPlaces;
+    final visiblePlaces = _isSearching ? _searchResults : _nearbyPlaces;
 
     return Container(
       decoration: const BoxDecoration(
@@ -98,11 +122,35 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
             const SizedBox(height: 16),
             _SearchRow(controller: _searchController),
             const SizedBox(height: 20),
-
             _SectionLabel(_isSearching ? 'RESULTS' : 'NEARBY'),
             const SizedBox(height: 10),
-
-            if (visiblePlaces.isEmpty)
+            if (_isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (_error != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xCCF5FBFC),
+                  border: Border.all(color: const Color(0x30777777)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(
+                    color: Colors.red,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              )
+            else if (visiblePlaces.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -133,14 +181,12 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
                   ),
                 ),
               ),
-
             if (!_isSearching) ...[
               const SizedBox(height: 10),
               const _SectionLabel('EXPLORE'),
               const SizedBox(height: 14),
               const _ExploreSection(),
             ],
-
             const SizedBox(height: 30),
           ],
         ),
@@ -284,12 +330,9 @@ class _NearbyPlaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String formattedDistance;
-    if (place.distanceKm < 1) {
-      formattedDistance = '${(place.distanceKm * 1000).toInt()}m';
-    } else {
-      formattedDistance = '${place.distanceKm} km';
-    }
+    final formattedDistance = place.distanceKm < 1
+        ? '${(place.distanceKm * 1000).toInt()}m'
+        : '${place.distanceKm.toStringAsFixed(1)} km';
 
     return GestureDetector(
       onTap: onTap,

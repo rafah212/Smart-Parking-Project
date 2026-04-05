@@ -1,11 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/core/services/notifications_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class Notifications extends StatelessWidget {
+class Notifications extends StatefulWidget {
   const Notifications({super.key});
 
   @override
+  State<Notifications> createState() => _NotificationsState();
+}
+
+class _NotificationsState extends State<Notifications> {
+  final NotificationsService _notificationsService = NotificationsService();
+
+  List<AppNotificationItem> _notifications = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      setState(() {
+        _error = 'You need to log in first';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      final items = await _notificationsService.getNotifications(user.id);
+
+      if (!mounted) return;
+      setState(() {
+        _notifications = items;
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  String _timeAgo(DateTime? createdAt) {
+    if (createdAt == null) return 'Now';
+
+    final diff = DateTime.now().difference(createdAt);
+
+    if (diff.inMinutes < 1) return 'Now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min';
+    if (diff.inHours < 24) return '${diff.inHours} hour';
+    return '${diff.inDays} day';
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // الحصول على عرض الشاشة الحالي لجعل التصميم متجاوباً
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
@@ -15,7 +73,7 @@ class Notifications extends StatelessWidget {
           children: [
             Container(
               width: screenWidth,
-              height: 812, // يمكنك تغييره لـ MediaQuery.of(context).size.height إذا أردت كامل الارتفاع
+              constraints: const BoxConstraints(minHeight: 812),
               clipBehavior: Clip.antiAlias,
               decoration: ShapeDecoration(
                 color: Colors.white,
@@ -25,53 +83,6 @@ class Notifications extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  // --- خلفية الإشعار الأول (النشط) ليمتد بعرض الشاشة ---
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    top: 142,
-                    child: Container(
-                      height: 90,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF3F6FF),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            child: Container(
-                              width: 5,
-                              color: const Color(0xA3237D8C),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  // --- قائمة الإشعارات ---
-                  _buildNotificationItem(
-                    top: 157,
-                    title: 'Your car is parked',
-                    subtitle: 'The time will be counted down',
-                    time: 'Now',
-                  ),
-                  _buildNotificationItem(
-                    top: 258,
-                    title: 'You have arrived',
-                    subtitle: 'Please scan the code on the parking...',
-                    time: '6 min',
-                  ),
-                  _buildNotificationItem(
-                    top: 344,
-                    title: 'Successful transaction',
-                    subtitle: '1 parking slot already booked',
-                    time: '1 hour',
-                  ),
-
-                  // --- الهيدر العلوي (Header) ---
                   Positioned(
                     left: 0,
                     right: 0,
@@ -95,7 +106,6 @@ class Notifications extends StatelessWidget {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // سهم الرجوع
                             Positioned(
                               left: 10,
                               child: IconButton(
@@ -107,7 +117,6 @@ class Notifications extends StatelessWidget {
                                 },
                               ),
                             ),
-                            // عنوان الصفحة
                             const Text(
                               'Notifications',
                               style: TextStyle(
@@ -122,71 +131,95 @@ class Notifications extends StatelessWidget {
                       ),
                     ),
                   ),
+                  Positioned(
+                    top: 130,
+                    left: 0,
+                    right: 0,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _error != null
+                            ? Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              )
+                            : _notifications.isEmpty
+                                ? const Padding(
+                                    padding: EdgeInsets.all(24),
+                                    child: Text(
+                                      'No notifications yet',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  )
+                                : Column(
+                                    children: _notifications.map((item) {
+                                      return Container(
+                                        color: item.isRead
+                                            ? Colors.white
+                                            : const Color(0xFFF3F6FF),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 16,
+                                        ),
+                                        child: Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            if (!item.isRead)
+                                              Container(
+                                                width: 5,
+                                                height: 60,
+                                                margin: const EdgeInsets.only(right: 12),
+                                                color: const Color(0xA3237D8C),
+                                              ),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.title,
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF237D8C),
+                                                      fontSize: 18,
+                                                      fontWeight: FontWeight.w700,
+                                                      fontFamily: 'Lato',
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 6),
+                                                  Text(
+                                                    item.body,
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF677191),
+                                                      fontSize: 15,
+                                                      fontWeight: FontWeight.w500,
+                                                      fontFamily: 'Lato',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Text(
+                                              _timeAgo(item.createdAt),
+                                              textAlign: TextAlign.right,
+                                              style: const TextStyle(
+                                                color: Color(0xFF237D8C),
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                fontFamily: 'Lato',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                  ),
+                  ),
                 ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Widget مساعد لبناء الإشعار بشكل يمتد بعرض الشاشة
-  Widget _buildNotificationItem({
-    required double top,
-    required String title,
-    required String subtitle,
-    required String time,
-  }) {
-    return Positioned(
-      left: 20, // الهامش من اليسار
-      right: 20, // الهامش من اليمين (يجعلها تمتد)
-      top: top,
-      child: SizedBox(
-        height: 65,
-        child: Stack(
-          children: [
-            // النص الرئيسي
-            Positioned(
-              left: 0,
-              top: 0,
-              child: Text(
-                title,
-                style: const TextStyle(
-                  color: Color(0xFF237D8C),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Lato',
-                ),
-              ),
-            ),
-            // النص الفرعي
-            Positioned(
-              left: 0,
-              top: 30,
-              child: Text(
-                subtitle,
-                style: const TextStyle(
-                  color: Color(0xFF677191),
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  fontFamily: 'Lato',
-                ),
-              ),
-            ),
-            // الوقت (أقصى اليمين)
-            Positioned(
-              right: 0,
-              top: 5,
-              child: Text(
-                time,
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                  color: Color(0xFF237D8C),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  fontFamily: 'Lato',
-                ),
               ),
             ),
           ],

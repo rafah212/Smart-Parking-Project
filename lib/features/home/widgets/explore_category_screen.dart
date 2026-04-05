@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/features/home/data/places_dummy_data.dart';
+import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
 
 enum ExploreCategoryType { hospitals, university, shopping, cafesAndFarms }
 
-class ExploreCategoryScreen extends StatelessWidget {
+class ExploreCategoryScreen extends StatefulWidget {
   final ExploreCategoryType category;
 
   const ExploreCategoryScreen({
@@ -13,8 +13,19 @@ class ExploreCategoryScreen extends StatelessWidget {
     required this.category,
   });
 
+  @override
+  State<ExploreCategoryScreen> createState() => _ExploreCategoryScreenState();
+}
+
+class _ExploreCategoryScreenState extends State<ExploreCategoryScreen> {
+  final PlaceService _placeService = PlaceService();
+
+  List<Place> _places = [];
+  bool _isLoading = true;
+  String? _error;
+
   String get _categoryKey {
-    switch (category) {
+    switch (widget.category) {
       case ExploreCategoryType.hospitals:
         return 'hospitals';
       case ExploreCategoryType.university:
@@ -27,7 +38,7 @@ class ExploreCategoryScreen extends StatelessWidget {
   }
 
   String get _title {
-    switch (category) {
+    switch (widget.category) {
       case ExploreCategoryType.hospitals:
         return 'Hospitals';
       case ExploreCategoryType.university:
@@ -40,7 +51,7 @@ class ExploreCategoryScreen extends StatelessWidget {
   }
 
   String get _heroImage {
-    switch (category) {
+    switch (widget.category) {
       case ExploreCategoryType.hospitals:
         return 'assets/images/explore_hospitals1.png';
       case ExploreCategoryType.university:
@@ -53,7 +64,7 @@ class ExploreCategoryScreen extends StatelessWidget {
   }
 
   IconData get _categoryIcon {
-    switch (category) {
+    switch (widget.category) {
       case ExploreCategoryType.hospitals:
         return Icons.local_hospital_outlined;
       case ExploreCategoryType.university:
@@ -65,18 +76,36 @@ class ExploreCategoryScreen extends StatelessWidget {
     }
   }
 
-  List<Place> get _categoryPlaces {
-    return dummyPlaces.where((place) => place.category == _categoryKey).toList();
-  }
-
-  List<Place> get _popularPlaces {
-    final places = _categoryPlaces;
-    return places.take(3).toList();
-  }
+  List<Place> get _popularPlaces => _places.take(3).toList();
 
   List<Place> get _nearbyPlaces {
-    final nearby = _categoryPlaces.where((place) => place.isNearby).toList();
-    return nearby.isNotEmpty ? nearby : _categoryPlaces;
+    final nearby = _places.where((place) => place.isNearby).toList();
+    return nearby.isNotEmpty ? nearby : _places;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlaces();
+  }
+
+  Future<void> _loadPlaces() async {
+    try {
+      final places = await _placeService.getPlacesByCategoryGroup(_categoryKey);
+
+      if (!mounted) return;
+      setState(() {
+        _places = places;
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   Color _iconBackgroundColor(int index) {
@@ -109,61 +138,72 @@ class ExploreCategoryScreen extends StatelessWidget {
           children: [
             _TopHeader(title: 'Explore'),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _HeroCard(
-                      imagePath: _heroImage,
-                      title: _title,
-                    ),
-                    const SizedBox(height: 16),
-                    const _SectionTitle('POPULAR'),
-                    const SizedBox(height: 12),
-
-                    if (popularPlaces.isEmpty)
-                      const _EmptyStateCard()
-                    else
-                      SizedBox(
-                        height: 192,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: popularPlaces.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 15),
-                          itemBuilder: (context, index) {
-                            final place = popularPlaces[index];
-                            return _PopularCard(
-                              place: place,
-                              onTap: () => _openPlace(context, place),
-                            );
-                          },
-                        ),
-                      ),
-
-                    const SizedBox(height: 18),
-                    const _SectionTitle('NEARBY'),
-                    const SizedBox(height: 12),
-
-                    if (nearbyPlaces.isEmpty)
-                      const _EmptyStateCard()
-                    else
-                      ...nearbyPlaces.asMap().entries.map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 14),
-                          child: _NearbyPlaceCard(
-                            place: entry.value,
-                            icon: _categoryIcon,
-                            iconBackgroundColor:
-                                _iconBackgroundColor(entry.key),
-                            onTap: () => _openPlace(context, entry.value),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _HeroCard(
+                                imagePath: _heroImage,
+                                title: _title,
+                              ),
+                              const SizedBox(height: 16),
+                              const _SectionTitle('POPULAR'),
+                              const SizedBox(height: 12),
+                              if (popularPlaces.isEmpty)
+                                const _EmptyStateCard()
+                              else
+                                SizedBox(
+                                  height: 192,
+                                  child: ListView.separated(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: popularPlaces.length,
+                                    separatorBuilder: (_, __) =>
+                                        const SizedBox(width: 15),
+                                    itemBuilder: (context, index) {
+                                      final place = popularPlaces[index];
+                                      return _PopularCard(
+                                        place: place,
+                                        onTap: () => _openPlace(context, place),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              const SizedBox(height: 18),
+                              const _SectionTitle('NEARBY'),
+                              const SizedBox(height: 12),
+                              if (nearbyPlaces.isEmpty)
+                                const _EmptyStateCard()
+                              else
+                                ...nearbyPlaces.asMap().entries.map(
+                                  (entry) => Padding(
+                                    padding: const EdgeInsets.only(bottom: 14),
+                                    child: _NearbyPlaceCard(
+                                      place: entry.value,
+                                      icon: _categoryIcon,
+                                      iconBackgroundColor:
+                                          _iconBackgroundColor(entry.key),
+                                      onTap: () =>
+                                          _openPlace(context, entry.value),
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),
@@ -307,6 +347,10 @@ class _PopularCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final imagePath = place.imagePath.isNotEmpty
+        ? place.imagePath
+        : 'assets/images/explore_placeholder.png';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -320,7 +364,7 @@ class _PopularCard extends StatelessWidget {
           children: [
             Positioned.fill(
               child: Image.asset(
-                place.imagePath,
+                imagePath,
                 fit: BoxFit.cover,
               ),
             ),
@@ -368,12 +412,9 @@ class _NearbyPlaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String formattedDistance;
-    if (place.distanceKm < 1) {
-      formattedDistance = '${(place.distanceKm * 1000).toInt()}m';
-    } else {
-      formattedDistance = '${place.distanceKm} km';
-    }
+    final formattedDistance = place.distanceKm < 1
+        ? '${(place.distanceKm * 1000).toInt()}m'
+        : '${place.distanceKm.toStringAsFixed(1)} km';
 
     return GestureDetector(
       onTap: onTap,

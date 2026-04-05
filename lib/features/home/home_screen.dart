@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/features/home/data/places_dummy_data.dart';
+import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'widgets/home_bottom_nav.dart';
 import 'widgets/home_header.dart';
 import 'widgets/home_search_bar.dart';
 import 'widgets/map_section.dart';
 import 'widgets/visited_parks_section.dart';
-import 'widgets/home_search_sheet.dart';
+import 'package:parkliapp/features/home/widgets/home_search_sheet.dart';
 import 'widgets/home_filter_sheet.dart';
 import 'saved_parking.dart';
 import 'user_profile.dart';
@@ -20,12 +20,43 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final PlaceService _placeService = PlaceService();
+
   int _currentIndex = 0;
   bool _showSearchSheet = false;
   bool _showFilterSheet = false;
 
   double _selectedDistance = 40;
   String _selectedTime = 'Now';
+
+  List<Place> _allPlaces = [];
+  bool _isLoadingPlaces = true;
+  String? _placesError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlaces();
+  }
+
+  Future<void> _loadPlaces() async {
+    try {
+      final places = await _placeService.getAllPlaces();
+
+      if (!mounted) return;
+      setState(() {
+        _allPlaces = places;
+        _isLoadingPlaces = false;
+        _placesError = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _placesError = e.toString();
+        _isLoadingPlaces = false;
+      });
+    }
+  }
 
   int _mapSelectedTimeToMinutes(String selectedTime) {
     switch (selectedTime) {
@@ -53,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Place> get _filteredVisitedPlaces {
     final selectedMinutes = _mapSelectedTimeToMinutes(_selectedTime);
 
-    return dummyPlaces
+    return _allPlaces
         .where((place) {
           final matchesDistance = place.distanceKm <= _selectedDistance;
           final matchesTime = place.availableInMinutes <= selectedMinutes;
@@ -61,6 +92,40 @@ class _HomeScreenState extends State<HomeScreen> {
         })
         .take(4)
         .toList();
+  }
+
+  Widget _buildPlacesContent() {
+    if (_isLoadingPlaces) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 30),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_placesError != null) {
+      return Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          _placesError!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: Colors.red,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        const SizedBox(height: 18),
+        VisitedParksSection(
+          visitedPlaces: _filteredVisitedPlaces,
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
   }
 
   Widget _buildHomeBody() {
@@ -113,11 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        VisitedParksSection(
-                          visitedPlaces: _filteredVisitedPlaces,
-                        ),
-                        const SizedBox(height: 20),
+                        _buildPlacesContent(),
                       ],
                     ),
                   ),
@@ -226,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
+    final pages = [
       _buildHomeBody(),
       const SavedParking(),
       const BookingScreen(),

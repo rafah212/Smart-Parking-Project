@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:parkliapp/features/home/data/parking_spots_dummy_data.dart';
+import 'package:parkliapp/core/services/parking_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ParkingLotScreen extends StatefulWidget {
   final Place place;
@@ -13,36 +16,130 @@ class ParkingLotScreen extends StatefulWidget {
 }
 
 class _ParkingLotScreenState extends State<ParkingLotScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  late final List<ParkingSpot> _allSpots;
+    with TickerProviderStateMixin {
+  late final ParkingService _parkingService;
 
+  List<ParkingSpot> _allSpots = [];
+  List<String> _sections = [];
+  TabController? _tabController;
   ParkingSpot? _selectedSpot;
+  bool _isLoading = true;
+  String? _error;
+
+  StreamSubscription<List<ParkingSpot>>? _spotsSubscription;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _allSpots = generateCollegeParkingSpots(placeId: widget.place.id);
-    _tabController.addListener(() {
-      if (mounted) {
-        setState(() {});
+    _parkingService = ParkingService();
+    _loadSpots();
+    _listenToSpotsStream();
+  }
+
+  Future<void> _loadSpots() async {
+    try {
+      final spots = await _parkingService.getSpotsByPlace(widget.place.id);
+
+      if (!mounted) return;
+
+      _applySpots(spots);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _listenToSpotsStream() {
+    _spotsSubscription?.cancel();
+    _spotsSubscription =
+        _parkingService.streamSpotsByPlace(widget.place.id).listen(
+      (spots) {
+        if (!mounted) return;
+        _applySpots(spots);
+      },
+      onError: (error) {
+        if (!mounted) return;
+        setState(() {
+          _error = error.toString();
+          _isLoading = false;
+        });
+      },
+    );
+  }
+
+  void _applySpots(List<ParkingSpot> spots) {
+    final sections = spots.map((e) => e.section).toSet().toList()..sort();
+
+    final oldIndex = _tabController?.index ?? 0;
+    final newIndex = sections.isEmpty
+        ? 0
+        : oldIndex >= sections.length
+            ? 0
+            : oldIndex;
+
+    _tabController?.dispose();
+
+    if (sections.isEmpty) {
+      _tabController = null;
+    } else {
+      _tabController = TabController(
+        length: sections.length,
+        vsync: this,
+        initialIndex: newIndex,
+      );
+
+      _tabController!.addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
+
+    ParkingSpot? updatedSelected;
+    if (_selectedSpot != null) {
+      try {
+        updatedSelected = spots.firstWhere((s) => s.id == _selectedSpot!.id);
+        if (updatedSelected.isBooked) {
+          updatedSelected = null;
+        }
+      } catch (_) {
+        updatedSelected = null;
       }
+    }
+
+    setState(() {
+      _allSpots = spots;
+      _sections = sections;
+      _selectedSpot = updatedSelected;
+      _isLoading = false;
+      _error = null;
     });
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _spotsSubscription?.cancel();
+    _tabController?.dispose();
     super.dispose();
   }
 
-  List<ParkingSpot> _spotsBySide(String side) {
-    return _allSpots.where((spot) => spot.side == side).toList();
+  List<ParkingSpot> _spotsBySection(String section) {
+    final filtered =
+        _allSpots.where((spot) => spot.section == section).toList();
+    filtered.sort((a, b) {
+      final rowCompare = a.row.compareTo(b.row);
+      if (rowCompare != 0) return rowCompare;
+      return a.column.compareTo(b.column);
+    });
+    return filtered;
   }
 
   void _onSpotTap(ParkingSpot spot) {
-    if (spot.status == ParkingSpotStatus.booked) return;
+    if (spot.isBooked) return;
 
     setState(() {
       if (_selectedSpot?.id == spot.id) {
@@ -53,15 +150,68 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
     });
   }
 
-  String get _currentSideLabel {
-    return _tabController.index == 0 ? 'Left Area' : 'Right Area';
+  Future<void> _bookSelectedSpot() async {
+    if (_selectedSpot == null) return;
+
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('You need to log in first'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final selectedSpot = _selectedSpot!;
+
+      await _parkingService.bookSpot(
+        userId: user.id,
+        spot: selectedSpot,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _selectedSpot = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text('Booked ${selectedSpot.label} successfully'),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          content: Text(e.toString()),
+        ),
+      );
+    }
+  }
+
+  String _formatSectionLabel(String section) {
+    final words = section.split('_');
+    return words.map((word) {
+      if (word.isEmpty) return word;
+      return word[0].toUpperCase() + word.substring(1);
+    }).join(' ');
+  }
+
+  String get _currentSectionLabel {
+    if (_sections.isEmpty || _tabController == null) return 'Parking Area';
+    return _formatSectionLabel(_sections[_tabController!.index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final leftSpots = _spotsBySide('left');
-    final rightSpots = _spotsBySide('right');
-
     return Scaffold(
       backgroundColor: const Color(0xFFF8FBFB),
       body: SafeArea(
@@ -74,69 +224,83 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
                 children: [
                   const _LegendCard(),
                   const SizedBox(height: 14),
-                  Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F6),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: TabBar(
-                      controller: _tabController,
-                      indicator: BoxDecoration(
-                        color: const Color(0xFF237D8C),
+                  if (_sections.isNotEmpty && _tabController != null)
+                    Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F6),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      dividerColor: Colors.transparent,
-                      labelColor: Colors.white,
-                      unselectedLabelColor: const Color(0xFF607176),
-                      labelStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                      child: TabBar(
+                        isScrollable: true,
+                        controller: _tabController,
+                        indicator: BoxDecoration(
+                          color: const Color(0xFF237D8C),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        dividerColor: Colors.transparent,
+                        labelColor: Colors.white,
+                        unselectedLabelColor: const Color(0xFF607176),
+                        labelStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        tabs: _sections
+                            .map((section) =>
+                                Tab(text: _formatSectionLabel(section)))
+                            .toList(),
                       ),
-                      tabs: const [
-                        Tab(text: 'Left Area'),
-                        Tab(text: 'Right Area'),
-                      ],
                     ),
-                  ),
                 ],
               ),
             ),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  _LeftAreaTab(
-                    spots: leftSpots,
-                    selectedSpotId: _selectedSpot?.id,
-                    onSpotTap: _onSpotTap,
-                  ),
-                  _RightAreaTab(
-                    spots: rightSpots,
-                    selectedSpotId: _selectedSpot?.id,
-                    onSpotTap: _onSpotTap,
-                  ),
-                ],
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        )
+                      : _sections.isEmpty || _tabController == null
+                          ? const Center(
+                              child: Text(
+                                'No parking spots found',
+                                style: TextStyle(
+                                  color: Color(0xFF607176),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            )
+                          : TabBarView(
+                              controller: _tabController,
+                              children: _sections.map((section) {
+                                return _SectionTab(
+                                  sectionTitle: _formatSectionLabel(section),
+                                  spots: _spotsBySection(section),
+                                  selectedSpotId: _selectedSpot?.id,
+                                  onSpotTap: _onSpotTap,
+                                );
+                              }).toList(),
+                            ),
             ),
             _BottomBookingBar(
               placeName: widget.place.name,
-              sideLabel: _currentSideLabel,
+              sectionLabel: _currentSectionLabel,
               distanceKm: widget.place.distanceKm,
               priceLabel: widget.place.priceLabel,
               selectedSpotLabel: _selectedSpot?.label,
-              onBookNow: _selectedSpot == null
-                  ? null
-                  : () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          behavior: SnackBarBehavior.floating,
-                          content: Text(
-                            'Booked ${_selectedSpot!.label} in $_currentSideLabel',
-                          ),
-                        ),
-                      );
-                    },
+              onBookNow: _selectedSpot == null ? null : _bookSelectedSpot,
             ),
           ],
         ),
@@ -231,18 +395,11 @@ class _LegendCard extends StatelessWidget {
             iconColor: Color(0xFF237D8C),
           ),
           _LegendItem(
-            color: Color(0xFFF5F5F5),
-            borderColor: Color(0xFFD7D7D7),
+            color: Color(0xFFE74C3C),
+            borderColor: Color(0xFFE74C3C),
             label: 'Booked',
             icon: Icons.directions_car_filled_rounded,
-            iconColor: Color(0xFF7A7A7A),
-          ),
-          _LegendItem(
-            color: Color(0xFFF3F8F8),
-            borderColor: Color(0xFFC8DCDD),
-            label: 'Shaded',
-            icon: Icons.roofing_rounded,
-            iconColor: Color(0xFF6E8E93),
+            iconColor: Colors.white,
           ),
         ],
       ),
@@ -294,351 +451,50 @@ class _LegendItem extends StatelessWidget {
   }
 }
 
-class _LeftAreaTab extends StatelessWidget {
+class _SectionTab extends StatelessWidget {
+  final String sectionTitle;
   final List<ParkingSpot> spots;
   final String? selectedSpotId;
   final void Function(ParkingSpot spot) onSpotTap;
 
-  const _LeftAreaTab({
+  const _SectionTab({
+    required this.sectionTitle,
     required this.spots,
     required this.selectedSpotId,
     required this.onSpotTap,
   });
 
-  List<_ParkingIslandData> _buildIslands(List<ParkingSpot> spots) {
-    final List<_ParkingIslandData> islands = [];
-
-    for (int islandIndex = 0; islandIndex < 9; islandIndex++) {
-      final topRowNumber = islandIndex * 2;
-      final bottomRowNumber = islandIndex * 2 + 1;
-
-      final topRow = spots.where((s) => s.row == topRowNumber).toList()
-        ..sort((a, b) => a.column.compareTo(b.column));
-
-      final bottomRow = spots.where((s) => s.row == bottomRowNumber).toList()
-        ..sort((a, b) => a.column.compareTo(b.column));
-
-      islands.add(
-        _ParkingIslandData(
-          islandIndex: islandIndex,
-          isShaded: islandIndex < 4,
-          horizontalOffset: _leftAreaOffsets[islandIndex],
-          topRow: topRow,
-          bottomRow: bottomRow,
-        ),
-      );
-    }
-
-    return islands;
-  }
-
-  static const List<double> _leftAreaOffsets = [
-    26,
-    18,
-    10,
-    4,
-    0,
-    6,
-    14,
-    22,
-    30,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final islands = _buildIslands(spots);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: ListView.separated(
-        itemCount: islands.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
-        itemBuilder: (context, index) {
-          final island = islands[index];
-          return Padding(
-            padding: EdgeInsets.only(left: island.horizontalOffset, right: 6),
-            child: _ParkingIslandCard(
-              title: 'Island ${index + 1}',
-              isShaded: island.isShaded,
-              topRow: island.topRow,
-              bottomRow: island.bottomRow,
-              selectedSpotId: selectedSpotId,
-              onSpotTap: onSpotTap,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _ParkingIslandData {
-  final int islandIndex;
-  final bool isShaded;
-  final double horizontalOffset;
-  final List<ParkingSpot> topRow;
-  final List<ParkingSpot> bottomRow;
-
-  _ParkingIslandData({
-    required this.islandIndex,
-    required this.isShaded,
-    required this.horizontalOffset,
-    required this.topRow,
-    required this.bottomRow,
-  });
-}
-
-class _ParkingIslandCard extends StatelessWidget {
-  final String title;
-  final bool isShaded;
-  final List<ParkingSpot> topRow;
-  final List<ParkingSpot> bottomRow;
-  final String? selectedSpotId;
-  final void Function(ParkingSpot spot) onSpotTap;
-
-  const _ParkingIslandCard({
-    required this.title,
-    required this.isShaded,
-    required this.topRow,
-    required this.bottomRow,
-    required this.selectedSpotId,
-    required this.onSpotTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 14),
-      decoration: BoxDecoration(
-        color: isShaded ? const Color(0xFFF6FAFA) : Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: isShaded ? const Color(0xFFD5E6E7) : const Color(0xFFE7ECEE),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0x22000000)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'L',
-                  style: TextStyle(
-                    color: Color(0xFF04031F),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xAA237D8C),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              if (isShaded)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE4EFF0),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: const [
-                      Icon(
-                        Icons.roofing_rounded,
-                        size: 15,
-                        color: Color(0xFF6C8D93),
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        'Shaded',
-                        style: TextStyle(
-                          color: Color(0xFF6C8D93),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          _HorizontalParkingRow(
-            rowSpots: topRow,
-            selectedSpotId: selectedSpotId,
-            onSpotTap: onSpotTap,
-          ),
-          const SizedBox(height: 10),
-          const _DrivingLanePill(),
-          const SizedBox(height: 10),
-          _HorizontalParkingRow(
-            rowSpots: bottomRow,
-            selectedSpotId: selectedSpotId,
-            onSpotTap: onSpotTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DrivingLanePill extends StatelessWidget {
-  const _DrivingLanePill();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F7F8),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE3EBED)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      child: Row(
-        children: const [
-          Icon(Icons.arrow_forward_rounded, size: 18, color: Color(0xFF9AA9AE)),
-          SizedBox(width: 8),
-          Text(
-            'Driving lane',
-            style: TextStyle(
-              color: Color(0xFF93A2A8),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HorizontalParkingRow extends StatelessWidget {
-  final List<ParkingSpot> rowSpots;
-  final String? selectedSpotId;
-  final void Function(ParkingSpot spot) onSpotTap;
-
-  const _HorizontalParkingRow({
-    required this.rowSpots,
-    required this.selectedSpotId,
-    required this.onSpotTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: rowSpots.map((spot) {
-          final isSelected = selectedSpotId == spot.id;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: SizedBox(
-              width: 72,
-              child: _ParkingSpotTile(
-                spot: spot,
-                isSelected: isSelected,
-                onTap: () => onSpotTap(spot),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _VerticalParkingColumn extends StatelessWidget {
-  final List<ParkingSpot> rowSpots;
-  final String? selectedSpotId;
-  final void Function(ParkingSpot spot) onSpotTap;
-
-  const _VerticalParkingColumn({
-    required this.rowSpots,
-    required this.selectedSpotId,
-    required this.onSpotTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: rowSpots.map((spot) {
-        final isSelected = selectedSpotId == spot.id;
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: SizedBox(
-            width: 92,
-            child: _ParkingSpotTile(
-              spot: spot,
-              isSelected: isSelected,
-              onTap: () => onSpotTap(spot),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _RightAreaTab extends StatelessWidget {
-  final List<ParkingSpot> spots;
-  final String? selectedSpotId;
-  final void Function(ParkingSpot spot) onSpotTap;
-
-  const _RightAreaTab({
-    required this.spots,
-    required this.selectedSpotId,
-    required this.onSpotTap,
-  });
-
-  List<List<ParkingSpot>> _buildCurvedRows() {
-    final curvedSpots = spots.where((s) => s.row >= 0 && s.row < 8).toList();
-
+  Map<int, List<ParkingSpot>> _groupRows(List<ParkingSpot> spots) {
     final Map<int, List<ParkingSpot>> grouped = {};
-    for (final spot in curvedSpots) {
+    for (final spot in spots) {
       grouped.putIfAbsent(spot.row, () => []).add(spot);
     }
 
-    final rows = grouped.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-
-    for (final row in rows) {
-      row.value.sort((a, b) => a.column.compareTo(b.column));
+    for (final row in grouped.values) {
+      row.sort((a, b) => a.column.compareTo(b.column));
     }
 
-    return rows.map((e) => e.value).toList();
-  }
-
-  List<ParkingSpot> _rowByNumber(int rowNumber) {
-    final row = spots.where((s) => s.row == rowNumber).toList()
-      ..sort((a, b) => a.column.compareTo(b.column));
-    return row;
+    return Map.fromEntries(
+      grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final curvedRows = _buildCurvedRows();
+    final groupedRows = _groupRows(spots);
+
+    if (spots.isEmpty) {
+      return Center(
+        child: Text(
+          'No spots found in $sectionTitle',
+          style: const TextStyle(
+            color: Color(0xFF607176),
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
@@ -652,52 +508,23 @@ class _RightAreaTab extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border.all(color: const Color(0x22000000)),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'R',
-                        style: TextStyle(
-                          color: Color(0xFF04031F),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'Right Area • Outer Curve',
-                        style: TextStyle(
-                          color: Color(0xAA237D8C),
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  sectionTitle,
+                  style: const TextStyle(
+                    color: Color(0xAA237D8C),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 14),
-                ...List.generate(curvedRows.length, (index) {
-                  final row = curvedRows[index];
-                  final offset = _curvedOffsets[index];
-
+                ...groupedRows.entries.map((entry) {
                   return Padding(
-                    padding: EdgeInsets.only(
-                      left: offset,
-                      right: 4,
-                      bottom: index == curvedRows.length - 1 ? 0 : 10,
-                    ),
-                    child: _HorizontalParkingRow(
-                      rowSpots: row,
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _ParkingRowCard(
+                      rowNumber: entry.key,
+                      rowSpots: entry.value,
                       selectedSpotId: selectedSpotId,
                       onSpotTap: onSpotTap,
                     ),
@@ -706,84 +533,21 @@ class _RightAreaTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 18),
-          const Padding(
-            padding: EdgeInsets.only(left: 6, bottom: 10),
-            child: Text(
-              'Upper T Islands',
-              style: TextStyle(
-                color: Color(0xFF607176),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          ...List.generate(4, (index) {
-            final base = 100 + index * 10;
-
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _LargeTIslandCard(
-                title: 'Upper T Island ${index + 1}',
-                topRow: _rowByNumber(base),
-                leftRow: _rowByNumber(base + 1),
-                rightRow: _rowByNumber(base + 2),
-                bottomRow: _rowByNumber(base + 3),
-                selectedSpotId: selectedSpotId,
-                onSpotTap: onSpotTap,
-              ),
-            );
-          }),
-          const Padding(
-            padding: EdgeInsets.only(left: 6, bottom: 10),
-            child: Text(
-              'Lower T Islands',
-              style: TextStyle(
-                color: Color(0xFF607176),
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          ...List.generate(3, (index) {
-            final base = 100 + (index + 4) * 10;
-
-            return Padding(
-              padding: EdgeInsets.only(bottom: index == 2 ? 0 : 16),
-              child: _LargeTIslandCard(
-                title: 'Lower T Island ${index + 1}',
-                topRow: _rowByNumber(base),
-                leftRow: _rowByNumber(base + 1),
-                rightRow: _rowByNumber(base + 2),
-                bottomRow: _rowByNumber(base + 3),
-                selectedSpotId: selectedSpotId,
-                onSpotTap: onSpotTap,
-              ),
-            );
-          }),
         ],
       ),
     );
   }
-
-  static const List<double> _curvedOffsets = [40, 30, 22, 14, 10, 16, 26, 38];
 }
 
-class _LargeTIslandCard extends StatelessWidget {
-  final String title;
-  final List<ParkingSpot> topRow;
-  final List<ParkingSpot> leftRow;
-  final List<ParkingSpot> rightRow;
-  final List<ParkingSpot> bottomRow;
+class _ParkingRowCard extends StatelessWidget {
+  final int rowNumber;
+  final List<ParkingSpot> rowSpots;
   final String? selectedSpotId;
   final void Function(ParkingSpot spot) onSpotTap;
 
-  const _LargeTIslandCard({
-    required this.title,
-    required this.topRow,
-    required this.leftRow,
-    required this.rightRow,
-    required this.bottomRow,
+  const _ParkingRowCard({
+    required this.rowNumber,
+    required this.rowSpots,
     required this.selectedSpotId,
     required this.onSpotTap,
   });
@@ -791,124 +555,42 @@ class _LargeTIslandCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: const Color(0xFFE8E8EE)),
-        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFFF9FBFB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE7ECEE)),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: const Color(0x22000000)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'T',
-                  style: TextStyle(
-                    color: Color(0xFF04031F),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xAA237D8C),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _HorizontalParkingRow(
-            rowSpots: topRow,
-            selectedSpotId: selectedSpotId,
-            onSpotTap: onSpotTap,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              _VerticalParkingColumn(
-                rowSpots: leftRow,
-                selectedSpotId: selectedSpotId,
-                onSpotTap: onSpotTap,
-              ),
-              const SizedBox(width: 6),
-              const Expanded(child: Center(child: _HugeTShapeIslandCenter())),
-              const SizedBox(width: 6),
-              _VerticalParkingColumn(
-                rowSpots: rightRow,
-                selectedSpotId: selectedSpotId,
-                onSpotTap: onSpotTap,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const _DrivingLanePill(),
-          const SizedBox(height: 12),
-          _HorizontalParkingRow(
-            rowSpots: bottomRow,
-            selectedSpotId: selectedSpotId,
-            onSpotTap: onSpotTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HugeTShapeIslandCenter extends StatelessWidget {
-  const _HugeTShapeIslandCenter();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 190,
-      height: 220,
-      child: Stack(
-        alignment: Alignment.topCenter,
-        children: [
-          Positioned(
-            top: 0,
-            child: Container(
-              width: 190,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7F8),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE3EBED)),
-              ),
-              alignment: Alignment.center,
-              child: const Icon(
-                Icons.local_parking_rounded,
-                color: Color(0xFF9AA9AE),
-                size: 24,
-              ),
+          Text(
+            'Row ${rowNumber + 1}',
+            style: const TextStyle(
+              color: Color(0xFF607176),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          Positioned(
-            top: 38,
-            child: Container(
-              width: 64,
-              height: 170,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F7F8),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE3EBED)),
-              ),
+          const SizedBox(height: 10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: rowSpots.map((spot) {
+                final isSelected = selectedSpotId == spot.id;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: SizedBox(
+                    width: 72,
+                    child: _ParkingSpotTile(
+                      spot: spot,
+                      isSelected: isSelected,
+                      onTap: () => onSpotTap(spot),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
@@ -932,6 +614,32 @@ class _ParkingSpotTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final isBooked = spot.status == ParkingSpotStatus.booked;
 
+    Color bgColor;
+    Color borderColor;
+    Color textColor;
+    IconData iconData;
+    Color iconColor;
+
+    if (isSelected) {
+      bgColor = const Color(0xFFEBEBFD);
+      borderColor = const Color(0xFF237D8C);
+      textColor = const Color(0xFF237D8C);
+      iconData = Icons.check_circle_rounded;
+      iconColor = const Color(0xFF237D8C);
+    } else if (isBooked) {
+      bgColor = const Color(0xFFE74C3C);
+      borderColor = const Color(0xFFE74C3C);
+      textColor = Colors.white;
+      iconData = Icons.directions_car_filled_rounded;
+      iconColor = Colors.white;
+    } else {
+      bgColor = Colors.white;
+      borderColor = const Color(0xFFE7ECEE);
+      textColor = const Color(0xAA237D8C);
+      iconData = Icons.local_parking_rounded;
+      iconColor = const Color(0x33237D8C);
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -941,18 +649,10 @@ class _ParkingSpotTile extends StatelessWidget {
           height: 68,
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFFEBEBFD)
-                : isBooked
-                    ? const Color.fromARGB(255, 161, 36, 68)
-                    : Colors.white,
+            color: bgColor,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF237D8C)
-                  : isBooked
-                      ? const Color(0xFFDADADA)
-                      : const Color(0xFFE7ECEE),
+              color: borderColor,
               width: isSelected ? 2.4 : 1.2,
             ),
           ),
@@ -963,34 +663,13 @@ class _ParkingSpotTile extends StatelessWidget {
                 spot.label,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: isSelected
-                      ? const Color(0xFF237D8C)
-                      : isBooked
-                          ? const Color.fromARGB(255, 244, 245, 247)
-                          : const Color(0xAA237D8C),
+                  color: textColor,
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
-              if (isBooked)
-                const Icon(
-                  Icons.directions_car_filled_rounded,
-                  color: Color(0xFF1E7280),
-                  size: 18,
-                )
-              else if (isSelected)
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: Color(0xFF237D8C),
-                  size: 18,
-                )
-              else
-                const Icon(
-                  Icons.local_parking_rounded,
-                  color: Color(0x33237D8C),
-                  size: 18,
-                ),
+              Icon(iconData, color: iconColor, size: 18),
             ],
           ),
         ),
@@ -1001,7 +680,7 @@ class _ParkingSpotTile extends StatelessWidget {
 
 class _BottomBookingBar extends StatelessWidget {
   final String placeName;
-  final String sideLabel;
+  final String sectionLabel;
   final double distanceKm;
   final String priceLabel;
   final String? selectedSpotLabel;
@@ -1009,7 +688,7 @@ class _BottomBookingBar extends StatelessWidget {
 
   const _BottomBookingBar({
     required this.placeName,
-    required this.sideLabel,
+    required this.sectionLabel,
     required this.distanceKm,
     required this.priceLabel,
     required this.selectedSpotLabel,
@@ -1038,8 +717,8 @@ class _BottomBookingBar extends StatelessWidget {
               children: [
                 Text(
                   selectedSpotLabel == null
-                      ? '$placeName - $sideLabel'
-                      : '$selectedSpotLabel - $sideLabel',
+                      ? '$placeName - $sectionLabel'
+                      : '$selectedSpotLabel - $sectionLabel',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

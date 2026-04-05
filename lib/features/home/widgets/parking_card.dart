@@ -7,13 +7,26 @@ class ParkingCard extends StatelessWidget {
 
   final Place place;
 
+  String _formattedDistance() {
+    if (place.distanceKm < 1) {
+      return '${(place.distanceKm * 1000).toInt()} m';
+    }
+    return '${place.distanceKm.toStringAsFixed(1)} km';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final imagePath = place.imagePath.isNotEmpty
+        ? place.imagePath
+        : 'assets/images/explore_placeholder.png';
+
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => PlaceDetailsScreen(place: place)),
+          MaterialPageRoute(
+            builder: (_) => PlaceDetailsScreen(place: place),
+          ),
         );
       },
       borderRadius: BorderRadius.circular(10),
@@ -22,10 +35,23 @@ class ParkingCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: Image.asset(
-              place.imagePath,
+              imagePath,
               width: 87,
               height: 72,
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                return Container(
+                  width: 87,
+                  height: 72,
+                  color: const Color(0xFFEAF4F5),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.local_parking_rounded,
+                    color: Color(0xFF237D8C),
+                    size: 28,
+                  ),
+                );
+              },
             ),
           ),
           const SizedBox(width: 12),
@@ -51,7 +77,7 @@ class ParkingCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${place.distanceKm} km',
+                        _formattedDistance(),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 15,
@@ -62,7 +88,9 @@ class ParkingCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    place.branchName,
+                    place.branchName.isNotEmpty
+                        ? place.branchName
+                        : place.category,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
