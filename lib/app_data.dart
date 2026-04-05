@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppData {
-  static bool isArabic = true; //اذا ابي التطبيق يبدأ معي بالعربي احطه true
+  static bool isArabic = false; //اذا ابي التطبيق يبدأ معي بالعربي احطه true
 
   // بيانات الحجز اللي بتطلع في التذكرة والتايمر
   static String selectedLocation = isArabic ? "كلية العلوم والآداب" : "College of Science & Arts"; 
