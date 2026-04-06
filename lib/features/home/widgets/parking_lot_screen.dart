@@ -5,6 +5,7 @@ import 'package:parkliapp/core/services/parking_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/app_data.dart';
 
 class ParkingLotScreen extends StatefulWidget {
   final Place place;
@@ -41,11 +42,9 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
       final spots = await _parkingService.getSpotsByPlace(widget.place.id);
 
       if (!mounted) return;
-
       _applySpots(spots);
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -128,8 +127,7 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
   }
 
   List<ParkingSpot> _spotsBySection(String section) {
-    final filtered =
-        _allSpots.where((spot) => spot.section == section).toList();
+    final filtered = _allSpots.where((spot) => spot.section == section).toList();
     filtered.sort((a, b) {
       final rowCompare = a.row.compareTo(b.row);
       if (rowCompare != 0) return rowCompare;
@@ -157,9 +155,11 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
 
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('You need to log in first'),
+          content: Text(
+            AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً'),
+          ),
         ),
       );
       return;
@@ -182,7 +182,12 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Booked ${selectedSpot.label} successfully'),
+          content: Text(
+            AppData.translate(
+              'Booked ${selectedSpot.label} successfully',
+              'تم حجز ${selectedSpot.label} بنجاح',
+            ),
+          ),
         ),
       );
     } catch (e) {
@@ -206,103 +211,110 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
   }
 
   String get _currentSectionLabel {
-    if (_sections.isEmpty || _tabController == null) return 'Parking Area';
+    if (_sections.isEmpty || _tabController == null) {
+      return AppData.translate('Parking Area', 'منطقة المواقف');
+    }
     return _formatSectionLabel(_sections[_tabController!.index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FBFB),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _ParkingHeader(title: widget.place.name),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Column(
-                children: [
-                  const _LegendCard(),
-                  const SizedBox(height: 14),
-                  if (_sections.isNotEmpty && _tabController != null)
-                    Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F6),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: TabBar(
-                        isScrollable: true,
-                        controller: _tabController,
-                        indicator: BoxDecoration(
-                          color: const Color(0xFF237D8C),
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FBFB),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _ParkingHeader(title: widget.place.name),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                child: Column(
+                  children: [
+                    const _LegendCard(),
+                    const SizedBox(height: 14),
+                    if (_sections.isNotEmpty && _tabController != null)
+                      Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F6),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        dividerColor: Colors.transparent,
-                        labelColor: Colors.white,
-                        unselectedLabelColor: const Color(0xFF607176),
-                        labelStyle: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        tabs: _sections
-                            .map((section) =>
-                                Tab(text: _formatSectionLabel(section)))
-                            .toList(),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                        child: TabBar(
+                          isScrollable: true,
+                          controller: _tabController,
+                          indicator: BoxDecoration(
+                            color: const Color(0xFF237D8C),
+                            borderRadius: BorderRadius.circular(14),
                           ),
-                        )
-                      : _sections.isEmpty || _tabController == null
-                          ? const Center(
+                          dividerColor: Colors.transparent,
+                          labelColor: Colors.white,
+                          unselectedLabelColor: const Color(0xFF607176),
+                          labelStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          tabs: _sections
+                              .map((section) => Tab(text: _formatSectionLabel(section)))
+                              .toList(),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
                               child: Text(
-                                'No parking spots found',
-                                style: TextStyle(
-                                  color: Color(0xFF607176),
-                                  fontSize: 16,
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                            )
-                          : TabBarView(
-                              controller: _tabController,
-                              children: _sections.map((section) {
-                                return _SectionTab(
-                                  sectionTitle: _formatSectionLabel(section),
-                                  spots: _spotsBySection(section),
-                                  selectedSpotId: _selectedSpot?.id,
-                                  onSpotTap: _onSpotTap,
-                                );
-                              }).toList(),
                             ),
-            ),
-            _BottomBookingBar(
-              placeName: widget.place.name,
-              sectionLabel: _currentSectionLabel,
-              distanceKm: widget.place.distanceKm,
-              priceLabel: widget.place.priceLabel,
-              selectedSpotLabel: _selectedSpot?.label,
-              onBookNow: _selectedSpot == null ? null : _bookSelectedSpot,
-            ),
-          ],
+                          )
+                        : _sections.isEmpty || _tabController == null
+                            ? Center(
+                                child: Text(
+                                  AppData.translate(
+                                    'No parking spots found',
+                                    'لا توجد مواقف متاحة',
+                                  ),
+                                  style: const TextStyle(
+                                    color: Color(0xFF607176),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              )
+                            : TabBarView(
+                                controller: _tabController,
+                                children: _sections.map((section) {
+                                  return _SectionTab(
+                                    sectionTitle: _formatSectionLabel(section),
+                                    spots: _spotsBySection(section),
+                                    selectedSpotId: _selectedSpot?.id,
+                                    onSpotTap: _onSpotTap,
+                                  );
+                                }).toList(),
+                              ),
+              ),
+              _BottomBookingBar(
+                placeName: widget.place.name,
+                sectionLabel: _currentSectionLabel,
+                distanceKm: widget.place.distanceKm,
+                priceLabel: widget.place.priceLabel,
+                selectedSpotLabel: _selectedSpot?.label,
+                onBookNow: _selectedSpot == null ? null : _bookSelectedSpot,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -311,7 +323,6 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
 
 class _ParkingHeader extends StatelessWidget {
   final String title;
-
   const _ParkingHeader({required this.title});
 
   @override
@@ -330,7 +341,8 @@ class _ParkingHeader extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: 12,
+            left: AppData.isArabic ? null : 12,
+            right: AppData.isArabic ? 12 : null,
             top: 22,
             bottom: 0,
             child: IconButton(
@@ -379,25 +391,25 @@ class _LegendCard extends StatelessWidget {
       child: Wrap(
         spacing: 18,
         runSpacing: 10,
-        children: const [
+        children: [
           _LegendItem(
             color: Colors.white,
-            borderColor: Color(0xFFCCD8DC),
-            label: 'Available',
+            borderColor: const Color(0xFFCCD8DC),
+            label: AppData.translate('Available', 'متاح'),
             icon: Icons.local_parking_rounded,
-            iconColor: Color(0x55237D8C),
+            iconColor: const Color(0x55237D8C),
           ),
           _LegendItem(
-            color: Color(0xFFEBEBFD),
-            borderColor: Color(0xFF237D8C),
-            label: 'Selected',
+            color: const Color(0xFFEBEBFD),
+            borderColor: const Color(0xFF237D8C),
+            label: AppData.translate('Selected', 'مختار'),
             icon: Icons.check_circle_rounded,
-            iconColor: Color(0xFF237D8C),
+            iconColor: const Color(0xFF237D8C),
           ),
           _LegendItem(
-            color: Color(0xFFE74C3C),
-            borderColor: Color(0xFFE74C3C),
-            label: 'Booked',
+            color: const Color(0xFFE74C3C),
+            borderColor: const Color(0xFFE74C3C),
+            label: AppData.translate('Booked', 'محجوز'),
             icon: Icons.directions_car_filled_rounded,
             iconColor: Colors.white,
           ),
@@ -486,7 +498,10 @@ class _SectionTab extends StatelessWidget {
     if (spots.isEmpty) {
       return Center(
         child: Text(
-          'No spots found in $sectionTitle',
+          AppData.translate(
+            'No spots found in $sectionTitle',
+            'لا توجد مواقف في $sectionTitle',
+          ),
           style: const TextStyle(
             color: Color(0xFF607176),
             fontSize: 15,
@@ -565,7 +580,7 @@ class _ParkingRowCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Row ${rowNumber + 1}',
+            '${AppData.translate('Row', 'صف')} ${rowNumber + 1}',
             style: const TextStyle(
               color: Color(0xFF607176),
               fontSize: 13,
@@ -603,7 +618,6 @@ class _ParkingSpotTile extends StatelessWidget {
   final ParkingSpot spot;
   final bool isSelected;
   final VoidCallback onTap;
-
   const _ParkingSpotTile({
     required this.spot,
     required this.isSelected,
@@ -706,7 +720,7 @@ class _BottomBookingBar extends StatelessWidget {
             blurRadius: 10,
             color: Color(0x12000000),
             offset: Offset(0, -2),
-          ),
+          )
         ],
       ),
       child: Row(
@@ -729,7 +743,7 @@ class _BottomBookingBar extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${distanceKm.toStringAsFixed(1)} km   $priceLabel',
+                  '${distanceKm.toStringAsFixed(1)} ${AppData.translate('km', 'كم')}   $priceLabel',
                   style: const TextStyle(
                     color: Color(0xFF8A8FA3),
                     fontSize: 14,
@@ -746,15 +760,14 @@ class _BottomBookingBar extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF237D8C),
                 disabledBackgroundColor: const Color(0xFFB7D7DC),
-                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(28),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 24),
               ),
-              child: const Text(
-                'Book Now',
-                style: TextStyle(
+              child: Text(
+                AppData.translate('Book Now', 'احجز الآن'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),

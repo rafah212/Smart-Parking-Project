@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
 
 class HomeBottomNav extends StatelessWidget {
   const HomeBottomNav({
@@ -12,21 +13,25 @@ class HomeBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: const Border(top: BorderSide(color: Color(0xFFB8B8B8), width: 0.5)),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(13)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildItem(0, Icons.home_filled, 'Home'),
-          _buildItem(1, Icons.bookmark_rounded, 'Saved'),
-          _buildItem(2, Icons.calendar_month_rounded, 'Booking'), // يرسل رقم 2
-          _buildItem(3, Icons.person_rounded, 'Profile'),        // يرسل رقم 3
-        ],
+    return Directionality(
+      // تحديد اتجاه الشريط بناءً على اللغة
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Container(
+        height: 72,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFB8B8B8), width: 0.5)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(13)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildItem(0, Icons.home_filled, AppData.translate('Home', 'الرئيسية')),
+            _buildItem(1, Icons.bookmark_rounded, AppData.translate('Saved', 'المحفوظة')),
+            _buildItem(2, Icons.calendar_month_rounded, AppData.translate('Booking', 'الحجوزات')),
+            _buildItem(3, Icons.person_rounded, AppData.translate('Profile', 'حسابي')),
+          ],
+        ),
       ),
     );
   }
@@ -47,6 +52,7 @@ class HomeBottomNav extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: color,
                 fontSize: 11,

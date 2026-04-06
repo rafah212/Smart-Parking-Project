@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/booking_service.dart';
 import 'package:parkliapp/features/home/models/booking_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,7 +16,7 @@ class BookingScreen extends StatefulWidget {
 class _BookingScreenState extends State<BookingScreen> {
   final BookingService _bookingService = BookingService();
 
-  String selectedTab = 'Upcoming';
+  late String selectedTab;
   List<BookingItem> _allBookings = [];
   bool _isLoading = true;
   String? _error;
@@ -25,6 +26,7 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
+    selectedTab = 'Completed';
     _loadBookings();
   }
 
@@ -33,7 +35,10 @@ class _BookingScreenState extends State<BookingScreen> {
 
     if (user == null) {
       setState(() {
-        _error = 'You need to log in first';
+        _error = AppData.translate(
+          'You need to log in first',
+          'يجب تسجيل الدخول أولاً',
+        );
         _isLoading = false;
       });
       return;
@@ -50,8 +55,8 @@ class _BookingScreenState extends State<BookingScreen> {
         _error = null;
       });
 
-      _subscription?.cancel();
-      _subscription = _bookingService.streamUserBookings(user.id).listen((rows) async {
+      await _subscription?.cancel();
+      _subscription = _bookingService.streamUserBookings(user.id).listen((_) async {
         final fresh = await _bookingService.getUserBookings(user.id);
 
         if (!mounted) return;
@@ -76,12 +81,10 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   List<BookingItem> get _filteredBookings {
-    final tab = selectedTab.toLowerCase();
-
     return _allBookings.where((booking) {
-      if (tab == 'upcoming') return booking.status == 'upcoming';
-      if (tab == 'completed') return booking.status == 'completed';
-      if (tab == 'cancelled') return booking.status == 'cancelled';
+      if (selectedTab == 'Upcoming') return booking.status == 'upcoming';
+      if (selectedTab == 'Completed') return booking.status == 'completed';
+      if (selectedTab == 'Cancelled') return booking.status == 'cancelled';
       return false;
     }).toList();
   }
@@ -95,9 +98,14 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Booking cancelled successfully'),
+          content: Text(
+            AppData.translate(
+              'Booking cancelled successfully',
+              'تم إلغاء الحجز بنجاح',
+            ),
+          ),
         ),
       );
     } catch (e) {
@@ -119,9 +127,14 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('Booking marked as completed'),
+          content: Text(
+            AppData.translate(
+              'Booking marked as completed',
+              'تم تحديث الحجز إلى مكتمل',
+            ),
+          ),
         ),
       );
     } catch (e) {
@@ -139,62 +152,74 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     final bookings = _filteredBookings;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          _buildHeader(),
-          const SizedBox(height: 20),
-          _buildTabSwitcher(),
-          const SizedBox(height: 20),
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _error != null
-                    ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      )
-                    : bookings.isEmpty
-                        ? Center(
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 20),
+            _buildTabSwitcher(),
+            const SizedBox(height: 20),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(20),
                             child: Text(
-                              selectedTab == 'Upcoming'
-                                  ? 'No upcoming bookings found'
-                                  : selectedTab == 'Completed'
-                                      ? 'No completed bookings found'
-                                      : 'No cancelled bookings found',
-                              style: const TextStyle(color: Colors.grey),
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 15),
-                            itemCount: bookings.length,
-                            itemBuilder: (context, index) {
-                              final booking = bookings[index];
-
-                              return _buildBookingItem(
-                                booking: booking,
-                                onCancel: booking.status == 'upcoming'
-                                    ? () => _cancelBooking(booking)
-                                    : null,
-                                onComplete: booking.status == 'upcoming'
-                                    ? () => _completeBooking(booking)
-                                    : null,
-                              );
-                            },
                           ),
-          ),
-        ],
+                        )
+                      : bookings.isEmpty
+                          ? Center(
+                              child: Text(
+                                selectedTab == 'Upcoming'
+                                    ? AppData.translate(
+                                        'No upcoming bookings found',
+                                        'لا توجد حجوزات قادمة حالياً',
+                                      )
+                                    : selectedTab == 'Completed'
+                                        ? AppData.translate(
+                                            'No completed bookings found',
+                                            'لا توجد حجوزات مكتملة',
+                                          )
+                                        : AppData.translate(
+                                            'No cancelled bookings found',
+                                            'لا توجد حجوزات ملغاة',
+                                          ),
+                                style: const TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              padding: const EdgeInsets.symmetric(horizontal: 15),
+                              itemCount: bookings.length,
+                              itemBuilder: (context, index) {
+                                final booking = bookings[index];
+
+                                return _buildBookingItem(
+                                  booking: booking,
+                                  onCancel: booking.status == 'upcoming'
+                                      ? () => _cancelBooking(booking)
+                                      : null,
+                                  onComplete: booking.status == 'upcoming'
+                                      ? () => _completeBooking(booking)
+                                      : null,
+                                );
+                              },
+                            ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -209,15 +234,14 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
-      child: const Center(
+      child: Center(
         child: Padding(
-          padding: EdgeInsets.only(top: 30),
+          padding: const EdgeInsets.only(top: 30),
           child: Text(
-            'Booking',
-            style: TextStyle(
+            AppData.translate('Booking', 'حجوزاتي'),
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -237,22 +261,22 @@ class _BookingScreenState extends State<BookingScreen> {
       ),
       child: Row(
         children: [
-          _buildTabItem('Upcoming'),
-          _buildTabItem('Completed'),
-          _buildTabItem('Cancelled'),
+          _buildTabItem('Upcoming', AppData.translate('Upcoming', 'القادمة')),
+          _buildTabItem('Completed', AppData.translate('Completed', 'المكتملة')),
+          _buildTabItem('Cancelled', AppData.translate('Cancelled', 'الملغاة')),
         ],
       ),
     );
   }
 
-  Widget _buildTabItem(String label) {
-    final isSelected = selectedTab == label;
+  Widget _buildTabItem(String key, String label) {
+    final isSelected = selectedTab == key;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           setState(() {
-            selectedTab = label;
+            selectedTab = key;
           });
         },
         child: Container(
@@ -266,7 +290,6 @@ class _BookingScreenState extends State<BookingScreen> {
             style: TextStyle(
               color: isSelected ? Colors.white : const Color(0xFF5A5A5A),
               fontSize: 12,
-              fontFamily: 'Poppins',
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -287,10 +310,10 @@ class _BookingScreenState extends State<BookingScreen> {
             : const Color(0xFF237D8C);
 
     final statusText = booking.status == 'completed'
-        ? 'Done'
+        ? AppData.translate('Done', 'مكتمل')
         : booking.status == 'cancelled'
-            ? 'Cancelled'
-            : 'Upcoming';
+            ? AppData.translate('Cancelled', 'ملغى')
+            : AppData.translate('Upcoming', 'قادم');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -325,7 +348,7 @@ class _BookingScreenState extends State<BookingScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Spot No.${booking.spotLabel}',
+                      '${AppData.translate('Spot No.', 'رقم الموقف')} ${booking.spotLabel}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFFB8B8B8),
@@ -354,9 +377,9 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: Colors.red),
                     ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(color: Colors.red),
+                    child: Text(
+                      AppData.translate('Cancel', 'إلغاء'),
+                      style: const TextStyle(color: Colors.red),
                     ),
                   ),
                 ),
@@ -367,9 +390,9 @@ class _BookingScreenState extends State<BookingScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF237D8C),
                     ),
-                    child: const Text(
-                      'Complete',
-                      style: TextStyle(color: Colors.white),
+                    child: Text(
+                      AppData.translate('Complete', 'إنهاء'),
+                      style: const TextStyle(color: Colors.white),
                     ),
                   ),
                 ),

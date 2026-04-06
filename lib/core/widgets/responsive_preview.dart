@@ -1,44 +1,77 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../app_data.dart'; 
 
 class ResponsivePreview extends StatelessWidget {
   final Widget child;
-  const ResponsivePreview({super.key, required this.child});
+  final String? title; 
 
-  static const double phoneW = 375; // iPhone 11 logical size
-  static const double phoneH = 812;
-
-  bool _isDesktopOrWeb(BuildContext context) {
-    // Web: always true for kIsWeb
-    // Desktop: windows/mac/linux
-    final platformDesktop = !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.windows ||
-            defaultTargetPlatform == TargetPlatform.macOS ||
-            defaultTargetPlatform == TargetPlatform.linux);
-
-    // Optional: treat large screens as "preview"
-    final isLargeScreen = MediaQuery.of(context).size.width >= 700;
-
-    return kIsWeb || platformDesktop || isLargeScreen;
-  }
+  const ResponsivePreview({
+    super.key, 
+    required this.child, 
+    this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (_isDesktopOrWeb(context)) {
-      // ✅ Laptop/Web preview: show as iPhone frame
-      return Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(25),
-          child: SizedBox(
-            width: phoneW,
-            height: phoneH,
-            child: child,
+    // 1. نغلف الشاشة كاملة باتجاه اللغة المختار من المخ
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // الهيدر الموحد
+              if (title != null)
+                Container(
+                  height: 70,
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center, // يضمن توسيط العنوان
+                    children: [
+                      // زر الرجوع: الآن مكانه يتغير تلقائياً (يمين أو يسار)
+                      Positioned(
+                        // إذا عربي يروح لليمين، إذا إنجليزي يروح لليسار
+                        right: AppData.isArabic ? 10 : null,
+                        left: AppData.isArabic ? null : 10,
+                        top: 0, bottom: 0,
+                        child: IconButton(
+                          // أيقونة السهم تقلب اتجاهها حسب اللغة
+                          icon: Icon(
+                            AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios, 
+                            color: Colors.white, 
+                            size: 20
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                      
+                      // عنوان الصفحة
+                      Text(
+                        title!,
+                        style: const TextStyle(
+                          color: Colors.white, 
+                          fontSize: 18, 
+                          fontWeight: FontWeight.bold
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // محتوى الصفحة
+              Expanded(
+                child: child, 
+              ),
+            ],
           ),
         ),
-      );
-    }
-
-    // ✅ Real phones/tablets: full screen
-    return child;
+      ),
+    );
   }
 }

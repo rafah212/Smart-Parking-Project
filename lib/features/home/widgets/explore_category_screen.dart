@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
+import 'package:parkliapp/app_data.dart';
 
 enum ExploreCategoryType { hospitals, university, shopping, cafesAndFarms }
 
@@ -40,13 +41,13 @@ class _ExploreCategoryScreenState extends State<ExploreCategoryScreen> {
   String get _title {
     switch (widget.category) {
       case ExploreCategoryType.hospitals:
-        return 'Hospitals';
+        return AppData.translate('Hospitals', 'مستشفيات');
       case ExploreCategoryType.university:
-        return 'University';
+        return AppData.translate('University', 'جامعات');
       case ExploreCategoryType.shopping:
-        return 'Shopping';
+        return AppData.translate('Shopping', 'تسوق');
       case ExploreCategoryType.cafesAndFarms:
-        return 'Cafés & Farms';
+        return AppData.translate('Cafés & Farms', 'كافيهات ومزارع');
     }
   }
 
@@ -109,20 +110,14 @@ class _ExploreCategoryScreenState extends State<ExploreCategoryScreen> {
   }
 
   Color _iconBackgroundColor(int index) {
-    const colors = [
-      Color(0xFFE3A7A8),
-      Color(0xFFF7EDB3),
-      Color(0xFFA1D5D9),
-    ];
+    const colors = [Color(0xFFE3A7A8), Color(0xFFF7EDB3), Color(0xFFA1D5D9)];
     return colors[index % colors.length];
   }
 
   void _openPlace(BuildContext context, Place place) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => PlaceDetailsScreen(place: place),
-      ),
+      MaterialPageRoute(builder: (_) => PlaceDetailsScreen(place: place)),
     );
   }
 
@@ -131,81 +126,78 @@ class _ExploreCategoryScreenState extends State<ExploreCategoryScreen> {
     final popularPlaces = _popularPlaces;
     final nearbyPlaces = _nearbyPlaces;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _TopHeader(title: 'Explore'),
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(color: Colors.red),
-                            ),
-                          ),
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _HeroCard(
-                                imagePath: _heroImage,
-                                title: _title,
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              _TopHeader(title: AppData.translate('Explore', 'استكشف')),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.red),
                               ),
-                              const SizedBox(height: 16),
-                              const _SectionTitle('POPULAR'),
-                              const SizedBox(height: 12),
-                              if (popularPlaces.isEmpty)
-                                const _EmptyStateCard()
-                              else
-                                SizedBox(
-                                  height: 192,
-                                  child: ListView.separated(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: popularPlaces.length,
-                                    separatorBuilder: (_, __) =>
-                                        const SizedBox(width: 15),
-                                    itemBuilder: (context, index) {
-                                      final place = popularPlaces[index];
-                                      return _PopularCard(
-                                        place: place,
-                                        onTap: () => _openPlace(context, place),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              const SizedBox(height: 18),
-                              const _SectionTitle('NEARBY'),
-                              const SizedBox(height: 12),
-                              if (nearbyPlaces.isEmpty)
-                                const _EmptyStateCard()
-                              else
-                                ...nearbyPlaces.asMap().entries.map(
-                                  (entry) => Padding(
-                                    padding: const EdgeInsets.only(bottom: 14),
-                                    child: _NearbyPlaceCard(
-                                      place: entry.value,
-                                      icon: _categoryIcon,
-                                      iconBackgroundColor:
-                                          _iconBackgroundColor(entry.key),
-                                      onTap: () =>
-                                          _openPlace(context, entry.value),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _HeroCard(imagePath: _heroImage, title: _title),
+                                const SizedBox(height: 16),
+                                _SectionTitle(AppData.translate('POPULAR', 'الأكثر شعبية')),
+                                const SizedBox(height: 12),
+                                if (popularPlaces.isEmpty)
+                                  const _EmptyStateCard()
+                                else
+                                  SizedBox(
+                                    height: 192,
+                                    child: ListView.separated(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: popularPlaces.length,
+                                      separatorBuilder: (_, __) => const SizedBox(width: 15),
+                                      itemBuilder: (context, index) {
+                                        final place = popularPlaces[index];
+                                        return _PopularCard(
+                                          place: place,
+                                          onTap: () => _openPlace(context, place),
+                                        );
+                                      },
                                     ),
                                   ),
-                                ),
-                            ],
+                                const SizedBox(height: 18),
+                                _SectionTitle(AppData.translate('NEARBY', 'الأقرب إليك')),
+                                const SizedBox(height: 12),
+                                if (nearbyPlaces.isEmpty)
+                                  const _EmptyStateCard()
+                                else
+                                  ...nearbyPlaces.asMap().entries.map(
+                                    (entry) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 14),
+                                      child: _NearbyPlaceCard(
+                                        place: entry.value,
+                                        icon: _categoryIcon,
+                                        iconBackgroundColor: _iconBackgroundColor(entry.key),
+                                        onTap: () => _openPlace(context, entry.value),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -214,10 +206,7 @@ class _ExploreCategoryScreenState extends State<ExploreCategoryScreen> {
 
 class _TopHeader extends StatelessWidget {
   final String title;
-
-  const _TopHeader({
-    required this.title,
-  });
+  const _TopHeader({required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -235,7 +224,8 @@ class _TopHeader extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            left: 12,
+            left: AppData.isArabic ? null : 12,
+            right: AppData.isArabic ? 12 : null,
             top: 22,
             bottom: 0,
             child: IconButton(
@@ -269,11 +259,7 @@ class _TopHeader extends StatelessWidget {
 class _HeroCard extends StatelessWidget {
   final String imagePath;
   final String title;
-
-  const _HeroCard({
-    required this.imagePath,
-    required this.title,
-  });
+  const _HeroCard({required this.imagePath, required this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -281,9 +267,7 @@ class _HeroCard extends StatelessWidget {
       height: 160,
       width: double.infinity,
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
       child: Stack(
         children: [
           Positioned.fill(
@@ -300,7 +284,7 @@ class _HeroCard extends StatelessWidget {
               height: 54,
               color: const Color(0x80237D8C),
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              alignment: Alignment.centerLeft,
+              alignment: AppData.isArabic ? Alignment.centerRight : Alignment.centerLeft,
               child: Text(
                 title,
                 style: const TextStyle(
@@ -319,7 +303,6 @@ class _HeroCard extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String text;
-
   const _SectionTitle(this.text);
 
   @override
@@ -339,11 +322,7 @@ class _SectionTitle extends StatelessWidget {
 class _PopularCard extends StatelessWidget {
   final Place place;
   final VoidCallback onTap;
-
-  const _PopularCard({
-    required this.place,
-    required this.onTap,
-  });
+  const _PopularCard({required this.place, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -357,9 +336,7 @@ class _PopularCard extends StatelessWidget {
         width: 150,
         height: 192,
         clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(15),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
         child: Stack(
           children: [
             Positioned.fill(
@@ -376,7 +353,7 @@ class _PopularCard extends StatelessWidget {
                 height: 48,
                 color: const Color(0x80237D8C),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.centerLeft,
+                alignment: AppData.isArabic ? Alignment.centerRight : Alignment.centerLeft,
                 child: Text(
                   place.name,
                   maxLines: 2,
@@ -413,8 +390,8 @@ class _NearbyPlaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedDistance = place.distanceKm < 1
-        ? '${(place.distanceKm * 1000).toInt()}m'
-        : '${place.distanceKm.toStringAsFixed(1)} km';
+        ? '${(place.distanceKm * 1000).toInt()} ${AppData.translate('m', 'م')}'
+        : '${place.distanceKm.toStringAsFixed(1)} ${AppData.translate('km', 'كم')}';
 
     return GestureDetector(
       onTap: onTap,
@@ -434,11 +411,7 @@ class _NearbyPlaceCard extends StatelessWidget {
                 color: iconBackgroundColor,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF1A485F),
-                size: 18,
-              ),
+              child: Icon(icon, color: const Color(0xFF1A485F), size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -458,7 +431,7 @@ class _NearbyPlaceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${place.availableSlots} slots available',
+                    '${place.availableSlots} ${AppData.translate('slots available', 'موقف متاح')}',
                     style: const TextStyle(
                       color: Color(0xFF677191),
                       fontSize: 14,
@@ -499,9 +472,9 @@ class _EmptyStateCard extends StatelessWidget {
         border: Border.all(color: const Color(0x30777777)),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: const Text(
-        'No places available',
-        style: TextStyle(
+      child: Text(
+        AppData.translate('No places available', 'لا توجد أماكن متاحة'),
+        style: const TextStyle(
           color: Color(0xFF677191),
           fontSize: 14,
           fontWeight: FontWeight.w500,

@@ -3,6 +3,7 @@ import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/explore_category_screen.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
+import 'package:parkliapp/app_data.dart';
 
 class HomeSearchSheet extends StatefulWidget {
   final ScrollController scrollController;
@@ -100,95 +101,103 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
   Widget build(BuildContext context) {
     final visiblePlaces = _isSearching ? _searchResults : _nearbyPlaces;
 
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
-      ),
-      child: SingleChildScrollView(
-        controller: widget.scrollController,
-        padding: const EdgeInsets.fromLTRB(13, 12, 13, 30),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Center(child: _TopHandle()),
-            const SizedBox(height: 16),
-            _SearchRow(controller: _searchController),
-            const SizedBox(height: 20),
-            _SectionLabel(_isSearching ? 'RESULTS' : 'NEARBY'),
-            const SizedBox(height: 10),
-            if (_isLoading)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 30),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xCCF5FBFC),
-                  border: Border.all(color: const Color(0x30777777)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(
-                    color: Colors.red,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              )
-            else if (visiblePlaces.isEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xCCF5FBFC),
-                  border: Border.all(color: const Color(0x30777777)),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'No places found',
-                  style: TextStyle(
-                    color: Color(0xFF4E5568),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              )
-            else
-              ...visiblePlaces.map(
-                (place) => Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: _NearbyPlaceCard(
-                    place: place,
-                    onTap: () => _openPlaceDetails(context, place),
-                  ),
-                ),
-              ),
-            if (!_isSearching) ...[
-              const SizedBox(height: 10),
-              const _SectionLabel('EXPLORE'),
-              const SizedBox(height: 14),
-              const _ExploreSection(),
-            ],
-            const SizedBox(height: 30),
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 20,
+              offset: Offset(0, -4),
+            ),
           ],
+        ),
+        child: SingleChildScrollView(
+          controller: widget.scrollController,
+          padding: const EdgeInsets.fromLTRB(13, 12, 13, 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: _TopHandle()),
+              const SizedBox(height: 16),
+              _SearchRow(controller: _searchController),
+              const SizedBox(height: 20),
+              _SectionLabel(
+                _isSearching
+                    ? AppData.translate('RESULTS', 'النتائج')
+                    : AppData.translate('NEARBY', 'الأقرب إليك'),
+              ),
+              const SizedBox(height: 10),
+              if (_isLoading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 30),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_error != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xCCF5FBFC),
+                    border: Border.all(color: const Color(0x30777777)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(
+                      color: Colors.red,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              else if (visiblePlaces.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xCCF5FBFC),
+                    border: Border.all(color: const Color(0x30777777)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    AppData.translate(
+                        'No places found', 'لم يتم العثور على أماكن'),
+                    style: const TextStyle(
+                      color: Color(0xFF4E5568),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              else
+                ...visiblePlaces.map(
+                  (place) => Padding(
+                    padding: const EdgeInsets.only(bottom: 14),
+                    child: _NearbyPlaceCard(
+                      place: place,
+                      onTap: () => _openPlaceDetails(context, place),
+                    ),
+                  ),
+                ),
+              if (!_isSearching) ...[
+                const SizedBox(height: 10),
+                _SectionLabel(AppData.translate('EXPLORE', 'استكشف')),
+                const SizedBox(height: 14),
+                const _ExploreSection(),
+              ],
+              const SizedBox(height: 30),
+            ],
+          ),
         ),
       ),
     );
@@ -213,10 +222,7 @@ class _TopHandle extends StatelessWidget {
 
 class _SearchRow extends StatelessWidget {
   final TextEditingController controller;
-
-  const _SearchRow({
-    required this.controller,
-  });
+  const _SearchRow({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -232,10 +238,7 @@ class _SearchRow extends StatelessWidget {
 
 class _SearchField extends StatelessWidget {
   final TextEditingController controller;
-
-  const _SearchField({
-    required this.controller,
-  });
+  const _SearchField({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -254,9 +257,10 @@ class _SearchField extends StatelessWidget {
           Expanded(
             child: TextField(
               controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Search',
-                hintStyle: TextStyle(
+              textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+              decoration: InputDecoration(
+                hintText: AppData.translate('Search', 'بحث'),
+                hintStyle: const TextStyle(
                   color: Color(0xFF8D8D8D),
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
@@ -302,7 +306,6 @@ class _FilterButton extends StatelessWidget {
 
 class _SectionLabel extends StatelessWidget {
   final String text;
-
   const _SectionLabel(this.text);
 
   @override
@@ -331,8 +334,8 @@ class _NearbyPlaceCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final formattedDistance = place.distanceKm < 1
-        ? '${(place.distanceKm * 1000).toInt()}m'
-        : '${place.distanceKm.toStringAsFixed(1)} km';
+        ? '${(place.distanceKm * 1000).toInt()} ${AppData.translate('m', 'م')}'
+        : '${place.distanceKm.toStringAsFixed(1)} ${AppData.translate('km', 'كم')}';
 
     return GestureDetector(
       onTap: onTap,
@@ -380,7 +383,7 @@ class _NearbyPlaceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${place.availableSlots} slots available',
+                    '${place.availableSlots} ${AppData.translate('slots available', 'موقف متاح')}',
                     style: const TextStyle(
                       color: Color(0xFF4E5568),
                       fontSize: 14,
@@ -419,7 +422,7 @@ class _ExploreSection extends StatelessWidget {
             children: [
               _ExploreCard(
                 imagePath: 'assets/images/explore_university.png',
-                title: 'University',
+                title: AppData.translate('University', 'جامعات'),
                 height: 170,
                 onTap: () {
                   Navigator.push(
@@ -435,7 +438,7 @@ class _ExploreSection extends StatelessWidget {
               const SizedBox(height: 15),
               _ExploreCard(
                 imagePath: 'assets/images/explore_cafes_farms.png',
-                title: 'Cafés & Farms',
+                title: AppData.translate('Cafés & Farms', 'كافيهات ومزارع'),
                 height: 210,
                 onTap: () {
                   Navigator.push(
@@ -457,7 +460,7 @@ class _ExploreSection extends StatelessWidget {
             children: [
               _ExploreCard(
                 imagePath: 'assets/images/explore_hospitals.png',
-                title: 'Hospitals',
+                title: AppData.translate('Hospitals', 'مستشفيات'),
                 height: 210,
                 onTap: () {
                   Navigator.push(
@@ -473,7 +476,7 @@ class _ExploreSection extends StatelessWidget {
               const SizedBox(height: 15),
               _ExploreCard(
                 imagePath: 'assets/images/explore_shopping.png',
-                title: 'Shopping',
+                title: AppData.translate('Shopping', 'تسوق'),
                 height: 170,
                 onTap: () {
                   Navigator.push(
@@ -548,8 +551,10 @@ class _ExploreCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const Icon(
-                      Icons.arrow_forward_ios,
+                    Icon(
+                      AppData.isArabic
+                          ? Icons.arrow_back_ios
+                          : Icons.arrow_forward_ios,
                       color: Colors.white,
                       size: 18,
                     ),

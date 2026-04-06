@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/saved_places_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
@@ -29,7 +30,10 @@ class _SavedParkingState extends State<SavedParking> {
 
     if (user == null) {
       setState(() {
-        _error = 'You need to log in first';
+        _error = AppData.translate(
+          'You need to log in first',
+          'يجب تسجيل الدخول أولاً',
+        );
         _isLoading = false;
       });
       return;
@@ -71,7 +75,12 @@ class _SavedParkingState extends State<SavedParking> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
-          content: Text('${place.name} removed from saved'),
+          content: Text(
+            AppData.translate(
+              '${place.name} removed from saved',
+              'تمت إزالة ${place.name} من المحفوظات',
+            ),
+          ),
         ),
       );
     } catch (e) {
@@ -87,84 +96,92 @@ class _SavedParkingState extends State<SavedParking> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 100,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            height: 100,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
+              ),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
             ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
-          ),
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.only(top: 30),
-              child: Text(
-                'Saved',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w600,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 30),
+                child: Text(
+                  AppData.translate('Saved', 'المحفوظة'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(color: Colors.red),
-                        ),
-                      ),
-                    )
-                  : _savedPlaces.isEmpty
-                      ? const Center(
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
                           child: Text(
-                            'No saved places yet',
-                            style: TextStyle(color: Colors.grey),
+                            _error!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 20,
-                          ),
-                          itemCount: _savedPlaces.length,
-                          itemBuilder: (context, index) {
-                            final place = _savedPlaces[index];
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                bottom: index == _savedPlaces.length - 1 ? 0 : 16,
-                              ),
-                              child: _SavedPlaceCard(
-                                place: place,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => PlaceDetailsScreen(place: place),
-                                    ),
-                                  );
-                                },
-                                onRemove: () => _removeSavedPlace(place),
-                              ),
-                            );
-                          },
                         ),
-        ),
-      ],
+                      )
+                    : _savedPlaces.isEmpty
+                        ? Center(
+                            child: Text(
+                              AppData.translate(
+                                'No saved places yet',
+                                'لا توجد أماكن محفوظة حالياً',
+                              ),
+                              style: const TextStyle(color: Colors.grey),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 20,
+                            ),
+                            itemCount: _savedPlaces.length,
+                            itemBuilder: (context, index) {
+                              final place = _savedPlaces[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index == _savedPlaces.length - 1
+                                      ? 0
+                                      : 16,
+                                ),
+                                child: _SavedPlaceCard(
+                                  place: place,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            PlaceDetailsScreen(place: place),
+                                      ),
+                                    );
+                                  },
+                                  onRemove: () => _removeSavedPlace(place),
+                                ),
+                              );
+                            },
+                          ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -217,7 +234,7 @@ class _SavedPlaceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    '${place.availableSlots}/${place.totalSlots} slots available',
+                    '${place.availableSlots}/${place.totalSlots} ${AppData.translate('slots available', 'موقف متاح')}',
                     style: const TextStyle(
                       color: Color(0xFFB8B8B8),
                       fontSize: 12,

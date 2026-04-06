@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
 import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 import 'package:parkliapp/core/services/phone_auth_service.dart';
+import 'package:parkliapp/app_data.dart'; // استيراد المخ
+
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -20,226 +22,218 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String _buildFullPhoneNumber() {
-    String phone = _phoneController.text.trim();
-
-    phone = phone.replaceAll(' ', '').replaceAll('-', '');
-
-    if (phone.startsWith('0')) {
-      phone = phone.substring(1);
-    }
-
-    return '+966$phone';
-  }
-
   Future<void> _sendOtp() async {
-  final rawPhone = _phoneController.text.trim();
+    final rawPhone = _phoneController.text.trim();
 
-  if (rawPhone.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Please enter your mobile number')),
-    );
-    return;
-  }
+    if (rawPhone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppData.translate('Please enter your mobile number', 'يرجى إدخال رقم الجوال'))),
+      );
+      return;
+    }
 
-  String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+    String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
 
-  if (digitsOnly.startsWith('0')) {
-    digitsOnly = digitsOnly.substring(1);
-  }
+    if (digitsOnly.startsWith('0')) {
+      digitsOnly = digitsOnly.substring(1);
+    }
 
-  if (digitsOnly.length != 9) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Enter a valid Saudi mobile number')),
-    );
-    return;
-  }
+    if (digitsOnly.length != 9) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppData.translate('Enter a valid Saudi mobile number', 'أدخل رقم جوال سعودي صحيح'))),
+      );
+      return;
+    }
 
-  final phoneNumber = '+966$digitsOnly';
+    final phoneNumber = '+966$digitsOnly';
 
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() {
+      _isLoading = true;
+    });
 
-  try {
-    final phoneAuth = PhoneAuthService();
-    await phoneAuth.sendOtp(phoneNumber: phoneNumber);
+    try {
+      final phoneAuth = PhoneAuthService();
+      await phoneAuth.sendOtp(phoneNumber: phoneNumber);
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerifyPhoneScreen(
-          phoneNumber: phoneNumber,
-          verificationId: '',
-          isAutoVerified: false,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerifyPhoneScreen(
+            phoneNumber: phoneNumber,
+            verificationId: '',
+            isAutoVerified: false,
+          ),
         ),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to send OTP: $e')),
-    );
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppData.translate('Failed to send OTP: $e', 'فشل في إرسال رمز التحقق: $e'))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
-}
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const _TopBar(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Sign Up',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.84,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'Mobile Number',
-                      style: TextStyle(
-                        color: Color(0xFF237D8C),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: -0.36,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const _CountryCodeField(),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: InputDecoration(
-                              hintText: '5XXXXXXXX',
-                              hintStyle: const TextStyle(
-                                color: Color(0xFF777777),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 15,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E5E5),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF237D8C),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const _OtpInfoBox(),
-                    const SizedBox(height: 28),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _sendOtp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xA3237D8C),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text(
-                                'Continue',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.39,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    const _OrDivider(),
-                    const SizedBox(height: 32),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const SignUpEmailScreen(),
-                            ),
-                          );
-                        },
-                        icon: const Icon(
-                          Icons.email_outlined,
+    return Directionality(
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              const _TopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        AppData.translate('Sign Up', 'إنشاء حساب'),
+                        style: const TextStyle(
                           color: Color(0xFF237D8C),
-                          size: 20,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.84,
                         ),
-                        label: const Text(
-                          'Continue with Email',
-                          style: TextStyle(
-                            color: Color(0xFF237D8C),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.39,
+                      ),
+                      const SizedBox(height: 28),
+                      Text(
+                        AppData.translate('Mobile Number', 'رقم الجوال'),
+                        style: const TextStyle(
+                          color: Color(0xFF237D8C),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: -0.36,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const _CountryCodeField(),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                              decoration: InputDecoration(
+                                hintText: '5XXXXXXXX',
+                                hintStyle: const TextStyle(
+                                  color: Color(0xFF777777),
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 15,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFFE5E5E5),
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  borderSide: const BorderSide(
+                                    color: Color(0xFF237D8C),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      const _OtpInfoBox(),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _sendOtp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xA3237D8C),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2.2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(
+                                  AppData.translate('Continue', 'استمرار'),
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    letterSpacing: -0.39,
+                                  ),
+                                ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFF237D8C),
-                          side: const BorderSide(color: Color(0xFF237D8C)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(50),
+                      ),
+                      const SizedBox(height: 32),
+                      const _OrDivider(),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const SignUpEmailScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.email_outlined,
+                            color: Color(0xFF237D8C),
+                            size: 20,
+                          ),
+                          label: Text(
+                            AppData.translate('Continue with Email', 'الاستمرار عبر البريد الإلكتروني'),
+                            style: const TextStyle(
+                              color: Color(0xFF237D8C),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.39,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF237D8C),
+                            side: const BorderSide(color: Color(0xFF237D8C)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(50),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const _BottomHandle(),
-          ],
+              const _BottomHandle(),
+            ],
+          ),
         ),
       ),
     );
@@ -264,9 +258,9 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Color(0xFF237D8C),
+            icon: Icon(
+              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+              color: const Color(0xFF237D8C),
               size: 20,
             ),
             padding: EdgeInsets.zero,
@@ -281,16 +275,19 @@ class _TopBar extends StatelessWidget {
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            label: const Text(
-              'Skip',
-              style: TextStyle(
+            label: Text(
+              AppData.translate('Skip', 'تخطي'),
+              style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 letterSpacing: -0.42,
               ),
             ),
-            icon: const Icon(Icons.arrow_forward_ios, size: 14),
-            iconAlignment: IconAlignment.end,
+            icon: Icon(
+              AppData.isArabic ? Icons.arrow_back_ios : Icons.arrow_forward_ios, 
+              size: 14
+            ),
+            iconAlignment: AppData.isArabic ? IconAlignment.start : IconAlignment.end,
           ),
         ],
       ),
@@ -343,15 +340,18 @@ class _OtpInfoBox extends StatelessWidget {
         color: const Color(0xFFF3F3F3),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: const Row(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.info_outline, color: Color(0xFF237D8C), size: 20),
-          SizedBox(width: 12),
+          const Icon(Icons.info_outline, color: Color(0xFF237D8C), size: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'You will receive an OTP code from ParkLi to confirm your number',
-              style: TextStyle(
+              AppData.translate(
+                'You will receive an OTP code from ParkLi to confirm your number',
+                'ستصلك رسالة نصية تحتوي على رمز التحقق لتأكيد رقمك'
+              ),
+              style: const TextStyle(
                 color: Color(0xFF237D8C),
                 fontSize: 13,
                 fontWeight: FontWeight.w400,
@@ -371,14 +371,14 @@ class _OrDivider extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Row(
+    return Row(
       children: [
-        Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        const Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
-            'OR',
-            style: TextStyle(
+            AppData.translate('OR', 'أو'),
+            style: const TextStyle(
               color: Color(0xFF777777),
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -386,7 +386,7 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
         ),
-        Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        const Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
       ],
     );
   }
