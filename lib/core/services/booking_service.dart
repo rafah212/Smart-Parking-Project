@@ -37,8 +37,10 @@ class BookingService {
         .map((rows) {
           final sorted = [...rows];
           sorted.sort((a, b) {
-            final aDate = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
-            final bDate = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
+            final aDate =
+                DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
+            final bDate =
+                DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
             return bDate.compareTo(aDate);
           });
 
@@ -60,6 +62,64 @@ class BookingService {
             );
           }).toList();
         });
+  }
+
+  Future<String> createBooking({
+    required String userId,
+    required String placeId,
+    required String spotId,
+    required String spotLabel,
+    required DateTime bookedAt,
+  }) async {
+    final updatedSpot = await _supabase
+        .from('parking_spots')
+        .update({'status': 'booked'})
+        .eq('id', spotId)
+        .eq('status', 'available')
+        .select();
+
+    if ((updatedSpot as List).isEmpty) {
+      throw Exception('This parking spot has already been booked');
+    }
+
+    final inserted = await _supabase
+        .from('bookings')
+        .insert({
+          'user_id': userId,
+          'place_id': placeId,
+          'spot_id': spotId,
+          'spot_label': spotLabel,
+          'status': 'upcoming',
+          'booked_at': bookedAt.toIso8601String(),
+        })
+        .select('id')
+        .single();
+
+    return inserted['id'] as String;
+  }
+
+  Future<Map<String, dynamic>?> getBookingById(String bookingId) async {
+    final data = await _supabase
+        .from('bookings')
+        .select('''
+          id,
+          user_id,
+          place_id,
+          spot_id,
+          spot_label,
+          status,
+          booked_at,
+          created_at,
+          places (
+            name,
+            price_label,
+            distance_km
+          )
+        ''')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+    return data;
   }
 
   Future<void> cancelBooking({

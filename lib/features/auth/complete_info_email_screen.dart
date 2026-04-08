@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart';
 
-import 'package:parkliapp/core/services/user_service.dart';
+import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
-
 
 class CompleteInfoEmailScreen extends StatefulWidget {
   const CompleteInfoEmailScreen({super.key, required this.email});
@@ -46,7 +45,11 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
 
     if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Please complete all fields', 'يرجى إكمال جميع الحقول'))),
+        SnackBar(
+          content: Text(
+            AppData.translate('Please complete all fields', 'يرجى إكمال جميع الحقول'),
+          ),
+        ),
       );
       return;
     }
@@ -60,18 +63,22 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
 
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppData.translate('No authenticated user found', 'لم يتم العثور على مستخدم مسجل'))),
+          SnackBar(
+            content: Text(
+              AppData.translate('No authenticated user found', 'لم يتم العثور على مستخدم مسجل'),
+            ),
+          ),
         );
         return;
       }
 
-      final userService = UserService();
+      final profileService = ProfileService();
 
-      await userService.createUserProfile(
-        user: user,
+      await profileService.upsertProfile(
+        userId: user.id,
         fullName: '$firstName $lastName',
-        phoneNumber: '',
         email: email,
+        phoneNumber: '',
       );
 
       if (!mounted) return;
@@ -84,7 +91,11 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Failed to save data: $e', 'فشل في حفظ البيانات: $e'))),
+        SnackBar(
+          content: Text(
+            AppData.translate('Failed to save data: $e', 'فشل في حفظ البيانات: $e'),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -156,7 +167,7 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                         child: Text(
                           AppData.translate(
                             'By selecting done, I agree to PARKLI\'s terms of service,\npayment terms of service & privacy policy',
-                            'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية'
+                            'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية',
                           ),
                           style: const TextStyle(
                             color: Color(0xFF237D8C),
@@ -222,7 +233,7 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
-          border: Border(
+        border: Border(
           bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
         ),
       ),

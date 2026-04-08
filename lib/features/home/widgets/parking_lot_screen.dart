@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:parkliapp/core/services/parking_service.dart';
-import 'package:parkliapp/features/home/models/place.dart';
-import 'package:parkliapp/features/home/models/parking_spot.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/parking_service.dart';
+import 'package:parkliapp/features/home/models/parking_spot.dart';
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:parkliapp/features/parking/parking_detail1.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ParkingLotScreen extends StatefulWidget {
   final Place place;
@@ -127,7 +128,8 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
   }
 
   List<ParkingSpot> _spotsBySection(String section) {
-    final filtered = _allSpots.where((spot) => spot.section == section).toList();
+    final filtered =
+        _allSpots.where((spot) => spot.section == section).toList();
     filtered.sort((a, b) {
       final rowCompare = a.row.compareTo(b.row);
       if (rowCompare != 0) return rowCompare;
@@ -148,7 +150,7 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
     });
   }
 
-  Future<void> _bookSelectedSpot() async {
+  Future<void> _goToBookingDetails() async {
     if (_selectedSpot == null) return;
 
     final user = Supabase.instance.client.auth.currentUser;
@@ -158,21 +160,22 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً'),
+            AppData.translate(
+              'You need to log in first',
+              'يجب تسجيل الدخول أولاً',
+            ),
           ),
         ),
       );
       return;
     }
 
-    try {
-      final selectedSpot = _selectedSpot!;
+    final selectedSpot = _selectedSpot!;
 
-      await _parkingService.bookSpot(
-        userId: user.id,
-        spot: selectedSpot,
-      );
+    final isStillAvailable =
+        await _parkingService.isSpotAvailable(selectedSpot.id);
 
+    if (!isStillAvailable) {
       if (!mounted) return;
 
       setState(() {
@@ -184,22 +187,26 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
           behavior: SnackBarBehavior.floating,
           content: Text(
             AppData.translate(
-              'Booked ${selectedSpot.label} successfully',
-              'تم حجز ${selectedSpot.label} بنجاح',
+              'This parking spot is no longer available',
+              'هذا الموقف لم يعد متاحًا',
             ),
           ),
         ),
       );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(e.toString()),
-        ),
-      );
+      return;
     }
+
+    AppData.selectedPlaceId = widget.place.id;
+    AppData.selectedSpotId = selectedSpot.id;
+
+    if (!mounted) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ParkingDetail1(),
+      ),
+    );
   }
 
   String _formatSectionLabel(String section) {
@@ -255,7 +262,11 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
                             fontWeight: FontWeight.w700,
                           ),
                           tabs: _sections
-                              .map((section) => Tab(text: _formatSectionLabel(section)))
+                              .map(
+                                (section) => Tab(
+                                  text: _formatSectionLabel(section),
+                                ),
+                              )
                               .toList(),
                         ),
                       ),
@@ -311,7 +322,7 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
                 distanceKm: widget.place.distanceKm,
                 priceLabel: widget.place.priceLabel,
                 selectedSpotLabel: _selectedSpot?.label,
-                onBookNow: _selectedSpot == null ? null : _bookSelectedSpot,
+                onBookNow: _selectedSpot == null ? null : _goToBookingDetails,
               ),
             ],
           ),
@@ -618,6 +629,7 @@ class _ParkingSpotTile extends StatelessWidget {
   final ParkingSpot spot;
   final bool isSelected;
   final VoidCallback onTap;
+
   const _ParkingSpotTile({
     required this.spot,
     required this.isSelected,
@@ -720,7 +732,7 @@ class _BottomBookingBar extends StatelessWidget {
             blurRadius: 10,
             color: Color(0x12000000),
             offset: Offset(0, -2),
-          )
+          ),
         ],
       ),
       child: Row(

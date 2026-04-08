@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
-import 'package:parkliapp/core/services/user_service.dart';
+import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
 
 class CompleteInfoScreen extends StatefulWidget {
@@ -39,7 +39,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
 
     if (firstName.isEmpty || lastName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Please complete all fields', 'يرجى إكمال جميع الحقول'))),
+        SnackBar(
+            content: Text(AppData.translate(
+                'Please complete all fields', 'يرجى إكمال جميع الحقول'))),
       );
       return;
     }
@@ -53,18 +55,20 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
 
       if (user == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppData.translate('No authenticated user found', 'لم يتم العثور على مستخدم مسجل'))),
+          SnackBar(
+              content: Text(AppData.translate('No authenticated user found',
+                  'لم يتم العثور على مستخدم مسجل'))),
         );
         return;
       }
 
-      final userService = UserService();
+      final profileService = ProfileService();
 
-      await userService.createUserProfile(
-        user: user,
+      await profileService.upsertProfile(
+        userId: user.id,
         fullName: '$firstName $lastName',
-        phoneNumber: widget.phoneNumber,
         email: user.email ?? '',
+        phoneNumber: widget.phoneNumber,
       );
 
       if (!mounted) return;
@@ -77,7 +81,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Failed to save data: $e', 'فشل في حفظ البيانات: $e'))),
+        SnackBar(
+            content: Text(AppData.translate(
+                'Failed to save data: $e', 'فشل في حفظ البيانات: $e'))),
       );
     } finally {
       if (mounted) {
@@ -105,7 +111,8 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppData.translate('Complete your info', 'أكمل معلوماتك'),
+                        AppData.translate(
+                            'Complete your info', 'أكمل معلوماتك'),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 28,
@@ -114,21 +121,26 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _FieldLabel(AppData.translate('First Name', 'الاسم الأول')),
+                      _FieldLabel(
+                          AppData.translate('First Name', 'الاسم الأول')),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _firstNameController,
-                        hintText: AppData.translate('Enter first name', 'أدخل الاسم الأول'),
+                        hintText: AppData.translate(
+                            'Enter first name', 'أدخل الاسم الأول'),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Last Name', 'اسم العائلة')),
+                      _FieldLabel(
+                          AppData.translate('Last Name', 'اسم العائلة')),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _lastNameController,
-                        hintText: AppData.translate('Enter last name', 'أدخل اسم العائلة'),
+                        hintText: AppData.translate(
+                            'Enter last name', 'أدخل اسم العائلة'),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Mobile Number', 'رقم الجوال')),
+                      _FieldLabel(
+                          AppData.translate('Mobile Number', 'رقم الجوال')),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -155,9 +167,8 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                         child: Text(
                           AppData.translate(
-                            'By selecting done, I agree to ParkLi’s terms of service,\npayment terms of service & privacy policy',
-                            'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية'
-                          ),
+                              'By selecting done, I agree to ParkLi’s terms of service,\npayment terms of service & privacy policy',
+                              'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية'),
                           style: const TextStyle(
                             color: Color(0xFF237D8C),
                             fontSize: 12,
@@ -231,7 +242,9 @@ class _TopBar extends StatelessWidget {
           IconButton(
             onPressed: () => Navigator.pop(context),
             icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+              AppData.isArabic
+                  ? Icons.arrow_back_ios_new
+                  : Icons.arrow_back_ios_new,
               color: const Color(0xFF237D8C),
               size: 20,
             ),
@@ -341,9 +354,8 @@ class _CountryCodeField extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Icon(Icons.keyboard_arrow_down, 
-               color: const Color(0xFF19515B), 
-               size: 16),
+          Icon(Icons.keyboard_arrow_down,
+              color: const Color(0xFF19515B), size: 16),
         ],
       ),
     );

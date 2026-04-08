@@ -11,9 +11,8 @@ class PlaceService {
         .order('distance_km')
         .order('name');
 
-    final spotsData = await _supabase
-        .from('parking_spots')
-        .select('place_id,status');
+    final spotsData =
+        await _supabase.from('parking_spots').select('place_id,status');
 
     final Map<String, int> totalByPlace = {};
     final Map<String, int> availableByPlace = {};
@@ -62,5 +61,33 @@ class PlaceService {
           return false;
       }
     }).toList();
+  }
+
+  Future<Place?> getPlaceById(String placeId) async {
+    final data =
+        await _supabase.from('places').select().eq('id', placeId).maybeSingle();
+
+    if (data == null) return null;
+
+    final spotsData = await _supabase
+        .from('parking_spots')
+        .select('place_id,status')
+        .eq('place_id', placeId);
+
+    int total = 0;
+    int available = 0;
+
+    for (final row in spotsData as List) {
+      total++;
+      if ((row['status'] as String? ?? 'available') == 'available') {
+        available++;
+      }
+    }
+
+    return Place.fromJson(
+      data,
+      availableSlots: available,
+      totalSlots: total,
+    );
   }
 }

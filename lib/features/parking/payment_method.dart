@@ -1,30 +1,181 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; 
-import 'payment_success.dart';
+import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/booking_service.dart';
+import 'package:parkliapp/core/services/parking_service.dart';
+import 'package:parkliapp/core/services/place_service.dart';
+import 'package:parkliapp/core/services/vehicle_service.dart';
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:parkliapp/features/home/models/parking_spot.dart';
+import 'package:parkliapp/features/parking/payment_success.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-class PaymentMethodScreen extends StatelessWidget {
+class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
 
-  // --- دالة حساب السعر الذكية ---
+  @override
+  State<PaymentMethodScreen> createState() => _PaymentMethodScreenState();
+}
+
+class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
+  final PlaceService _placeService = PlaceService();
+  final ParkingService _parkingService = ParkingService();
+  final VehicleService _vehicleService = VehicleService();
+  final BookingService _bookingService = BookingService();
+
+  Place? _place;
+  ParkingSpot? _spot;
+  VehicleData? _vehicle;
+
+  bool _isLoading = true;
+  bool _isPaying = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPaymentDetails();
+  }
+
+  Future<void> _loadPaymentDetails() async {
+    try {
+      final placeId = AppData.selectedPlaceId;
+      final spotId = AppData.selectedSpotId;
+      final vehicleId = AppData.selectedVehicleId;
+
+      if (placeId == null || spotId == null) {
+        setState(() {
+          _error = AppData.translate(
+            'Booking information is incomplete',
+            'بيانات الحجز غير مكتملة',
+          );
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final place = await _placeService.getPlaceById(placeId);
+      final spot = await _parkingService.getSpotById(spotId);
+      final vehicle =
+          vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
+
+      if (!mounted) return;
+
+      setState(() {
+        _place = place;
+        _spot = spot;
+        _vehicle = vehicle;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = AppData.translate(
+          'Failed to load payment details',
+          'فشل تحميل بيانات الدفع',
+        );
+        _isLoading = false;
+      });
+    }
+  }
+
   double _calculateTotal() {
-    double pricePerHour = 3.25;
-    
-    // إذا كان الموقف مستشفى أو جهة حكومية (حسب اختيار المستخدم للموقع)
-    bool isGovernment = AppData.selectedLocation.contains('Hospital') || 
-                        AppData.selectedLocation.contains('University') ||
-                        AppData.selectedLocation.contains('مستشفى') ||
-                        AppData.selectedLocation.contains('جامعة');
+    if (_place == null) return 0.0;
+
+    const double pricePerHour = 3.25;
+    final name = _place!.name.toLowerCase();
+
+    final isGovernment = name.contains('hospital') ||
+        name.contains('university') ||
+        _place!.name.contains('مستشفى') ||
+        _place!.name.contains('جامعة');
 
     if (isGovernment) {
-      return pricePerHour; // سعر ثابت مهما كانت الساعات
-    } else {
-      return pricePerHour * AppData.durationHours; // سعر الساعة * عدد الساعات
+      return pricePerHour;
+    }
+
+    return pricePerHour * AppData.durationHours;
+  }
+
+  Future<void> _payNow() async {
+    final user = Supabase.instance.client.auth.currentUser;
+
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'You need to log in first',
+              'يجب تسجيل الدخول أولاً',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (_place == null || _spot == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Missing booking details',
+              'بيانات الحجز ناقصة',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isPaying = true;
+    });
+
+    try {
+      final bookingId = await _bookingService.createBooking(
+        userId: user.id,
+        placeId: _place!.id,
+        spotId: _spot!.id,
+        spotLabel: _spot!.label,
+        bookedAt: AppData.selectedDate,
+      );
+
+      AppData.currentBookingId = bookingId;
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const PaymentSuccessScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Payment failed or the parking spot is no longer available',
+              'فشل الدفع أو أن الموقف لم يعد متاحًا',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPaying = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    double totalPrice = _calculateTotal();
+    final totalPrice = _calculateTotal();
 
     return Directionality(
       textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
@@ -33,35 +184,66 @@ class PaymentMethodScreen extends StatelessWidget {
         body: SafeArea(
           child: Column(
             children: [
-              _CustomHeader(title: AppData.translate('Payment method', 'طريقة الدفع')),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        AppData.translate('Select payment method', 'اختر طريقة الدفع'),
-                        style: const TextStyle(color: Color(0xFF25054D), fontSize: 22, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 24),
-
-                      _buildPaymentOption('Apple pay'),
-                      _buildPaymentOption('Stc pay'),
-                      _buildPaymentOption(AppData.translate('CARD', 'بطاقة ائتمان')),
-
-                      const SizedBox(height: 40),
-                      _buildCreditCardView(),
-                      const SizedBox(height: 40),
-
-                      // --- عرض المجموع المحسوب تلقائياً ---
-                      _buildTotalCard(totalPrice),
-                    ],
-                  ),
-                ),
+              _CustomHeader(
+                title: AppData.translate('Payment method', 'طريقة الدفع'),
               ),
-
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF237D8C),
+                        ),
+                      )
+                    : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 30,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppData.translate(
+                                    'Select payment method',
+                                    'اختر طريقة الدفع',
+                                  ),
+                                  style: const TextStyle(
+                                    color: Color(0xFF25054D),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                _buildPaymentOption('Apple pay'),
+                                _buildPaymentOption('Stc pay'),
+                                _buildPaymentOption(
+                                  AppData.translate('CARD', 'بطاقة ائتمان'),
+                                ),
+                                const SizedBox(height: 28),
+                                _buildBookingSummary(),
+                                const SizedBox(height: 30),
+                                _buildCreditCardView(),
+                                const SizedBox(height: 40),
+                                _buildTotalCard(totalPrice),
+                              ],
+                            ),
+                          ),
+              ),
               _buildBottomPayButton(context),
             ],
           ),
@@ -70,7 +252,84 @@ class PaymentMethodScreen extends StatelessWidget {
     );
   }
 
-  // --- ويدجت المجموع بتنسيق السعر الجديد ---
+  Widget _buildBookingSummary() {
+    final placeName = _place?.name ??
+        AppData.translate('Unknown location', 'موقع غير محدد');
+
+    final spotLabel = _spot?.label ??
+        AppData.translate('Unknown slot', 'موقف غير محدد');
+
+    final vehicleText = _vehicle == null
+        ? AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة')
+        : '${_vehicle!.plateType} • ${_vehicle!.displayPlate}';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7FCFD),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E5E5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSummaryRow(
+            AppData.translate('Parking lot', 'الموقع'),
+            placeName,
+          ),
+          const SizedBox(height: 10),
+          _buildSummaryRow(
+            AppData.translate('Slot', 'الموقف'),
+            spotLabel,
+          ),
+          const SizedBox(height: 10),
+          _buildSummaryRow(
+            AppData.translate('Vehicle', 'المركبة'),
+            vehicleText,
+          ),
+          const SizedBox(height: 10),
+          _buildSummaryRow(
+            AppData.translate('Duration', 'المدة'),
+            '${AppData.durationHours} ${AppData.translate('hours', 'ساعات')}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: Color(0xFF677191),
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          flex: 5,
+          child: Text(
+            value,
+            textAlign: AppData.isArabic ? TextAlign.left : TextAlign.right,
+            style: const TextStyle(
+              color: Color(0xFF1A485F),
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildTotalCard(double price) {
     return Container(
       width: double.infinity,
@@ -78,28 +337,38 @@ class PaymentMethodScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF3F6FF),
         border: Border(
-          left: AppData.isArabic ? BorderSide.none : const BorderSide(color: Color(0xFF237D8C), width: 5),
-          right: AppData.isArabic ? const BorderSide(color: Color(0xFF237D8C), width: 5) : BorderSide.none,
+          left: AppData.isArabic
+              ? BorderSide.none
+              : const BorderSide(color: Color(0xFF237D8C), width: 5),
+          right: AppData.isArabic
+              ? const BorderSide(color: Color(0xFF237D8C), width: 5)
+              : BorderSide.none,
         ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            AppData.translate('TOTAL', 'الإجمالي'), 
-            style: const TextStyle(color: Color(0xFF677191), fontSize: 16, fontWeight: FontWeight.bold)
+            AppData.translate('TOTAL', 'الإجمالي'),
+            style: const TextStyle(
+              color: Color(0xFF677191),
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           Text(
-            '${price.toStringAsFixed(2)} ${AppData.translate('SR', 'ريال')}', 
-            style: const TextStyle(color: Color(0xFF237D8C), fontSize: 22, fontWeight: FontWeight.bold)
+            '${price.toStringAsFixed(2)} ${AppData.translate('SR', 'ريال')}',
+            style: const TextStyle(
+              color: Color(0xFF237D8C),
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
     );
   }
 
-  // (باقي الويدجت مثل _buildPaymentOption و _buildCreditCardView تبقى كما هي في الكود السابق)
-  
   Widget _buildPaymentOption(String title) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -112,7 +381,13 @@ class PaymentMethodScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFF677191), fontSize: 16)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF677191),
+              fontSize: 16,
+            ),
+          ),
           const Icon(Icons.add, color: Color(0xFF237D8C), size: 20),
         ],
       ),
@@ -130,7 +405,11 @@ class PaymentMethodScreen extends StatelessWidget {
             color: const Color(0xFF567DF4),
             borderRadius: BorderRadius.circular(15),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
             ],
           ),
           child: Stack(
@@ -142,7 +421,10 @@ class PaymentMethodScreen extends StatelessWidget {
                 child: Container(
                   width: 250,
                   height: 250,
-                  decoration: const BoxDecoration(color: Color(0xFF192242), shape: BoxShape.circle),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF192242),
+                    shape: BoxShape.circle,
+                  ),
                 ),
               ),
               Padding(
@@ -156,21 +438,33 @@ class PaymentMethodScreen extends StatelessWidget {
                       children: [
                         _buildCardDataColumn('CVV', '985'),
                         Image.asset(
-                          'assets/images/credit_card.png', 
+                          'assets/images/credit_card.png',
                           height: 25,
                           errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.credit_card, size: 25, color: Colors.white),
+                              const Icon(
+                            Icons.credit_card,
+                            size: 25,
+                            color: Colors.white,
+                          ),
                         ),
                       ],
                     ),
                     const Text(
                       '**** 6478',
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 2),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
                     ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildCardDataColumn(AppData.translate('HOLDER', 'صاحب البطاقة'), 'Rafah Aljabri'),
+                        _buildCardDataColumn(
+                          AppData.translate('HOLDER', 'صاحب البطاقة'),
+                          'Rafah Aljabri',
+                        ),
                         _buildCardDataColumn('EXP', '07/29'),
                       ],
                     ),
@@ -188,8 +482,22 @@ class PaymentMethodScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFE2E9FD), fontSize: 12, fontWeight: FontWeight.w600)),
-        Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFE2E9FD),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -201,18 +509,32 @@ class PaymentMethodScreen extends StatelessWidget {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()));
-          },
+          onPressed: (_isLoading || _isPaying || _error != null) ? null : _payNow,
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF237D8C),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+            disabledBackgroundColor: const Color(0xFFB7D7DC),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(28),
+            ),
             elevation: 0,
           ),
-          child: Text(
-            AppData.translate('Pay', 'ادفع الآن'),
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          child: _isPaying
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.2,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  AppData.translate('Pay', 'ادفع الآن'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );
@@ -229,7 +551,9 @@ class _CustomHeader extends StatelessWidget {
       height: 70,
       width: double.infinity,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF195A64), Color(0xFF34B5CA)]),
+        gradient: LinearGradient(
+          colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
+        ),
       ),
       child: Stack(
         children: [
@@ -240,8 +564,11 @@ class _CustomHeader extends StatelessWidget {
             bottom: 0,
             child: IconButton(
               icon: Icon(
-                AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios, 
-                color: Colors.white, size: 20
+                AppData.isArabic
+                    ? Icons.arrow_back_ios_new
+                    : Icons.arrow_back_ios,
+                color: Colors.white,
+                size: 20,
               ),
               onPressed: () => Navigator.pop(context),
             ),
@@ -249,7 +576,11 @@ class _CustomHeader extends StatelessWidget {
           Center(
             child: Text(
               title,
-              style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

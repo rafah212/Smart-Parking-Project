@@ -18,28 +18,38 @@ class ParkingService {
         .toList();
   }
 
-  Future<void> bookSpot({
-    required String userId,
-    required ParkingSpot spot,
-  }) async {
-    final updated = await _supabase
+  Future<ParkingSpot?> getSpotById(String spotId) async {
+    final data = await _supabase
         .from('parking_spots')
-        .update({'status': 'booked'})
-        .eq('id', spot.id)
-        .eq('status', 'available')
-        .select();
+        .select()
+        .eq('id', spotId)
+        .maybeSingle();
 
-    if ((updated as List).isEmpty) {
-      throw Exception('This parking spot has already been booked');
-    }
+    if (data == null) return null;
+    return ParkingSpot.fromJson(data);
+  }
 
-    await _supabase.from('bookings').insert({
-      'user_id': userId,
-      'place_id': spot.placeId,
-      'spot_id': spot.id,
-      'spot_label': spot.label,
-      'status': 'upcoming',
-    });
+  Future<void> updateSpotStatus({
+    required String spotId,
+    required String status,
+  }) async {
+    await _supabase
+        .from('parking_spots')
+        .update({'status': status})
+        .eq('id', spotId);
+  }
+
+  Future<bool> isSpotAvailable(String spotId) async {
+    final data = await _supabase
+        .from('parking_spots')
+        .select('status')
+        .eq('id', spotId)
+        .maybeSingle();
+
+    if (data == null) return false;
+
+    final status = (data['status'] as String? ?? 'available').toLowerCase();
+    return status == 'available';
   }
 
   Stream<List<ParkingSpot>> streamSpotsByPlace(String placeId) {

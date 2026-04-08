@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ لربط البيانات الحقيقية
-import 'parking_detail2.dart';
-import 'payment_method.dart';
+import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/place_service.dart';
+import 'package:parkliapp/core/services/parking_service.dart';
+import 'package:parkliapp/core/services/vehicle_service.dart';
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:parkliapp/features/home/models/parking_spot.dart';
+import 'package:parkliapp/features/parking/parking_detail2.dart';
+import 'package:parkliapp/features/parking/payment_method.dart';
 
 class ParkingDetail1 extends StatefulWidget {
   const ParkingDetail1({super.key});
@@ -11,8 +16,67 @@ class ParkingDetail1 extends StatefulWidget {
 }
 
 class _ParkingDetail1State extends State<ParkingDetail1> {
-  // 1. جعل القيمة الابتدائية مرتبطة بالمخ (AppData)
+  final PlaceService _placeService = PlaceService();
+  final ParkingService _parkingService = ParkingService();
+  final VehicleService _vehicleService = VehicleService();
+
   double _currentValue = AppData.durationHours.toDouble();
+
+  Place? _place;
+  ParkingSpot? _spot;
+  VehicleData? _vehicle;
+
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBookingDetails();
+  }
+
+  Future<void> _loadBookingDetails() async {
+    try {
+      final placeId = AppData.selectedPlaceId;
+      final spotId = AppData.selectedSpotId;
+      final vehicleId = AppData.selectedVehicleId;
+
+      if (placeId == null || spotId == null) {
+        setState(() {
+          _error = AppData.translate(
+            'Booking information is incomplete',
+            'بيانات الحجز غير مكتملة',
+          );
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final place = await _placeService.getPlaceById(placeId);
+      final spot = await _parkingService.getSpotById(spotId);
+      final vehicle =
+          vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
+
+      if (!mounted) return;
+
+      setState(() {
+        _place = place;
+        _spot = spot;
+        _vehicle = vehicle;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = AppData.translate(
+          'Failed to load booking details',
+          'فشل تحميل تفاصيل الحجز',
+        );
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,49 +87,60 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
         body: SafeArea(
           child: Column(
             children: [
-              // --- الهيدر المعرب ---
-              _ParkingHeader(title: AppData.translate('Parking detail', 'تفاصيل الموقف')),
-
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // صورة الموقف
-                      Center(
-                        child: Image.asset(
-                          'assets/images/parkdetial.png',
-                          height: 220,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-
-                      // عنوان اختيار الوقت
-                      Text(
-                        AppData.translate('Time Duration', 'مدة الوقوف'),
-                        style: const TextStyle(
-                          color: Color(0xFF237D8C),
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // منزلق الوقت (الذي سيتحكم في بداية التايمر)
-                      _buildTimeSlider(),
-                      
-                      const SizedBox(height: 30),
-
-                      // بطاقة معلومات السيارة والموقع (بيانات حقيقية)
-                      _buildParkingInfoCard(),
-                    ],
-                  ),
-                ),
+              _ParkingHeader(
+                title: AppData.translate('Parking detail', 'تفاصيل الموقف'),
               ),
-
-              // البار السفلي للتحويل لصفحة الدفع أو التاريخ
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF237D8C),
+                        ),
+                      )
+                    : _error != null
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                _error!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Center(
+                                  child: Image.asset(
+                                    'assets/images/parkdetial.png',
+                                    height: 220,
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                                const SizedBox(height: 30),
+                                Text(
+                                  AppData.translate('Time Duration', 'مدة الوقوف'),
+                                  style: const TextStyle(
+                                    color: Color(0xFF237D8C),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                _buildTimeSlider(),
+                                const SizedBox(height: 30),
+                                _buildParkingInfoCard(),
+                              ],
+                            ),
+                          ),
+              ),
               _buildBottomActionArea(),
             ],
           ),
@@ -74,7 +149,6 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
     );
   }
 
-  // ويدجت اختيار الوقت - التعديل الجوهري لربط التايمر
   Widget _buildTimeSlider() {
     return Column(
       children: [
@@ -82,15 +156,21 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              _formatTime(_currentValue), 
-              style: const TextStyle(color: Color(0xFF195A64), fontWeight: FontWeight.bold)
+              _formatTime(_currentValue),
+              style: const TextStyle(
+                color: Color(0xFF195A64),
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            Text(AppData.translate('24 h', '٢٤ ساعة'), style: const TextStyle(color: Color(0xFF195A64))),
+            Text(
+              AppData.translate('24 h', '٢٤ ساعة'),
+              style: const TextStyle(color: Color(0xFF195A64)),
+            ),
           ],
         ),
         Slider(
           value: _currentValue,
-          min: 1.0, 
+          min: 1.0,
           max: 24.0,
           divisions: 23,
           activeColor: const Color(0xFF237D8C),
@@ -98,8 +178,7 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
           onChanged: (value) {
             setState(() {
               _currentValue = value;
-              // تحديث القيمة في AppData فوراً لكي يبدأ التايمر منها في الشاشات التالية
-              AppData.durationHours = value.toInt(); 
+              AppData.durationHours = value.toInt();
             });
           },
         ),
@@ -107,8 +186,23 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
     );
   }
 
-  // بطاقة عرض البيانات المختارة فعلياً
   Widget _buildParkingInfoCard() {
+    final vehicleType = _vehicle?.plateType.isNotEmpty == true
+        ? _vehicle!.plateType
+        : AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة');
+
+    final vehiclePlate = _vehicle != null
+        ? _vehicle!.displayPlate
+        : AppData.translate('No plate selected', 'لم يتم اختيار لوحة');
+
+    final placeName = _place?.name.isNotEmpty == true
+        ? _place!.name
+        : AppData.translate('Unknown location', 'موقع غير محدد');
+
+    final spotLabel = _spot != null
+        ? '${AppData.translate('Slot', 'موقف')} ${_spot!.label}'
+        : AppData.translate('No slot selected', 'لم يتم اختيار موقف');
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -122,18 +216,16 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                 // نوع السيارة واللوحة المختارة
                 _buildRowInfo(
-                  AppData.translate('VEHICLE TYPE', 'نوع المركبة'), 
-                  AppData.translate(AppData.selectedVehicle, AppData.selectedVehicle == 'Sedan' ? 'سيدان' : 'مركبة'), 
-                  'HZN | 8421' // هنا تظهر اللوحة (يمكنك جعلها متغيرة أيضاً)
+                  AppData.translate('VEHICLE TYPE', 'نوع المركبة'),
+                  vehicleType,
+                  vehiclePlate,
                 ),
                 const SizedBox(height: 20),
-                // الموقع المختار ورقم الموقف (Slot) من المخ
                 _buildRowInfo(
-                  AppData.translate('PARKING LOT', 'موقع الموقف'), 
-                  AppData.selectedLocation, 
-                  '${AppData.translate('Slot', 'موقف')} ${AppData.selectedSlot}'
+                  AppData.translate('PARKING LOT', 'موقع الموقف'),
+                  placeName,
+                  spotLabel,
                 ),
               ],
             ),
@@ -147,8 +239,21 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(AppData.translate('TOTAL', 'الإجمالي'), style: const TextStyle(color: Color(0xFF237D8C), fontWeight: FontWeight.bold)),
-                Text(AppData.translate('FREE', 'مجاني'), style: const TextStyle(color: Color(0xFF237D8C), fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  AppData.translate('TOTAL', 'الإجمالي'),
+                  style: const TextStyle(
+                    color: Color(0xFF237D8C),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  _place?.priceLabel ?? AppData.translate('FREE', 'مجاني'),
+                  style: const TextStyle(
+                    color: Color(0xFF237D8C),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ),
@@ -161,12 +266,40 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Color(0xFFA3237D8C), fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFFA3237D8C),
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(val1, style: const TextStyle(color: Color(0xFF192242), fontSize: 15, fontWeight: FontWeight.bold)),
-            Text('• $val2', style: const TextStyle(color: Color(0xFF192242), fontSize: 15, fontWeight: FontWeight.bold)),
+            Expanded(
+              child: Text(
+                val1,
+                style: const TextStyle(
+                  color: Color(0xFF192242),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '• $val2',
+                textAlign: TextAlign.end,
+                style: const TextStyle(
+                  color: Color(0xFF192242),
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
       ],
@@ -174,38 +307,77 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
   }
 
   Widget _buildBottomActionArea() {
+    final canContinue = !_isLoading && _error == null && _place != null && _spot != null;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       decoration: const BoxDecoration(
-        color: Colors.white, 
-        boxShadow: [BoxShadow(blurRadius: 10, color: Color(0x12000000), offset: Offset(0, -2))]
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            blurRadius: 10,
+            color: Color(0x12000000),
+            offset: Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          // زر الانتقال للتاريخ
           InkWell(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ParkingDetail2())),
+            onTap: !canContinue
+                ? null
+                : () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ParkingDetail2(),
+                      ),
+                    ),
             child: Container(
               padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(color: Color(0xFFC3E6EC), shape: BoxShape.circle),
-              child: const Icon(Icons.calendar_month_outlined, color: Color(0xFF237D8C)),
+              decoration: BoxDecoration(
+                color: canContinue
+                    ? const Color(0xFFC3E6EC)
+                    : const Color(0xFFE0E0E0),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.calendar_month_outlined,
+                color: canContinue
+                    ? const Color(0xFF237D8C)
+                    : const Color(0xFF9E9E9E),
+              ),
             ),
           ),
           const SizedBox(width: 15),
-          // زر تأكيد الحجز والذهاب للدفع
           Expanded(
             child: SizedBox(
               height: 52,
               child: ElevatedButton(
-                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentMethodScreen())),
+                onPressed: !canContinue
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PaymentMethodScreen(),
+                          ),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF237D8C),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                  disabledBackgroundColor: const Color(0xFFB7D7DC),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                   elevation: 0,
                 ),
                 child: Text(
-                  AppData.translate('Confirm & Pay', 'تأكيد ودفع'), 
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16)
+                  AppData.translate('Confirm & Pay', 'تأكيد ودفع'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -215,22 +387,23 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
     );
   }
 
-  // دالة تنسيق الوقت لتظهر باللغة المختارة وبالجمع الصحيح (ساعة/ساعات)
   String _formatTime(double value) {
-    int hours = value.toInt();
+    final hours = value.toInt();
+
     if (AppData.isArabic) {
       if (hours == 1) return 'ساعة واحدة';
       if (hours == 2) return 'ساعتين';
       if (hours >= 3 && hours <= 10) return '$hours ساعات';
       return '$hours ساعة';
     }
+
     return '$hours ${hours == 1 ? 'hour' : 'hours'}';
   }
 }
 
-// ويدجت الهيدر الموحد
 class _ParkingHeader extends StatelessWidget {
   final String title;
+
   const _ParkingHeader({required this.title});
 
   @override
@@ -254,13 +427,24 @@ class _ParkingHeader extends StatelessWidget {
             top: 22,
             child: IconButton(
               onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
           ),
           Center(
             child: Padding(
               padding: const EdgeInsets.only(top: 18),
-              child: Text(title, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600)),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ),
         ],
