@@ -23,7 +23,6 @@ class UserProfileData {
 class ProfileService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
-  //  جلب بيانات المستخدم
   Future<UserProfileData?> getCurrentUserProfile(String userId) async {
     final data = await _supabase
         .from('profiles')
@@ -35,7 +34,6 @@ class ProfileService {
     return UserProfileData.fromJson(data);
   }
 
-  //  إنشاء أو تحديث البيانات (upsert)
   Future<void> upsertProfile({
     required String userId,
     required String fullName,

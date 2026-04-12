@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:parkliapp/features/onboarding/onboarding_screen.dart';
 
 class IntroSequenceScreen extends StatefulWidget {
@@ -24,89 +23,100 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 5000), // 5 ثواني كاملة
+      duration: const Duration(milliseconds: 6500),
     );
 
-    // 0.0 → 0.2 : صغير
-    // 0.2 → 0.4 : يكبر
-    // 0.4 → 0.6 : يصغر شوي
-    // 0.6 → 1.0 : يثبت
+    // 1) صغير ويثبت شوي
+    // 2) يكبر بوضوح
+    // 3) يصغر شوي ويرجع يهدأ
+    // 4) يثبت قبل الانتقال
     _logoScale = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(
-          begin: 0.8,
-          end: 1.0,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 20, // 0% - 20%
+          begin: 0.55,
+          end: 0.55,
+        ),
+        weight: 20,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: 1.0,
-          end: 1.3,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 20, // 20% - 40%
+          begin: 0.55,
+          end: 1.35,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 32,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: 1.3,
-          end: 0.9,
-        ).chain(CurveTween(curve: Curves.easeIn)),
-        weight: 20, // 40% - 60%
+          begin: 1.35,
+          end: 0.90,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 18,
       ),
       TweenSequenceItem(
-        tween: ConstantTween(0.9),
-        weight: 40, // 60% - 100%
+        tween: ConstantTween(0.90),
+        weight: 30,
       ),
     ]).animate(_controller);
 
+    // 1) مستقيم وثابت
+    // 2) يميل أثناء التكبير بشكل أوضح
+    // 3) يرجع مستقيم
+    // 4) يثبت مستقيم
     _logoRotation = TweenSequence<double>([
       TweenSequenceItem(
         tween: Tween(
           begin: 0.0,
-          end: -0.8,
-        ).chain(CurveTween(curve: Curves.easeOut)),
-        weight: 30, // 0% - 30%
+          end: 0.0,
+        ),
+        weight: 20,
       ),
       TweenSequenceItem(
         tween: Tween(
-          begin: -0.8,
-          end: -0.2,
-        ).chain(CurveTween(curve: Curves.easeInOut)),
-        weight: 30, // 30% - 60%
+          begin: 0.0,
+          end: -0.85,
+        ).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 32,
       ),
       TweenSequenceItem(
-        tween: ConstantTween(-0.2),
-        weight: 40, // 60% - 100%
+        tween: Tween(
+          begin: -0.85,
+          end: 0.0,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 18,
+      ),
+      TweenSequenceItem(
+        tween: ConstantTween(0.0),
+        weight: 30,
       ),
     ]).animate(_controller);
 
-    _nameOpacity = CurvedAnimation(
-      parent: _controller,
-      curve: const Interval(0.8, 1.0, curve: Curves.easeInOut),
-    );
-
-    _logoOffset =
-        Tween<Offset>(
-          begin: Offset.zero, // في البداية في النص
-          end: const Offset(
-            -0.35,
-            0.0,
-          ), // يتحرك لليسار (حسّيًا زي مكانه في Intro3)
-        ).animate(
-          CurvedAnimation(
-            parent: _controller,
-            curve: const Interval(
-              0.6, // يبدأ يتحرك بعد ما يخلص التكبير/التصغير
-              0.8, // يوصل لمكانه النهائي قبل ما تبدأ الألوان
-              curve: Curves.easeInOut,
-            ),
-          ),
-        );
-
-    _blackCardOpacity = Tween<double>(begin: 1.0, end: 0.0).animate(
+    // يبدأ التحرك بعد ما تكون اللقطة الأولى والثانية أوضح
+    _logoOffset = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(-82, 0),
+    ).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.8, 1.0, curve: Curves.easeInOut),
+        curve: const Interval(
+          0.68,
+          0.84,
+          curve: Curves.easeInOutCubic,
+        ),
+      ),
+    );
+
+    _nameOpacity = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.84, 1.0, curve: Curves.easeInOut),
+    );
+
+    _blackCardOpacity = Tween<double>(
+      begin: 1.0,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.84, 1.0, curve: Curves.easeInOut),
       ),
     );
 
@@ -129,7 +139,8 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
     _controller.dispose();
     super.dispose();
   }
-@override
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
@@ -149,14 +160,14 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
                       child: Container(
                         color: Colors.black,
                         child: Center(
-                          child: FractionalTranslation(
-                            translation: _logoOffset.value,
+                          child: Transform.translate(
+                            offset: _logoOffset.value,
                             child: Transform.scale(
                               scale: _logoScale.value,
                               child: Transform.rotate(
                                 angle: _logoRotation.value,
                                 child: Image.asset(
-                                  'assets/images/intro_logo.png', // شعار
+                                  'assets/images/intro_logo.png',
                                   width: 64,
                                   height: 64,
                                   fit: BoxFit.contain,
@@ -167,7 +178,6 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
                         ),
                       ),
                     ),
-
                     Opacity(
                       opacity: _nameOpacity.value,
                       child: Container(
@@ -184,7 +194,7 @@ class _IntroSequenceScreenState extends State<IntroSequenceScreen>
                             crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Image.asset(
-                                'assets/images/intro3_logo.png', // شعار مع الاسم
+                                'assets/images/intro3_logo.png',
                                 width: 64,
                                 height: 64,
                                 fit: BoxFit.contain,

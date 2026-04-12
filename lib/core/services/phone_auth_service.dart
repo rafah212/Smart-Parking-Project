@@ -1,46 +1,34 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PhoneAuthService {
-  final _functions = Supabase.instance.client.functions;
+  final GoTrueClient _auth = Supabase.instance.client.auth;
 
   Future<void> sendOtp({
     required String phoneNumber,
+    bool shouldCreateUser = true,
   }) async {
-    final response = await _functions.invoke(
-      'twilio-verify',
-      body: {
-        'action': 'send',
-        'phoneNumber': phoneNumber,
-      },
+    await _auth.signInWithOtp(
+      phone: phoneNumber,
+      shouldCreateUser: shouldCreateUser,
     );
-
-    final data = response.data;
-
-    if (data == null || data['success'] != true) {
-      throw Exception(data?['error'] ?? 'Failed to send OTP');
-    }
   }
 
-  Future<bool> verifyOtp({
+  Future<AuthResponse> verifyOtp({
     required String phoneNumber,
     required String code,
   }) async {
-    final response = await _functions.invoke(
-      'twilio-verify',
-      body: {
-        'action': 'check',
-        'phoneNumber': phoneNumber,
-        'code': code,
-      },
+    return await _auth.verifyOTP(
+      type: OtpType.sms,
+      phone: phoneNumber,
+      token: code,
     );
+  }
 
-    final data = response.data;
+  User? get currentUser => _auth.currentUser;
 
-    if (data == null || data['success'] != true) {
-      throw Exception(data?['error'] ?? 'Failed to verify OTP');
-    }
+  Session? get currentSession => _auth.currentSession;
 
-    final status = data['data']?['status'];
-    return status == 'approved';
+  Future<void> signOut() async {
+    await _auth.signOut();
   }
 }

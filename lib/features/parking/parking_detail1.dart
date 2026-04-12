@@ -54,8 +54,9 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
 
       final place = await _placeService.getPlaceById(placeId);
       final spot = await _parkingService.getSpotById(spotId);
-      final vehicle =
-          vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
+      final vehicle = vehicleId != null
+          ? await _vehicleService.getVehicleById(vehicleId)
+          : null;
 
       if (!mounted) return;
 
@@ -126,7 +127,8 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
                                 ),
                                 const SizedBox(height: 30),
                                 Text(
-                                  AppData.translate('Time Duration', 'مدة الوقوف'),
+                                  AppData.translate(
+                                      'Time Duration', 'مدة الوقوف'),
                                   style: const TextStyle(
                                     color: Color(0xFF237D8C),
                                     fontSize: 16,
@@ -307,7 +309,8 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
   }
 
   Widget _buildBottomActionArea() {
-    final canContinue = !_isLoading && _error == null && _place != null && _spot != null;
+    final canContinue =
+        !_isLoading && _error == null && _place != null && _spot != null;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),

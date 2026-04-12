@@ -40,8 +40,13 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
     if (firstName.isEmpty || lastName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(AppData.translate(
-                'Please complete all fields', 'يرجى إكمال جميع الحقول'))),
+          content: Text(
+            AppData.translate(
+              'Please complete all fields',
+              'يرجى إكمال جميع الحقول',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -54,12 +59,7 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
       final user = Supabase.instance.client.auth.currentUser;
 
       if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(AppData.translate('No authenticated user found',
-                  'لم يتم العثور على مستخدم مسجل'))),
-        );
-        return;
+        throw Exception('No authenticated user found');
       }
 
       final profileService = ProfileService();
@@ -80,10 +80,17 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(AppData.translate(
-                'Failed to save data: $e', 'فشل في حفظ البيانات: $e'))),
+          content: Text(
+            AppData.translate(
+              'Failed to save data: $e',
+              'فشل في حفظ البيانات: $e',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -111,8 +118,7 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppData.translate(
-                            'Complete your info', 'أكمل معلوماتك'),
+                        AppData.translate('Complete your info', 'أكمل معلوماتك'),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 28,
@@ -121,28 +127,30 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _FieldLabel(
-                          AppData.translate('First Name', 'الاسم الأول')),
+                      _FieldLabel(AppData.translate('First Name', 'الاسم الأول')),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _firstNameController,
                         hintText: AppData.translate(
-                            'Enter first name', 'أدخل الاسم الأول'),
+                          'Enter first name',
+                          'أدخل الاسم الأول',
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(
-                          AppData.translate('Last Name', 'اسم العائلة')),
+                      _FieldLabel(AppData.translate('Last Name', 'اسم العائلة')),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _lastNameController,
                         hintText: AppData.translate(
-                            'Enter last name', 'أدخل اسم العائلة'),
+                          'Enter last name',
+                          'أدخل اسم العائلة',
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(
-                          AppData.translate('Mobile Number', 'رقم الجوال')),
+                      _FieldLabel(AppData.translate('Mobile Number', 'رقم الجوال')),
                       const SizedBox(height: 8),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const _CountryCodeField(),
                           const SizedBox(width: 10),
@@ -167,8 +175,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                         child: Text(
                           AppData.translate(
-                              'By selecting done, I agree to ParkLi’s terms of service,\npayment terms of service & privacy policy',
-                              'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية'),
+                            'By selecting done, I agree to ParkLi’s terms of service,\npayment terms of service & privacy policy',
+                            'باختيارك "تم"، فإنك توافق على شروط خدمة باركلي،\nوشروط دفع الخدمة وسياسة الخصوصية',
+                          ),
                           style: const TextStyle(
                             color: Color(0xFF237D8C),
                             fontSize: 12,
@@ -187,6 +196,8 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                             backgroundColor: const Color(0xFFA3D3DB),
                             foregroundColor: Colors.white,
                             elevation: 0,
+                            disabledBackgroundColor:
+                                const Color(0xFFA3D3DB).withOpacity(0.6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
                             ),
@@ -241,11 +252,9 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              AppData.isArabic
-                  ? Icons.arrow_back_ios_new
-                  : Icons.arrow_back_ios_new,
-              color: const Color(0xFF237D8C),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF237D8C),
               size: 20,
             ),
             padding: EdgeInsets.zero,
@@ -332,20 +341,22 @@ class _CountryCodeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 91,
+      width: 100,
       height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFE5E5E5)),
         borderRadius: BorderRadius.circular(8),
         color: const Color(0xFFF8F8F8),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: const Row(
         children: [
-          const CircleAvatar(radius: 11, backgroundColor: Color(0xFFE5E5E5)),
-          const SizedBox(width: 8),
-          const Text(
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: Color(0xFFE5E5E5),
+          ),
+          SizedBox(width: 6),
+          Text(
             '+966',
             style: TextStyle(
               color: Color(0xFF19515B),
@@ -353,9 +364,12 @@ class _CountryCodeField extends StatelessWidget {
               fontWeight: FontWeight.w400,
             ),
           ),
-          const Spacer(),
-          Icon(Icons.keyboard_arrow_down,
-              color: const Color(0xFF19515B), size: 16),
+          Spacer(),
+          Icon(
+            Icons.keyboard_arrow_down,
+            color: Color(0xFF19515B),
+            size: 16,
+          ),
         ],
       ),
     );

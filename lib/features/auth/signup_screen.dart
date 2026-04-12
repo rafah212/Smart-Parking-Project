@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
 import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 import 'package:parkliapp/core/services/phone_auth_service.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
-
+import 'package:parkliapp/app_data.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -13,7 +13,6 @@ class SignUpScreen extends StatefulWidget {
 
 class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController _phoneController = TextEditingController();
-
   bool _isLoading = false;
 
   @override
@@ -27,7 +26,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (rawPhone.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Please enter your mobile number', 'يرجى إدخال رقم الجوال'))),
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Please enter your mobile number',
+              'يرجى إدخال رقم الجوال',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -40,7 +46,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     if (digitsOnly.length != 9) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Enter a valid Saudi mobile number', 'أدخل رقم جوال سعودي صحيح'))),
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Enter a valid Saudi mobile number',
+              'أدخل رقم جوال سعودي صحيح',
+            ),
+          ),
+        ),
       );
       return;
     }
@@ -53,7 +66,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
     try {
       final phoneAuth = PhoneAuthService();
-      await phoneAuth.sendOtp(phoneNumber: phoneNumber);
+
+      await phoneAuth.sendOtp(
+        phoneNumber: phoneNumber,
+        shouldCreateUser: true,
+      );
 
       if (!mounted) return;
 
@@ -62,15 +79,32 @@ class _SignUpScreenState extends State<SignUpScreen> {
         MaterialPageRoute(
           builder: (_) => VerifyPhoneScreen(
             phoneNumber: phoneNumber,
-            verificationId: '',
-            isAutoVerified: false,
+          ),
+        ),
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              e.message,
+              'فشل في إرسال رمز التحقق: ${e.message}',
+            ),
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppData.translate('Failed to send OTP: $e', 'فشل في إرسال رمز التحقق: $e'))),
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Failed to send OTP',
+              'فشل في إرسال رمز التحقق',
+            ),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -118,6 +152,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       ),
                       const SizedBox(height: 8),
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const _CountryCodeField(),
                           const SizedBox(width: 10),
@@ -125,7 +160,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             child: TextField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
-                              textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                              textAlign: AppData.isArabic
+                                  ? TextAlign.right
+                                  : TextAlign.left,
                               decoration: InputDecoration(
                                 hintText: '5XXXXXXXX',
                                 hintStyle: const TextStyle(
@@ -210,7 +247,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             size: 20,
                           ),
                           label: Text(
-                            AppData.translate('Continue with Email', 'الاستمرار عبر البريد الإلكتروني'),
+                            AppData.translate(
+                              'Continue with Email',
+                              'الاستمرار عبر البريد الإلكتروني',
+                            ),
                             style: const TextStyle(
                               color: Color(0xFF237D8C),
                               fontSize: 13,
@@ -258,36 +298,13 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
-              color: const Color(0xFF237D8C),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF237D8C),
               size: 20,
             ),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
-          ),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: () {},
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFF237D8C),
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            label: Text(
-              AppData.translate('Skip', 'تخطي'),
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                letterSpacing: -0.42,
-              ),
-            ),
-            icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios : Icons.arrow_forward_ios, 
-              size: 14
-            ),
-            iconAlignment: AppData.isArabic ? IconAlignment.start : IconAlignment.end,
           ),
         ],
       ),
@@ -301,16 +318,16 @@ class _CountryCodeField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: 100,
       height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         border: Border.all(color: const Color(0xFFE5E5E5)),
         borderRadius: BorderRadius.circular(8),
       ),
       child: const Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          CircleAvatar(radius: 11, backgroundColor: Color(0xFFE5E5E5)),
+          CircleAvatar(radius: 10, backgroundColor: Color(0xFFE5E5E5)),
           SizedBox(width: 6),
           Text(
             '+966',
@@ -320,7 +337,7 @@ class _CountryCodeField extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          SizedBox(width: 4),
+          Spacer(),
           Icon(Icons.keyboard_arrow_down, color: Color(0xFF19515B), size: 18),
         ],
       ),
@@ -349,7 +366,7 @@ class _OtpInfoBox extends StatelessWidget {
             child: Text(
               AppData.translate(
                 'You will receive an OTP code from ParkLi to confirm your number',
-                'ستصلك رسالة نصية تحتوي على رمز التحقق لتأكيد رقمك'
+                'ستصلك رسالة نصية تحتوي على رمز التحقق لتأكيد رقمك',
               ),
               style: const TextStyle(
                 color: Color(0xFF237D8C),

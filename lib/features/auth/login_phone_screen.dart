@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'login_email_screen.dart';
 import 'verify_phone_screen.dart';
 import 'package:parkliapp/core/services/phone_auth_service.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginPhoneScreen extends StatefulWidget {
   const LoginPhoneScreen({super.key});
@@ -26,7 +27,7 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
 
   String _buildFullPhoneNumber() {
     String phone = _phoneController.text.trim();
-    phone = phone.replaceAll(' ', '').replaceAll('-', '');
+    phone = phone.replaceAll(RegExp(r'[^0-9]'), '');
 
     if (selectedCode == '+966' && phone.startsWith('0')) {
       phone = phone.substring(1);
@@ -38,28 +39,54 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final phoneNumber = _buildFullPhoneNumber();
+
     setState(() {
       isLoading = true;
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      final phoneAuth = PhoneAuthService();
 
-    if (!mounted) return;
+      await phoneAuth.sendOtp(
+        phoneNumber: phoneNumber,
+        shouldCreateUser: false,
+      );
 
-    setState(() {
-      isLoading = false;
-    });
+      if (!mounted) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerifyPhoneScreen(
-          phoneNumber: _buildFullPhoneNumber(),
-          verificationId: 'temp',
-          isAutoVerified: false,
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerifyPhoneScreen(
+            phoneNumber: phoneNumber,
+          ),
         ),
-      ),
-    );
+      );
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Failed to send OTP',
+              'فشل في إرسال رمز التحقق',
+            ),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   void _goToEmailLogin() {
@@ -86,7 +113,9 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
             icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+              AppData.isArabic
+                  ? Icons.arrow_back_ios_new
+                  : Icons.arrow_back_ios_new,
               color: primaryColor,
               size: 20,
             ),
@@ -102,7 +131,10 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                 children: [
                   const SizedBox(height: 8),
                   Text(
-                    AppData.translate('Login to your account', 'تسجيل الدخول إلى حسابك'),
+                    AppData.translate(
+                      'Login to your account',
+                      'تسجيل الدخول إلى حسابك',
+                    ),
                     style: const TextStyle(
                       color: primaryColor,
                       fontSize: 28,
@@ -166,7 +198,9 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                         child: TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
-                          textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                          textAlign: AppData.isArabic
+                              ? TextAlign.right
+                              : TextAlign.left,
                           decoration: InputDecoration(
                             hintText: '0567891234',
                             filled: true,
@@ -198,15 +232,43 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.trim().isEmpty) {
-                              return AppData.translate('Please enter your mobile number', 'يرجى إدخال رقم الجوال');
+                              return AppData.translate(
+                                'Please enter your mobile number',
+                                'يرجى إدخال رقم الجوال',
+                              );
                             }
-                            final phone = value.trim();
+
+                            var phone = value.trim().replaceAll(
+                                  RegExp(r'[^0-9]'),
+                                  '',
+                                );
+
+                            if (selectedCode == '+966' &&
+                                phone.startsWith('0')) {
+                              phone = phone.substring(1);
+                            }
+
                             if (!RegExp(r'^[0-9]+$').hasMatch(phone)) {
-                              return AppData.translate('Phone number must contain numbers only', 'يجب أن يحتوي الرقم على أرقام فقط');
+                              return AppData.translate(
+                                'Phone number must contain numbers only',
+                                'يجب أن يحتوي الرقم على أرقام فقط',
+                              );
                             }
-                            if (phone.length < 9 || phone.length > 10) {
-                              return AppData.translate('Enter a valid phone number', 'أدخل رقم جوال صحيح');
+
+                            if (selectedCode == '+966' && phone.length != 9) {
+                              return AppData.translate(
+                                'Enter a valid Saudi mobile number',
+                                'أدخل رقم جوال سعودي صحيح',
+                              );
                             }
+
+                            if (phone.length < 8 || phone.length > 12) {
+                              return AppData.translate(
+                                'Enter a valid phone number',
+                                'أدخل رقم جوال صحيح',
+                              );
+                            }
+
                             return null;
                           },
                         ),
@@ -249,7 +311,9 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                   const SizedBox(height: 28),
                   Row(
                     children: [
-                      const Expanded(child: Divider(color: borderColor, thickness: 1)),
+                      const Expanded(
+                        child: Divider(color: borderColor, thickness: 1),
+                      ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         child: Text(
@@ -261,7 +325,9 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                           ),
                         ),
                       ),
-                      const Expanded(child: Divider(color: borderColor, thickness: 1)),
+                      const Expanded(
+                        child: Divider(color: borderColor, thickness: 1),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 28),
@@ -270,9 +336,15 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                     height: 52,
                     child: OutlinedButton.icon(
                       onPressed: _goToEmailLogin,
-                      icon: const Icon(Icons.email_outlined, color: primaryColor),
+                      icon: const Icon(
+                        Icons.email_outlined,
+                        color: primaryColor,
+                      ),
                       label: Text(
-                        AppData.translate('Login with Email', 'الدخول عبر البريد الإلكتروني'),
+                        AppData.translate(
+                          'Login with Email',
+                          'الدخول عبر البريد الإلكتروني',
+                        ),
                         style: const TextStyle(
                           color: primaryColor,
                           fontSize: 14,

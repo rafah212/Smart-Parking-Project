@@ -6,7 +6,6 @@ import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/features/home/home_screen.dart'; // استيراد المخ
 import 'package:parkliapp/features/home/home_screen.dart'; // استيراد صفحة الهوم للعودة لها عند الضغط على زر الإغلاق
 
-
 class ParkingTimerPage extends StatefulWidget {
   const ParkingTimerPage({super.key});
 
@@ -38,9 +37,9 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
         });
       } else {
         _timer?.cancel();
-          setState(() {
-            AppData.durationHours = 0; // تحديث الحالة في AppData عند انتهاء الوقت
-          });
+        setState(() {
+          AppData.durationHours = 0; // تحديث الحالة في AppData عند انتهاء الوقت
+        });
       }
     });
   }
@@ -78,16 +77,19 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
               children: [
                 // --- زر الإغلاق (X) المعدل ---
                 Align(
-                  alignment: AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
+                  alignment:
+                      AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                      icon: const Icon(Icons.close,
+                          color: Colors.white, size: 30),
                       onPressed: () {
                         // العودة للصفحة الرئيسية مع بقاء التايمر يعمل في الخلفية
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const HomeScreen()),
                           (route) => false,
                         );
                       },
@@ -113,7 +115,6 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                         ),
                       ),
                     ),
-                    
                     SizedBox(
                       width: 300,
                       height: 300,
@@ -123,7 +124,6 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                         ),
                       ),
                     ),
-
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -140,11 +140,14 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _LabelText(label: AppData.translate('Hours', 'ساعات')),
+                            _LabelText(
+                                label: AppData.translate('Hours', 'ساعات')),
                             const SizedBox(width: 20),
-                            _LabelText(label: AppData.translate('Minutes', 'دقائق')),
+                            _LabelText(
+                                label: AppData.translate('Minutes', 'دقائق')),
                             const SizedBox(width: 20),
-                            _LabelText(label: AppData.translate('Seconds', 'ثوانٍ')),
+                            _LabelText(
+                                label: AppData.translate('Seconds', 'ثوانٍ')),
                           ],
                         ),
                       ],
@@ -175,7 +178,9 @@ class TimerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
-      Rect.fromCircle(center: Offset(size.width / 2, size.height / 2), radius: size.width / 2),
+      Rect.fromCircle(
+          center: Offset(size.width / 2, size.height / 2),
+          radius: size.width / 2),
       -math.pi / 2,
       2 * math.pi * progress,
       false,
@@ -184,7 +189,8 @@ class TimerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(TimerPainter oldDelegate) => oldDelegate.progress != progress;
+  bool shouldRepaint(TimerPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
 
 class _LabelText extends StatelessWidget {
@@ -195,7 +201,8 @@ class _LabelText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(color: Color(0xFFE2E9FD), fontSize: 13, fontWeight: FontWeight.w500),
+      style: const TextStyle(
+          color: Color(0xFFE2E9FD), fontSize: 13, fontWeight: FontWeight.w500),
     );
   }
 }

@@ -4,6 +4,20 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class PlaceService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  String _normalizeAssetPath(dynamic rawPath) {
+    final value = (rawPath ?? '').toString().trim();
+
+    if (value.isEmpty) {
+      return 'assets/images/explore_placeholder.png';
+    }
+
+    if (value.startsWith('assets/')) {
+      return value;
+    }
+
+    return 'assets/images/$value';
+  }
+
   Future<List<Place>> getAllPlaces() async {
     final placesData = await _supabase
         .from('places')
@@ -27,10 +41,14 @@ class PlaceService {
       }
     }
 
-    return (placesData as List).map((json) {
+    return (placesData as List).map((row) {
+      final json = Map<String, dynamic>.from(row as Map);
       final id = json['id'] as String;
+
+      json['image_path'] = _normalizeAssetPath(json['image_path']);
+
       return Place.fromJson(
-        json as Map<String, dynamic>,
+        json,
         availableSlots: availableByPlace[id] ?? 0,
         totalSlots: totalByPlace[id] ?? 0,
       );
@@ -84,8 +102,11 @@ class PlaceService {
       }
     }
 
+    final json = Map<String, dynamic>.from(data);
+    json['image_path'] = _normalizeAssetPath(json['image_path']);
+
     return Place.fromJson(
-      data,
+      json,
       availableSlots: available,
       totalSlots: total,
     );
