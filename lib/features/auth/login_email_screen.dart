@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
-import '../home/utils/navigation_helpers.dart';
+import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
-import 'package:parkliapp/features/forgotPass/forgot_pass1.dart';
+import 'package:parkliapp/core/services/profile_service.dart';
+import 'package:parkliapp/features/auth/complete_info_email_screen.dart';
 import 'package:parkliapp/features/forgotPass/change_pass.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/features/home/home_screen.dart';
+import '../home/utils/navigation_helpers.dart';
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -35,38 +37,66 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
     try {
       final auth = AuthService();
 
+      final email = _emailController.text.trim().toLowerCase();
+      final password = _passwordController.text.trim();
+
       final res = await auth.loginWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+        email: email,
+        password: password,
       );
 
       if (res.user == null) {
-        throw Exception(AppData.translate('Login failed', 'فشل تسجيل الدخول'));
+        throw Exception(
+          AppData.translate('Login failed', 'فشل تسجيل الدخول'),
+        );
       }
 
+      final profileService = ProfileService();
+      final hasProfile = await profileService.hasProfileByEmail(email);
+
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/home');
+
+      if (hasProfile) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CompleteInfoEmailScreen(email: email),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
-      String message = e.toString();
+      String message = e.toString().replaceFirst('Exception: ', '');
 
-      // تعريب رسائل الخطأ التقنية للمستخدم
       if (message.contains('Email not confirmed')) {
-        message = AppData.translate('Please verify your email first', 'يرجى تفعيل بريدك الإلكتروني أولاً');
+        message = AppData.translate(
+          'Please verify your email first',
+          'يرجى تفعيل بريدك الإلكتروني أولاً',
+        );
       } else if (message.contains('Invalid login credentials')) {
-        message = AppData.translate('Incorrect email or password', 'البريد الإلكتروني أو كلمة المرور غير صحيحة');
+        message = AppData.translate(
+          'Incorrect email or password',
+          'البريد الإلكتروني أو كلمة المرور غير صحيحة',
+        );
       } else {
-        message = AppData.translate('Login failed: $message', 'فشل الدخول: $message');
+        message = AppData.translate(
+          'Login failed: $message',
+          'فشل الدخول: $message',
+        );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message)),
       );
     } finally {
-      if (mounted) {
-        setState(() => isLoading = false);
-      }
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -86,8 +116,8 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
           surfaceTintColor: Colors.white,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
               color: primaryColor,
               size: 20,
             ),
@@ -102,7 +132,10 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppData.translate('Login to your account', 'تسجيل الدخول إلى حسابك'),
+                    AppData.translate(
+                      'Login to your account',
+                      'تسجيل الدخول إلى حسابك',
+                    ),
                     style: const TextStyle(
                       color: primaryColor,
                       fontSize: 28,
@@ -119,10 +152,11 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                   TextFormField(
+                  TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign:
+                        AppData.isArabic ? TextAlign.right : TextAlign.left,
                     decoration: InputDecoration(
                       hintText: 'example@email.com',
                       filled: true,
@@ -146,10 +180,17 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return AppData.translate('Please enter your email', 'يرجى إدخال البريد الإلكتروني');
+                        return AppData.translate(
+                          'Please enter your email',
+                          'يرجى إدخال البريد الإلكتروني',
+                        );
                       }
-                      if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value.trim())) {
-                        return AppData.translate('Enter a valid email', 'أدخل بريداً إلكترونياً صحيحاً');
+                      if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value.trim())) {
+                        return AppData.translate(
+                          'Enter a valid email',
+                          'أدخل بريداً إلكترونياً صحيحاً',
+                        );
                       }
                       return null;
                     },
@@ -167,9 +208,13 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: obscurePassword,
-                    textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                    textAlign:
+                        AppData.isArabic ? TextAlign.right : TextAlign.left,
                     decoration: InputDecoration(
-                      hintText: AppData.translate('Enter your password', 'أدخل كلمة المرور'),
+                      hintText: AppData.translate(
+                        'Enter your password',
+                        'أدخل كلمة المرور',
+                      ),
                       filled: true,
                       fillColor: fieldBg,
                       contentPadding: const EdgeInsets.symmetric(
@@ -204,10 +249,16 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return AppData.translate('Please enter your password', 'يرجى إدخال كلمة المرور');
+                        return AppData.translate(
+                          'Please enter your password',
+                          'يرجى إدخال كلمة المرور',
+                        );
                       }
                       if (value.length < 6) {
-                        return AppData.translate('Password must be at least 6 characters', 'كلمة المرور يجب أن تكون 6 خانات على الأقل');
+                        return AppData.translate(
+                          'Password must be at least 6 characters',
+                          'كلمة المرور يجب أن تكون 6 خانات على الأقل',
+                        );
                       }
                       return null;
                     },
@@ -217,13 +268,18 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Align(
-                        alignment: AppData.isArabic ? Alignment.centerLeft : Alignment.centerRight,
+                        alignment: AppData.isArabic
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
                             openForgotPassword(context);
                           },
                           child: Text(
-                            AppData.translate('Forgot your password?', 'نسيت كلمة المرور؟'),
+                            AppData.translate(
+                              'Forgot your password?',
+                              'نسيت كلمة المرور؟',
+                            ),
                             style: const TextStyle(
                               color: primaryColor,
                               fontWeight: FontWeight.w600,
@@ -232,18 +288,24 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                         ),
                       ),
                       Align(
-                        alignment: AppData.isArabic ? Alignment.centerLeft : Alignment.centerRight,
+                        alignment: AppData.isArabic
+                            ? Alignment.centerLeft
+                            : Alignment.centerRight,
                         child: TextButton(
                           onPressed: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => const ChangePasswordScreen(),
+                                builder: (context) =>
+                                    const ChangePasswordScreen(),
                               ),
                             );
                           },
                           child: Text(
-                            AppData.translate('Change Password?', 'تغيير كلمة المرور؟'),
+                            AppData.translate(
+                              'Change Password?',
+                              'تغيير كلمة المرور؟',
+                            ),
                             style: const TextStyle(
                               color: primaryColor,
                               fontWeight: FontWeight.w600,
@@ -263,6 +325,8 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                         backgroundColor: primaryColor.withOpacity(0.7),
                         foregroundColor: Colors.white,
                         elevation: 0,
+                        disabledBackgroundColor:
+                            primaryColor.withOpacity(0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),

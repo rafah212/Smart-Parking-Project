@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:parkliapp/core/services/local_session_service.dart';
 import 'complain_screen.dart';
 import 'help_support_screen.dart';
 import 'language_screen.dart';
@@ -32,32 +32,63 @@ class _UserProfileState extends State<UserProfile> {
   }
 
   Future<void> _loadProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-
-    if (user == null) {
-      setState(() {
-        _error = AppData.translate(
-          'You need to log in first',
-          'يجب تسجيل الدخول أولاً',
-        );
-        _isLoading = false;
-      });
-      return;
-    }
-
     try {
-      final profile = await _profileService.getCurrentUserProfile(user.id);
+      final user = Supabase.instance.client.auth.currentUser;
+
+      if (user != null) {
+        final profile = await _profileService.getCurrentUserProfile(user.id);
+
+        if (!mounted) return;
+        setState(() {
+          _profile = profile;
+          _isLoading = false;
+          _error = null;
+        });
+        return;
+      }
+
+      final localSession = LocalSessionService();
+      final phoneNumber = await localSession.getPhoneNumber();
+
+      if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+        if (!mounted) return;
+        setState(() {
+          _error = AppData.translate(
+            'You need to log in first',
+            'يجب تسجيل الدخول أولاً',
+          );
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final profileMap = await _profileService.getProfileByPhone(phoneNumber);
 
       if (!mounted) return;
+
+      if (profileMap == null) {
+        setState(() {
+          _error = AppData.translate(
+            'Profile data not found',
+            'لم يتم العثور على بيانات الملف الشخصي',
+          );
+          _isLoading = false;
+        });
+        return;
+      }
+
       setState(() {
-        _profile = profile;
+        _profile = UserProfileData.fromMap(profileMap);
         _isLoading = false;
         _error = null;
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.toString();
+        _error = AppData.translate(
+          'Failed to load profile',
+          'فشل تحميل الملف الشخصي',
+        );
         _isLoading = false;
       });
     }
@@ -82,9 +113,26 @@ class _UserProfileState extends State<UserProfile> {
 
   Future<void> _logout() async {
     await _profileService.signOut();
+    await LocalSessionService().clearSession();
 
     if (!mounted) return;
-    Navigator.of(context).pushNamedAndRemoveUntil('/loginEmail', (route) => false);
+
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/loginEmail',
+      (route) => false,
+    );
+  }
+
+  Future<void> _refreshProfile() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final profile = await _profileService.getCurrentUserProfile(user.id);
+
+    if (!mounted) return;
+    setState(() {
+      _profile = profile;
+    });
   }
 
   void _showDeleteAccountDialog(BuildContext context) {
@@ -92,7 +140,8 @@ class _UserProfileState extends State<UserProfile> {
       context: context,
       builder: (BuildContext context) {
         return Directionality(
-          textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+          textDirection:
+              AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
@@ -146,7 +195,8 @@ class _UserProfileState extends State<UserProfile> {
       context: context,
       builder: (BuildContext dialogContext) {
         return Directionality(
-          textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+          textDirection:
+              AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
@@ -217,103 +267,116 @@ class _UserProfileState extends State<UserProfile> {
               _buildProfileInfo(),
               const SizedBox(height: 30),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  children: [
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.edit_outlined,
-                      title: AppData.translate('Edit Profile', 'تعديل الملف الشخصي'),
-                      onTap: () async {
-                        final String? updatedName = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const EditProfileScreen(),
-                          ),
-                        );
+                child: RefreshIndicator(
+                  onRefresh: _refreshProfile,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.edit_outlined,
+                        title: AppData.translate(
+                          'Edit Profile',
+                          'تعديل الملف الشخصي',
+                        ),
+                        onTap: () async {
+                          final String? updatedName = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const EditProfileScreen(),
+                            ),
+                          );
 
-                        if (updatedName != null && updatedName.trim().isNotEmpty) {
-                          setState(() {
-                            _localUpdatedName = updatedName.trim();
-                          });
-                        }
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.directions_car_outlined,
-                      title: AppData.translate('My Vehicles', 'مركباتي'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MyVehiclesScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.chat_bubble_outline,
-                      title: AppData.translate('Complain', 'تقديم بلاغ'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ComplainScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.translate,
-                      title: AppData.translate('Language', 'اللغة'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LanguageScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.report_problem_outlined,
-                      title: AppData.translate('My Violations', 'مخالفاتي'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MyViolationsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.help_outline,
-                      title: AppData.translate('Help & Support', 'الدعم والمساعدة'),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const HelpSupportScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildMenuItem(
-                      context,
-                      icon: Icons.person_remove_outlined,
-                      title: AppData.translate('Delete Account', 'حذف الحساب'),
-                      onTap: () => _showDeleteAccountDialog(context),
-                    ),
-                    const SizedBox(height: 40),
-                    _buildLogoutButton(context),
-                    const SizedBox(height: 20),
-                  ],
+                          if (updatedName != null &&
+                              updatedName.trim().isNotEmpty) {
+                            setState(() {
+                              _localUpdatedName = updatedName.trim();
+                            });
+                          }
+
+                          await _refreshProfile();
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.directions_car_outlined,
+                        title: AppData.translate('My Vehicles', 'مركباتي'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyVehiclesScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.chat_bubble_outline,
+                        title: AppData.translate('Complain', 'تقديم بلاغ'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ComplainScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.translate,
+                        title: AppData.translate('Language', 'اللغة'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LanguageScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.report_problem_outlined,
+                        title: AppData.translate('My Violations', 'مخالفاتي'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const MyViolationsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.help_outline,
+                        title: AppData.translate(
+                          'Help & Support',
+                          'الدعم والمساعدة',
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const HelpSupportScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildMenuItem(
+                        context,
+                        icon: Icons.person_remove_outlined,
+                        title:
+                            AppData.translate('Delete Account', 'حذف الحساب'),
+                        onTap: () => _showDeleteAccountDialog(context),
+                      ),
+                      const SizedBox(height: 40),
+                      _buildLogoutButton(context),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -358,7 +421,10 @@ class _UserProfileState extends State<UserProfile> {
           decoration: BoxDecoration(
             color: const Color(0x2666B0BD),
             shape: BoxShape.circle,
-            border: Border.all(color: const Color(0xFF237D8C), width: 1),
+            border: Border.all(
+              color: const Color(0xFF237D8C),
+              width: 1,
+            ),
           ),
           child: Center(
             child: Text(
@@ -410,11 +476,18 @@ class _UserProfileState extends State<UserProfile> {
             color: Color(0x2666B0BD),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFF1A485F), size: 20),
+          child: Icon(
+            icon,
+            color: const Color(0xFF1A485F),
+            size: 20,
+          ),
         ),
         title: Text(
           title,
-          style: const TextStyle(fontSize: 16, color: Color(0xFF1A485F)),
+          style: const TextStyle(
+            fontSize: 16,
+            color: Color(0xFF1A485F),
+          ),
         ),
         trailing: Icon(
           AppData.isArabic ? Icons.arrow_back_ios : Icons.arrow_forward_ios,

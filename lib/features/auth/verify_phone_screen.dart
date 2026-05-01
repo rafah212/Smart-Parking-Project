@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:parkliapp/features/auth/complete_info_screen.dart';
-import 'package:parkliapp/core/services/phone_auth_service.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/phone_auth_service.dart';
+import 'package:parkliapp/core/services/profile_service.dart';
+import 'package:parkliapp/features/auth/complete_info_screen.dart';
+import 'package:parkliapp/features/home/home_screen.dart';
+import 'package:parkliapp/core/services/local_session_service.dart';
 
 class VerifyPhoneScreen extends StatefulWidget {
   const VerifyPhoneScreen({
@@ -17,6 +19,8 @@ class VerifyPhoneScreen extends StatefulWidget {
 }
 
 class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
+  static const int _otpLength = 4;
+
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
 
@@ -26,8 +30,8 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
   @override
   void initState() {
     super.initState();
-    _controllers = List.generate(6, (_) => TextEditingController());
-    _focusNodes = List.generate(6, (_) => FocusNode());
+    _controllers = List.generate(_otpLength, (_) => TextEditingController());
+    _focusNodes = List.generate(_otpLength, (_) => FocusNode());
   }
 
   @override
@@ -63,13 +67,13 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
   Future<void> _verifyCode() async {
     final code = _otpCode;
 
-    if (code.length < 6) {
+    if (code.length < _otpLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppData.translate(
-              'Please enter the 6-digit code',
-              'يرجى إدخال الكود المكون من 6 أرقام',
+              'Please enter the 4-digit code',
+              'يرجى إدخال الكود المكون من 4 أرقام',
             ),
           ),
         ),
@@ -84,20 +88,20 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
     try {
       final phoneAuth = PhoneAuthService();
 
-      final response = await phoneAuth.verifyOtp(
+      final success = await phoneAuth.verifyOtp(
         phoneNumber: widget.phoneNumber,
-        code: code,
+        otp: code,
       );
 
       if (!mounted) return;
 
-      if (response.user == null || response.session == null) {
+      if (!success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               AppData.translate(
-                'Verification succeeded, but no session was created',
-                'تم التحقق لكن لم يتم إنشاء جلسة دخول',
+                'Verification failed',
+                'فشل التحقق',
               ),
             ),
           ),
@@ -105,28 +109,39 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
         return;
       }
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CompleteInfoScreen(
-            phoneNumber: widget.phoneNumber,
-          ),
-        ),
-      );
-    } on AuthException catch (e) {
+      final profileService = ProfileService();
+      final localSession = LocalSessionService();
+
+      final hasProfile =
+          await profileService.hasProfileByPhone(widget.phoneNumber);
+
+      await localSession.savePhoneSession(widget.phoneNumber);
+
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+
+      if (hasProfile) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CompleteInfoScreen(
+              phoneNumber: widget.phoneNumber,
+            ),
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppData.translate(
-              'Verification failed',
-              'فشل التحقق',
-            ),
+            e.toString().replaceFirst('Exception: ', ''),
           ),
         ),
       );
@@ -146,12 +161,21 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
 
     try {
       final phoneAuth = PhoneAuthService();
+
       await phoneAuth.sendOtp(
         phoneNumber: widget.phoneNumber,
-        shouldCreateUser: true,
       );
 
       if (!mounted) return;
+
+      for (final controller in _controllers) {
+        controller.clear();
+      }
+
+      if (_focusNodes.isNotEmpty) {
+        _focusNodes.first.requestFocus();
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -162,10 +186,15 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
           ),
         ),
       );
-    } on AuthException catch (e) {
+    } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
       );
     } finally {
       if (mounted) {
@@ -176,8 +205,6 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
     }
   }
 
-  void _skip() {}
-
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -187,7 +214,7 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              _TopBar(onSkip: _skip),
+              const _TopBar(),
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
@@ -219,15 +246,15 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                       const SizedBox(height: 24),
                       Row(
                         children: List.generate(
-                          6,
+                          _otpLength,
                           (index) => Expanded(
                             child: Padding(
                               padding: EdgeInsets.only(
                                 right: AppData.isArabic
                                     ? 0
-                                    : (index == 5 ? 0 : 10),
+                                    : (index == _otpLength - 1 ? 0 : 10),
                                 left: AppData.isArabic
-                                    ? (index == 5 ? 0 : 10)
+                                    ? (index == _otpLength - 1 ? 0 : 10)
                                     : 0,
                               ),
                               child: _OtpInputBox(
@@ -320,9 +347,7 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
 }
 
 class _TopBar extends StatelessWidget implements PreferredSizeWidget {
-  const _TopBar({required this.onSkip});
-
-  final VoidCallback onSkip;
+  const _TopBar();
 
   @override
   Widget build(BuildContext context) {
@@ -363,7 +388,10 @@ class _OtpInputBox extends StatelessWidget {
       maxLength: 1,
       textAlign: TextAlign.center,
       keyboardType: TextInputType.number,
-      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.bold,
+      ),
       decoration: InputDecoration(
         counterText: '',
         contentPadding: const EdgeInsets.symmetric(vertical: 12),

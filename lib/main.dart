@@ -60,11 +60,13 @@ class _AppEntryState extends State<AppEntry> {
   Future<void> _handleUri(Uri uri) async {
     debugPrint('Deep link received: $uri');
 
-    if (uri.scheme == 'parkliapp' && uri.host == 'auth-callback') {
+    if (uri.scheme != 'parkliapp') return;
+
+    if (uri.host == 'auth-callback') {
       try {
-        await Supabase.instance.client.auth.refreshSession();
+        await Supabase.instance.client.auth.getSessionFromUrl(uri);
       } catch (e) {
-        debugPrint('Session refresh error: $e');
+        debugPrint('Auth callback session error: $e');
       }
 
       if (!mounted) return;
@@ -76,11 +78,11 @@ class _AppEntryState extends State<AppEntry> {
       return;
     }
 
-    if (uri.scheme == 'parkliapp' && uri.host == 'reset-password') {
+    if (uri.host == 'reset-password') {
       try {
         await Supabase.instance.client.auth.getSessionFromUrl(uri);
       } catch (e) {
-        debugPrint('Session error: $e');
+        debugPrint('Reset password session error: $e');
       }
 
       if (!mounted) return;

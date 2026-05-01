@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkliapp/app_data.dart';
-
 import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
 
 class CompleteInfoEmailScreen extends StatefulWidget {
-  const CompleteInfoEmailScreen({super.key, required this.email});
+  const CompleteInfoEmailScreen({
+    super.key,
+    required this.email,
+  });
 
   final String email;
 
@@ -47,7 +49,10 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppData.translate('Please complete all fields', 'يرجى إكمال جميع الحقول'),
+            AppData.translate(
+              'Please complete all fields',
+              'يرجى إكمال جميع الحقول',
+            ),
           ),
         ),
       );
@@ -62,10 +67,15 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
       final user = Supabase.instance.client.auth.currentUser;
 
       if (user == null) {
+        if (!mounted) return;
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              AppData.translate('No authenticated user found', 'لم يتم العثور على مستخدم مسجل'),
+              AppData.translate(
+                'No authenticated user found',
+                'لم يتم العثور على مستخدم مسجل',
+              ),
             ),
           ),
         );
@@ -90,10 +100,15 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppData.translate('Failed to save data: $e', 'فشل في حفظ البيانات: $e'),
+            AppData.translate(
+              'Failed to save data',
+              'فشل في حفظ البيانات',
+            ),
           ),
         ),
       );
@@ -132,25 +147,40 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _FieldLabel(AppData.translate('First Name', 'الاسم الأول')),
+                      _FieldLabel(
+                        AppData.translate('First Name', 'الاسم الأول'),
+                      ),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _firstNameController,
-                        hintText: AppData.translate('Enter first name', 'أدخل الاسم الأول'),
+                        hintText: AppData.translate(
+                          'Enter first name',
+                          'أدخل الاسم الأول',
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Last Name', 'اسم العائلة')),
+                      _FieldLabel(
+                        AppData.translate('Last Name', 'اسم العائلة'),
+                      ),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _lastNameController,
-                        hintText: AppData.translate('Enter last name', 'أدخل اسم العائلة'),
+                        hintText: AppData.translate(
+                          'Enter last name',
+                          'أدخل اسم العائلة',
+                        ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Email Address', 'البريد الإلكتروني')),
+                      _FieldLabel(
+                        AppData.translate('Email Address', 'البريد الإلكتروني'),
+                      ),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _emailController,
-                        hintText: AppData.translate('Enter email address', 'أدخل البريد الإلكتروني'),
+                        hintText: AppData.translate(
+                          'Enter email address',
+                          'أدخل البريد الإلكتروني',
+                        ),
                         readOnly: true,
                       ),
                       const SizedBox(height: 28),
@@ -187,6 +217,8 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                             backgroundColor: const Color(0xFFA3D3DB),
                             foregroundColor: Colors.white,
                             elevation: 0,
+                            disabledBackgroundColor:
+                                const Color(0xFFA3D3DB).withOpacity(0.6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
                             ),
@@ -241,9 +273,9 @@ class _TopBar extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              AppData.isArabic ? Icons.arrow_back_ios_new : Icons.arrow_back_ios_new,
-              color: const Color(0xFF237D8C),
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              color: Color(0xFF237D8C),
               size: 20,
             ),
             padding: EdgeInsets.zero,
@@ -298,6 +330,7 @@ class _CustomTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       readOnly: readOnly,
+      textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(

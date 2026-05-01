@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/phone_auth_service.dart';
 import 'package:parkliapp/features/auth/signup_email_screen.dart';
 import 'package:parkliapp/features/auth/verify_phone_screen.dart';
-import 'package:parkliapp/core/services/phone_auth_service.dart';
-import 'package:parkliapp/app_data.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -21,30 +21,30 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  Future<void> _sendOtp() async {
-    final rawPhone = _phoneController.text.trim();
-
-    if (rawPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppData.translate(
-              'Please enter your mobile number',
-              'يرجى إدخال رقم الجوال',
-            ),
-          ),
-        ),
-      );
-      return;
-    }
+  String? _normalizeSaudiPhone(String rawPhone) {
+    if (rawPhone.trim().isEmpty) return null;
 
     String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.startsWith('966')) {
+      digitsOnly = digitsOnly.substring(3);
+    }
 
     if (digitsOnly.startsWith('0')) {
       digitsOnly = digitsOnly.substring(1);
     }
 
-    if (digitsOnly.length != 9) {
+    if (digitsOnly.length != 9 || !digitsOnly.startsWith('5')) {
+      return null;
+    }
+
+    return '+966$digitsOnly';
+  }
+
+  Future<void> _sendOtp() async {
+    final phoneNumber = _normalizeSaudiPhone(_phoneController.text);
+
+    if (phoneNumber == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -58,8 +58,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    final phoneNumber = '+966$digitsOnly';
-
     setState(() {
       _isLoading = true;
     });
@@ -69,7 +67,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       await phoneAuth.sendOtp(
         phoneNumber: phoneNumber,
-        shouldCreateUser: true,
       );
 
       if (!mounted) return;
@@ -82,27 +79,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       );
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppData.translate(
-              e.message,
-              'فشل في إرسال رمز التحقق: ${e.message}',
-            ),
-          ),
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppData.translate(
-              'Failed to send OTP',
-              'فشل في إرسال رمز التحقق',
-            ),
+            e.toString().replaceFirst('Exception: ', ''),
           ),
         ),
       );
@@ -113,6 +96,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         });
       }
     }
+  }
+
+  void _goToEmailSignUp() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const SignUpEmailScreen(),
+      ),
+    );
   }
 
   @override
@@ -203,6 +195,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             backgroundColor: const Color(0xA3237D8C),
                             foregroundColor: Colors.white,
                             elevation: 0,
+                            disabledBackgroundColor:
+                                const Color(0xA3237D8C).withOpacity(0.6),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
                             ),
@@ -233,14 +227,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         width: double.infinity,
                         height: 48,
                         child: OutlinedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const SignUpEmailScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _goToEmailSignUp,
                           icon: const Icon(
                             Icons.email_outlined,
                             color: Color(0xFF237D8C),
@@ -327,7 +314,10 @@ class _CountryCodeField extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          CircleAvatar(radius: 10, backgroundColor: Color(0xFFE5E5E5)),
+          CircleAvatar(
+            radius: 10,
+            backgroundColor: Color(0xFFE5E5E5),
+          ),
           SizedBox(width: 6),
           Text(
             '+966',
@@ -338,7 +328,11 @@ class _CountryCodeField extends StatelessWidget {
             ),
           ),
           Spacer(),
-          Icon(Icons.keyboard_arrow_down, color: Color(0xFF19515B), size: 18),
+          Icon(
+            Icons.keyboard_arrow_down,
+            color: Color(0xFF19515B),
+            size: 18,
+          ),
         ],
       ),
     );
@@ -360,7 +354,11 @@ class _OtpInfoBox extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFF237D8C), size: 20),
+          const Icon(
+            Icons.info_outline,
+            color: Color(0xFF237D8C),
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -390,7 +388,12 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE5E5E5),
+            thickness: 1,
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -403,7 +406,12 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(child: Divider(color: Color(0xFFE5E5E5), thickness: 1)),
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE5E5E5),
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }

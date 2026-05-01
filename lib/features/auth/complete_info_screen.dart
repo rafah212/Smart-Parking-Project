@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
+import 'package:parkliapp/core/services/local_session_service.dart';
 
 class CompleteInfoScreen extends StatefulWidget {
-  const CompleteInfoScreen({super.key, required this.phoneNumber});
+  const CompleteInfoScreen({
+    super.key,
+    required this.phoneNumber,
+  });
 
   final String phoneNumber;
 
@@ -56,20 +59,13 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
     });
 
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-
-      if (user == null) {
-        throw Exception('No authenticated user found');
-      }
-
       final profileService = ProfileService();
 
-      await profileService.upsertProfile(
-        userId: user.id,
+      await profileService.upsertPhoneProfile(
         fullName: '$firstName $lastName',
-        email: user.email ?? '',
         phoneNumber: widget.phoneNumber,
       );
+      await LocalSessionService().savePhoneSession(widget.phoneNumber);
 
       if (!mounted) return;
 
@@ -118,7 +114,8 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppData.translate('Complete your info', 'أكمل معلوماتك'),
+                        AppData.translate(
+                            'Complete your info', 'أكمل معلوماتك'),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 28,
@@ -127,7 +124,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _FieldLabel(AppData.translate('First Name', 'الاسم الأول')),
+                      _FieldLabel(
+                        AppData.translate('First Name', 'الاسم الأول'),
+                      ),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _firstNameController,
@@ -137,7 +136,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Last Name', 'اسم العائلة')),
+                      _FieldLabel(
+                        AppData.translate('Last Name', 'اسم العائلة'),
+                      ),
                       const SizedBox(height: 8),
                       _CustomTextField(
                         controller: _lastNameController,
@@ -147,7 +148,9 @@ class _CompleteInfoScreenState extends State<CompleteInfoScreen> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _FieldLabel(AppData.translate('Mobile Number', 'رقم الجوال')),
+                      _FieldLabel(
+                        AppData.translate('Mobile Number', 'رقم الجوال'),
+                      ),
                       const SizedBox(height: 8),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,

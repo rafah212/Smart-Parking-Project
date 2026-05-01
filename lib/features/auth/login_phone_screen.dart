@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'login_email_screen.dart';
-import 'verify_phone_screen.dart';
-import 'package:parkliapp/core/services/phone_auth_service.dart';
 import 'package:parkliapp/app_data.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/phone_auth_service.dart';
+import 'package:parkliapp/features/auth/login_email_screen.dart';
+import 'package:parkliapp/features/auth/verify_phone_screen.dart';
 
 class LoginPhoneScreen extends StatefulWidget {
   const LoginPhoneScreen({super.key});
@@ -50,7 +49,6 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
 
       await phoneAuth.sendOtp(
         phoneNumber: phoneNumber,
-        shouldCreateUser: false,
       );
 
       if (!mounted) return;
@@ -63,20 +61,13 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
           ),
         ),
       );
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
     } catch (e) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            AppData.translate(
-              'Failed to send OTP',
-              'فشل في إرسال رمز التحقق',
-            ),
+            e.toString().replaceFirst('Exception: ', ''),
           ),
         ),
       );
@@ -92,7 +83,9 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
   void _goToEmailLogin() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const LoginEmailScreen()),
+      MaterialPageRoute(
+        builder: (context) => const LoginEmailScreen(),
+      ),
     );
   }
 
@@ -112,10 +105,8 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
           surfaceTintColor: Colors.white,
           leading: IconButton(
             onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              AppData.isArabic
-                  ? Icons.arrow_back_ios_new
-                  : Icons.arrow_back_ios_new,
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
               color: primaryColor,
               size: 20,
             ),
@@ -152,11 +143,12 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                   ),
                   const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 95,
+                        width: 100,
                         height: 56,
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: borderColor),
@@ -255,7 +247,8 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                               );
                             }
 
-                            if (selectedCode == '+966' && phone.length != 9) {
+                            if (selectedCode == '+966' &&
+                                (phone.length != 9 || !phone.startsWith('5'))) {
                               return AppData.translate(
                                 'Enter a valid Saudi mobile number',
                                 'أدخل رقم جوال سعودي صحيح',
@@ -285,7 +278,8 @@ class _LoginPhoneScreenState extends State<LoginPhoneScreen> {
                         backgroundColor: primaryColor.withOpacity(0.7),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        disabledBackgroundColor: primaryColor.withOpacity(0.4),
+                        disabledBackgroundColor:
+                            primaryColor.withOpacity(0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),

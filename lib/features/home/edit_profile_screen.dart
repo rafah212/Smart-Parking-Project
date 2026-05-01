@@ -43,22 +43,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       final user = Supabase.instance.client.auth.currentUser;
 
-      if (user != null) {
-        final profile = await _profileService.getCurrentUserProfile(user.id);
-
-        if (profile != null) {
-          final nameParts = profile.fullName.trim().split(' ');
-
-          if (nameParts.isNotEmpty && nameParts.first.isNotEmpty) {
-            _firstNameController.text = nameParts.first;
-          }
-
-          if (nameParts.length > 1) {
-            _lastNameController.text = nameParts.sublist(1).join(' ');
-          }
-
-          _phoneController.text = profile.phoneNumber;
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
         }
+        return;
+      }
+
+      final profile = await _profileService.getCurrentUserProfile(user.id);
+
+      if (profile != null) {
+        final fullName = profile.fullName.trim();
+        final nameParts = fullName.isEmpty ? <String>[] : fullName.split(' ');
+
+        if (nameParts.isNotEmpty) {
+          _firstNameController.text = nameParts.first;
+        }
+
+        if (nameParts.length > 1) {
+          _lastNameController.text = nameParts.sublist(1).join(' ');
+        }
+
+        _phoneController.text = profile.phoneNumber;
+      } else {
+        final fallbackName =
+            user.userMetadata?['full_name']?.toString().trim() ?? '';
+        final fallbackParts =
+            fallbackName.isEmpty ? <String>[] : fallbackName.split(' ');
+
+        if (fallbackParts.isNotEmpty) {
+          _firstNameController.text = fallbackParts.first;
+        }
+
+        if (fallbackParts.length > 1) {
+          _lastNameController.text = fallbackParts.sublist(1).join(' ');
+        }
+
+        _phoneController.text = '';
       }
     } catch (e) {
       if (mounted) {
@@ -94,6 +117,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  String _normalizeSaudiPhone(String rawPhone) {
+    String digitsOnly = rawPhone.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (digitsOnly.startsWith('966')) {
+      digitsOnly = digitsOnly.substring(3);
+    }
+
+    if (digitsOnly.startsWith('0')) {
+      digitsOnly = digitsOnly.substring(1);
+    }
+
+    if (digitsOnly.isEmpty) return '';
+
+    return '+966$digitsOnly';
+  }
+
   Future<void> _saveProfile() async {
     final user = Supabase.instance.client.auth.currentUser;
 
@@ -113,16 +152,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     final String firstName = _firstNameController.text.trim();
     final String lastName = _lastNameController.text.trim();
-    final String phoneNumber = _phoneController.text.trim();
+    final String rawPhoneNumber = _phoneController.text.trim();
     final String fullName = '$firstName $lastName'.trim();
+    final String phoneNumber = rawPhoneNumber.isEmpty
+        ? ''
+        : _normalizeSaudiPhone(rawPhoneNumber);
 
-    if (firstName.isEmpty && lastName.isEmpty && phoneNumber.isEmpty) {
+    if (fullName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppData.translate(
-              'Please enter at least one field',
-              'الرجاء إدخال حقل واحد على الأقل',
+              'Please enter your name',
+              'يرجى إدخال الاسم',
             ),
           ),
         ),
@@ -155,7 +197,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
       );
 
-      Navigator.pop(context, fullName.isNotEmpty ? fullName : null);
+      Navigator.pop(context, fullName);
     } catch (e) {
       if (!mounted) return;
 
