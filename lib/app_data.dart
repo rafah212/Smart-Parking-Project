@@ -8,6 +8,8 @@ class AppData {
   static String? selectedVehicleId;
   static String? currentBookingId;
 
+
+  static int currentRemainingSeconds = 0; //  التايمر مستمر حتى لو اغلقت الصفحة
   static DateTime selectedDate = DateTime.now();
   static int durationHours = 4;
 

@@ -21,25 +21,41 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
   @override
   void initState() {
     super.initState();
-    // جلب الوقت المختار من AppData (بالساعات) وتحويله لثوانٍ
-    _totalSeconds = AppData.durationHours * 3600;
-    _secondsRemaining = _totalSeconds;
-    _startTimer();
+    
+    if (AppData.currentRemainingSeconds > 0) {
+
+      _secondsRemaining = AppData.currentRemainingSeconds;
+      _totalSeconds = AppData.durationHours * 3600; 
+    } else {
+
+      _totalSeconds = AppData.durationHours * 3600;
+      _secondsRemaining = _totalSeconds;
+      AppData.currentRemainingSeconds = _secondsRemaining;
+    }
+
+    if (_secondsRemaining > 0) {
+      _startTimer();
+    }
   }
 
   void _startTimer() {
+    _timer?.cancel(); 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_secondsRemaining > 0) {
-        setState(() {
-          _secondsRemaining--;
-          // تحديث القيمة في AppData لكي تظهر القيمة الحقيقية في الهوم
-          // AppData.currentRemainingSeconds = _secondsRemaining; // اختياري لو ودك تعرضي الثواني في الهوم
-        });
+        if (mounted) {
+          setState(() {
+            _secondsRemaining--;
+            AppData.currentRemainingSeconds = _secondsRemaining;
+          });
+        }
       } else {
         _timer?.cancel();
-        setState(() {
-          AppData.durationHours = 0; // تحديث الحالة في AppData عند انتهاء الوقت
-        });
+        if (mounted) {
+          setState(() {
+            AppData.durationHours = 0;
+            AppData.currentRemainingSeconds = 0;
+          });
+        }
       }
     });
   }
@@ -51,6 +67,7 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
   }
 
   String _formatTime(int totalSeconds) {
+    if (totalSeconds <= 0) return "00 : 00 : 00";
     int hours = totalSeconds ~/ 3600;
     int minutes = (totalSeconds % 3600) ~/ 60;
     int seconds = totalSeconds % 60;
@@ -75,31 +92,23 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
           child: SafeArea(
             child: Column(
               children: [
-                // --- زر الإغلاق (X) المعدل ---
                 Align(
-                  alignment:
-                      AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
+                  alignment: AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: IconButton(
-                      icon: const Icon(Icons.close,
-                          color: Colors.white, size: 30),
+                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
                       onPressed: () {
-                        // العودة للصفحة الرئيسية مع بقاء التايمر يعمل في الخلفية
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(
-                              builder: (context) => const HomeScreen()),
+                          MaterialPageRoute(builder: (context) => const HomeScreen()),
                           (route) => false,
                         );
                       },
                     ),
                   ),
                 ),
-
                 const Spacer(flex: 1),
-
-                // --- تصميم الدائرة والتايمر ---
                 Stack(
                   alignment: Alignment.center,
                   children: [
@@ -120,7 +129,8 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                       height: 300,
                       child: CustomPaint(
                         painter: TimerPainter(
-                          progress: _secondsRemaining / _totalSeconds,
+                          
+                          progress: _totalSeconds > 0 ? _secondsRemaining / _totalSeconds : 0,
                         ),
                       ),
                     ),
@@ -140,21 +150,17 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _LabelText(
-                                label: AppData.translate('Hours', 'ساعات')),
+                            _LabelText(label: AppData.translate('Hours', 'ساعات')),
                             const SizedBox(width: 20),
-                            _LabelText(
-                                label: AppData.translate('Minutes', 'دقائق')),
+                            _LabelText(label: AppData.translate('Minutes', 'دقائق')),
                             const SizedBox(width: 20),
-                            _LabelText(
-                                label: AppData.translate('Seconds', 'ثوانٍ')),
+                            _LabelText(label: AppData.translate('Seconds', 'ثوانٍ')),
                           ],
                         ),
                       ],
                     ),
                   ],
                 ),
-
                 const Spacer(flex: 2),
               ],
             ),
@@ -178,9 +184,7 @@ class TimerPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
-      Rect.fromCircle(
-          center: Offset(size.width / 2, size.height / 2),
-          radius: size.width / 2),
+      Rect.fromCircle(center: Offset(size.width / 2, size.height / 2), radius: size.width / 2),
       -math.pi / 2,
       2 * math.pi * progress,
       false,
@@ -189,8 +193,7 @@ class TimerPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(TimerPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+  bool shouldRepaint(TimerPainter oldDelegate) => oldDelegate.progress != progress;
 }
 
 class _LabelText extends StatelessWidget {
@@ -201,8 +204,7 @@ class _LabelText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: const TextStyle(
-          color: Color(0xFFE2E9FD), fontSize: 13, fontWeight: FontWeight.w500),
+      style: const TextStyle(color: Color(0xFFE2E9FD), fontSize: 13, fontWeight: FontWeight.w500),
     );
   }
 }
