@@ -33,24 +33,52 @@ class _UserProfileState extends State<UserProfile> {
 
   Future<void> _loadProfile() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final localSession = LocalSessionService();
+      final authType = await localSession.getAuthType();
 
-      if (user != null) {
-        final profile = await _profileService.getCurrentUserProfile(user.id);
+      // إذا المستخدم دخل بالجوال، نقرأ البروفايل برقم الجوال
+      if (authType == 'phone') {
+        final phoneNumber = await localSession.getPhoneNumber();
+
+        if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+          if (!mounted) return;
+          setState(() {
+            _error = AppData.translate(
+              'You need to log in first',
+              'يجب تسجيل الدخول أولاً',
+            );
+            _isLoading = false;
+          });
+          return;
+        }
+
+        final profileMap = await _profileService.getProfileByPhone(phoneNumber);
 
         if (!mounted) return;
+
+        if (profileMap == null) {
+          setState(() {
+            _error = AppData.translate(
+              'Profile data not found',
+              'لم يتم العثور على بيانات الملف الشخصي',
+            );
+            _isLoading = false;
+          });
+          return;
+        }
+
         setState(() {
-          _profile = profile;
+          _profile = UserProfileData.fromMap(profileMap);
           _isLoading = false;
           _error = null;
         });
         return;
       }
 
-      final localSession = LocalSessionService();
-      final phoneNumber = await localSession.getPhoneNumber();
+      // إذا المستخدم داخل بالإيميل، نقرأ من Supabase currentUser
+      final user = Supabase.instance.client.auth.currentUser;
 
-      if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+      if (user == null) {
         if (!mounted) return;
         setState(() {
           _error = AppData.translate(
@@ -62,23 +90,12 @@ class _UserProfileState extends State<UserProfile> {
         return;
       }
 
-      final profileMap = await _profileService.getProfileByPhone(phoneNumber);
+      final profile = await _profileService.getCurrentUserProfile(user.id);
 
       if (!mounted) return;
 
-      if (profileMap == null) {
-        setState(() {
-          _error = AppData.translate(
-            'Profile data not found',
-            'لم يتم العثور على بيانات الملف الشخصي',
-          );
-          _isLoading = false;
-        });
-        return;
-      }
-
       setState(() {
-        _profile = UserProfileData.fromMap(profileMap);
+        _profile = profile;
         _isLoading = false;
         _error = null;
       });

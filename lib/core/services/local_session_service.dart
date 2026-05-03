@@ -10,6 +10,12 @@ class LocalSessionService {
     await prefs.setString(_authTypeKey, 'phone');
   }
 
+  Future<void> saveEmailSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_phoneKey);
+    await prefs.setString(_authTypeKey, 'email');
+  }
+
   Future<String?> getPhoneNumber() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_phoneKey);

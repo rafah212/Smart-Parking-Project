@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
-import 'package:parkliapp/core/services/phone_auth_service.dart';
-import 'package:parkliapp/core/services/profile_service.dart';
-import 'package:parkliapp/features/auth/complete_info_screen.dart';
-import 'package:parkliapp/features/home/home_screen.dart';
+import 'package:parkliapp/core/services/auth_service.dart';
 import 'package:parkliapp/core/services/local_session_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/profile_service.dart';
+import 'package:parkliapp/features/auth/complete_info_email_screen.dart';
+import 'package:parkliapp/features/home/home_screen.dart';
 
-class VerifyPhoneScreen extends StatefulWidget {
-  const VerifyPhoneScreen({
+class VerifyEmailOtpScreen extends StatefulWidget {
+  const VerifyEmailOtpScreen({
     super.key,
-    required this.phoneNumber,
+    required this.email,
   });
 
-  final String phoneNumber;
+  final String email;
 
   @override
-  State<VerifyPhoneScreen> createState() => _VerifyPhoneScreenState();
+  State<VerifyEmailOtpScreen> createState() => _VerifyEmailOtpScreenState();
 }
 
-class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
-  static const int _otpLength = 4;
+class _VerifyEmailOtpScreenState extends State<VerifyEmailOtpScreen> {
+  static const int _otpLength = 8;
 
   late final List<TextEditingController> _controllers;
   late final List<FocusNode> _focusNodes;
@@ -37,11 +36,11 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
 
   @override
   void dispose() {
-    for (final c in _controllers) {
-      c.dispose();
+    for (final controller in _controllers) {
+      controller.dispose();
     }
-    for (final f in _focusNodes) {
-      f.dispose();
+    for (final node in _focusNodes) {
+      node.dispose();
     }
     super.dispose();
   }
@@ -68,13 +67,13 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
   Future<void> _verifyCode() async {
     final code = _otpCode;
 
-    if (code.length < _otpLength) {
+    if (code.length != _otpLength) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppData.translate(
-              'Please enter the 4-digit code',
-              'يرجى إدخال الكود المكون من 4 أرقام',
+              'Please enter the 8-digit code',
+              'يرجى إدخال الكود المكون من 8 أرقام',
             ),
           ),
         ),
@@ -87,39 +86,26 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
     });
 
     try {
-      final phoneAuth = PhoneAuthService();
+      final auth = AuthService();
 
-      final success = await phoneAuth.verifyOtp(
-        phoneNumber: widget.phoneNumber,
+      final res = await auth.verifyEmailOtp(
+        email: widget.email,
         otp: code,
       );
 
-      if (!mounted) return;
-
-      if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              AppData.translate(
-                'Verification failed',
-                'فشل التحقق',
-              ),
-            ),
+      if (res.user == null) {
+        throw Exception(
+          AppData.translate(
+            'Verification failed',
+            'فشل التحقق',
           ),
         );
-        return;
       }
 
-      final localSession = LocalSessionService();
-
-      await Supabase.instance.client.auth.signOut();
-      await localSession.savePhoneSession(widget.phoneNumber);
+      await LocalSessionService().saveEmailSession();
 
       final profileService = ProfileService();
-      final hasProfile =
-          await profileService.hasProfileByPhone(widget.phoneNumber);
-
-      await localSession.savePhoneSession(widget.phoneNumber);
+      final hasProfile = await profileService.hasProfileByEmail(widget.email);
 
       if (!mounted) return;
 
@@ -133,21 +119,29 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (_) => CompleteInfoScreen(
-              phoneNumber: widget.phoneNumber,
-            ),
+            builder: (_) => CompleteInfoEmailScreen(email: widget.email),
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
 
+      String message = e.toString().replaceFirst('Exception: ', '');
+
+      if (message.toLowerCase().contains('expired')) {
+        message = AppData.translate(
+          'The code has expired. Please request a new one.',
+          'انتهت صلاحية الرمز. يرجى طلب رمز جديد.',
+        );
+      } else if (message.toLowerCase().contains('invalid')) {
+        message = AppData.translate(
+          'Incorrect code. Please try again.',
+          'الرمز غير صحيح. يرجى المحاولة مرة أخرى.',
+        );
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString().replaceFirst('Exception: ', ''),
-          ),
-        ),
+        SnackBar(content: Text(message)),
       );
     } finally {
       if (mounted) {
@@ -164,13 +158,12 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
     });
 
     try {
-      final phoneAuth = PhoneAuthService();
+      final auth = AuthService();
 
-      await phoneAuth.sendOtp(
-        phoneNumber: widget.phoneNumber,
+      await auth.sendEmailOtp(
+        email: widget.email,
+        shouldCreateUser: true,
       );
-
-      if (!mounted) return;
 
       for (final controller in _controllers) {
         controller.clear();
@@ -179,6 +172,8 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
       if (_focusNodes.isNotEmpty) {
         _focusNodes.first.requestFocus();
       }
+
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -227,8 +222,8 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                     children: [
                       Text(
                         AppData.translate(
-                          'Verify your phone number',
-                          'التحقق من رقم الجوال',
+                          'Verify your email',
+                          'التحقق من البريد الإلكتروني',
                         ),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
@@ -239,8 +234,8 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                       const SizedBox(height: 14),
                       Text(
                         AppData.translate(
-                          'Enter the code sent to ${widget.phoneNumber}',
-                          'أدخل الكود المرسل إلى ${widget.phoneNumber}',
+                          'Enter the code sent to ${widget.email}',
+                          'أدخل الرمز المرسل إلى ${widget.email}',
                         ),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
@@ -256,9 +251,9 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                               padding: EdgeInsets.only(
                                 right: AppData.isArabic
                                     ? 0
-                                    : (index == _otpLength - 1 ? 0 : 10),
+                                    : (index == _otpLength - 1 ? 0 : 8),
                                 left: AppData.isArabic
-                                    ? (index == _otpLength - 1 ? 0 : 10)
+                                    ? (index == _otpLength - 1 ? 0 : 8)
                                     : 0,
                               ),
                               child: _OtpInputBox(
@@ -313,7 +308,9 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                         child: OutlinedButton(
                           onPressed: _isResending ? null : _resendCode,
                           style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Color(0xFF237D8C)),
+                            side: const BorderSide(
+                              color: Color(0xFF237D8C),
+                            ),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(50),
                             ),
@@ -330,7 +327,7 @@ class _VerifyPhoneScreenState extends State<VerifyPhoneScreen> {
                               : Text(
                                   AppData.translate(
                                     'Resend Code',
-                                    'إعادة إرسال الكود',
+                                    'إعادة إرسال الرمز',
                                   ),
                                   style: const TextStyle(
                                     color: Color(0xFF237D8C),
@@ -365,7 +362,6 @@ class _TopBar extends StatelessWidget implements PreferredSizeWidget {
         ),
         onPressed: () => Navigator.pop(context),
       ),
-      actions: const [],
     );
   }
 

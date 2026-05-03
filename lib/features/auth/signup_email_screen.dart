@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
+import 'package:parkliapp/features/auth/verify_email_otp_screen.dart';
 
 class SignUpEmailScreen extends StatefulWidget {
   const SignUpEmailScreen({super.key});
@@ -11,36 +12,31 @@ class SignUpEmailScreen extends StatefulWidget {
 
 class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
   late final TextEditingController _emailController;
-  late final TextEditingController _passwordController;
 
   bool _isLoading = false;
-  bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
-    _passwordController = TextEditingController();
   }
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _signUp() async {
+  Future<void> _sendCode() async {
     final email = _emailController.text.trim().toLowerCase();
-    final password = _passwordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppData.translate(
-              'Please enter email and password',
-              'يرجى إدخال البريد الإلكتروني وكلمة المرور',
+              'Please enter your email',
+              'يرجى إدخال البريد الإلكتروني',
             ),
           ),
         ),
@@ -62,78 +58,54 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
       return;
     }
 
-    if (password.length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppData.translate(
-              'Password must be at least 6 characters',
-              'كلمة المرور يجب أن تكون 6 خانات على الأقل',
-            ),
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       final auth = AuthService();
 
-      final res = await auth.signUpWithEmail(
+      await auth.sendEmailOtp(
         email: email,
-        password: password,
+        shouldCreateUser: true,
       );
-
-      if (res.user == null) {
-        throw Exception(
-          AppData.translate('Signup failed', 'فشل إنشاء الحساب'),
-        );
-      }
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            AppData.translate(
-              'Check your email to verify your account',
-              'تحقق من بريدك الإلكتروني لتفعيل حسابك',
-            ),
-          ),
-        ),
-      );
-
-      Navigator.pushReplacement(
+      Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => CheckEmailScreen(email: email),
+          builder: (_) => VerifyEmailOtpScreen(email: email),
         ),
       );
     } catch (e) {
+      if (!mounted) return;
+
       String message = e.toString().replaceFirst('Exception: ', '');
 
-      if (message.contains('User already registered')) {
+      if (message.contains('For security purposes')) {
         message = AppData.translate(
-          'This email is already registered',
-          'هذا البريد الإلكتروني مسجل مسبقاً',
-        );
-      } else {
-        message = AppData.translate(
-          'Signup failed: $message',
-          'فشل التسجيل: $message',
+          'Please wait a little before requesting a new code',
+          'يرجى الانتظار قليلًا قبل طلب رمز جديد',
         );
       }
 
-      if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
+        SnackBar(
+          content: Text(message),
+        ),
       );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  void _goBackToPhoneSignUp() {
+    Navigator.pop(context);
   }
 
   @override
@@ -162,7 +134,10 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                       ),
                       const SizedBox(height: 28),
                       Text(
-                        AppData.translate('Email Address', 'البريد الإلكتروني'),
+                        AppData.translate(
+                          'Email Address',
+                          'البريد الإلكتروني',
+                        ),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 12,
@@ -188,75 +163,29 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE5E5E5)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E5E5),
+                            ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE5E5E5)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE5E5E5),
+                            ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFF237D8C)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF237D8C),
+                            ),
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Text(
-                        AppData.translate('Password', 'كلمة المرور'),
-                        style: const TextStyle(
-                          color: Color(0xFF237D8C),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: _obscurePassword,
-                        textAlign:
-                            AppData.isArabic ? TextAlign.right : TextAlign.left,
-                        decoration: InputDecoration(
-                          hintText: AppData.translate(
-                            'Enter password',
-                            'أدخل كلمة المرور',
-                          ),
-                          filled: true,
-                          fillColor: const Color(0xFFF9F9F9),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 18,
-                          ),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                _obscurePassword = !_obscurePassword;
-                              });
-                            },
-                            icon: Icon(
-                              _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              color: const Color(0xFF237D8C),
-                            ),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE5E5E5)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFFE5E5E5)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide:
-                                const BorderSide(color: Color(0xFF237D8C)),
-                          ),
+                      _InfoBox(
+                        text: AppData.translate(
+                          'We will send a verification code to your email',
+                          'سنرسل رمز تحقق إلى بريدك الإلكتروني',
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -264,7 +193,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                         width: double.infinity,
                         height: 48,
                         child: ElevatedButton(
-                          onPressed: _isLoading ? null : _signUp,
+                          onPressed: _isLoading ? null : _sendCode,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFA3D3DB),
                             foregroundColor: Colors.white,
@@ -285,7 +214,10 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                                   ),
                                 )
                               : Text(
-                                  AppData.translate('Continue', 'استمرار'),
+                                  AppData.translate(
+                                    'Send Code',
+                                    'إرسال الرمز',
+                                  ),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -300,7 +232,7 @@ class _SignUpEmailScreenState extends State<SignUpEmailScreen> {
                         width: double.infinity,
                         height: 48,
                         child: OutlinedButton.icon(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: _goBackToPhoneSignUp,
                           icon: const Icon(
                             Icons.phone,
                             color: Color(0xFF237D8C),
@@ -356,6 +288,48 @@ class _TopBar extends StatelessWidget {
   }
 }
 
+class _InfoBox extends StatelessWidget {
+  const _InfoBox({
+    required this.text,
+  });
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F3F3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.info_outline,
+            color: Color(0xFF237D8C),
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: Color(0xFF237D8C),
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _OrDivider extends StatelessWidget {
   const _OrDivider();
 
@@ -363,7 +337,12 @@ class _OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider()),
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE5E5E5),
+            thickness: 1,
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
@@ -374,7 +353,12 @@ class _OrDivider extends StatelessWidget {
             ),
           ),
         ),
-        const Expanded(child: Divider()),
+        const Expanded(
+          child: Divider(
+            color: Color(0xFFE5E5E5),
+            thickness: 1,
+          ),
+        ),
       ],
     );
   }
@@ -386,95 +370,5 @@ class _BottomHandle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(height: 20);
-  }
-}
-
-class CheckEmailScreen extends StatelessWidget {
-  const CheckEmailScreen({
-    super.key,
-    required this.email,
-  });
-
-  final String email;
-
-  @override
-  Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.mark_email_read_outlined,
-                  color: Color(0xFF237D8C),
-                  size: 90,
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  AppData.translate(
-                    'Check your email',
-                    'تحقق من بريدك الإلكتروني',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF237D8C),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppData.translate(
-                    'We sent a verification link to $email',
-                    'أرسلنا رابط التحقق إلى $email',
-                  ),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black54,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamedAndRemoveUntil(
-                        context,
-                        '/loginEmail',
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF237D8C),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Text(
-                      AppData.translate(
-                        'Back to Login',
-                        'العودة لتسجيل الدخول',
-                      ),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

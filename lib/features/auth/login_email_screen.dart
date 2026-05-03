@@ -6,6 +6,7 @@ import 'package:parkliapp/features/auth/complete_info_email_screen.dart';
 import 'package:parkliapp/features/forgotPass/change_pass.dart';
 import 'package:parkliapp/features/home/home_screen.dart';
 import '../home/utils/navigation_helpers.dart';
+import 'package:parkliapp/core/services/local_session_service.dart';
 
 class LoginEmailScreen extends StatefulWidget {
   const LoginEmailScreen({super.key});
@@ -50,6 +51,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
           AppData.translate('Login failed', 'فشل تسجيل الدخول'),
         );
       }
+      await LocalSessionService().saveEmailSession();
 
       final profileService = ProfileService();
       final hasProfile = await profileService.hasProfileByEmail(email);
@@ -325,8 +327,7 @@ class _LoginEmailScreenState extends State<LoginEmailScreen> {
                         backgroundColor: primaryColor.withOpacity(0.7),
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        disabledBackgroundColor:
-                            primaryColor.withOpacity(0.4),
+                        disabledBackgroundColor: primaryColor.withOpacity(0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(50),
                         ),
