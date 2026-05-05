@@ -12,22 +12,23 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
-  flutter_map: ^8.2.1
-  latlong2: ^0.9.1
-  geolocator: ^13.0.4
-  url_launcher: ^6.3.0
-  supabase_flutter: ^2.5.6
-  app_links: ^6.3.2
-  image_picker: ^1.2.1
-  firebase_core: ^3.13.0
-  firebase_auth: ^5.5.0
-  http: ^1.2.1
-  shared_preferences: ^2.5.5
+  flutter_map: ^6.1.0        # قللنا النسخة عشان تتوافق مع نظامك
+  latlong2: ^0.9.0
+  geolocator: ^11.0.0       # نسخة مستقرة للأنظمة القديمة
+  url_launcher: ^6.2.0
+  supabase_flutter: ^2.4.0  # نسخة تتوافق مع Dart 3.4.0
+  app_links: ^6.0.0
+  image_picker: ^1.0.7      # النسخة اللي طلبها الماك قبل شوي
+  firebase_core: ^2.30.0    # نسخ متوافقة مع إصدار الماك والـ SDK
+  firebase_auth: ^4.19.0
+  http: ^1.2.0
+  shared_preferences: ^2.2.0 # النسخة اللي رضي فيها جهازك
+
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
