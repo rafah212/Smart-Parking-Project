@@ -8,10 +8,14 @@ class AppData {
   static String? selectedVehicleId;
   static String? currentBookingId;
 
-
-  static int currentRemainingSeconds = 0; //  التايمر مستمر حتى لو اغلقت الصفحة
   static DateTime selectedDate = DateTime.now();
-  static int durationHours = 4;
+  static int durationHours = 1; 
+
+  
+  static DateTime? bookingEndTime; 
+  
+  static bool isNotificationShown = false;
+
 
   static String translate(String en, String ar) {
     return isArabic ? ar : en;
@@ -19,5 +23,11 @@ class AppData {
 
   static void restartApp(BuildContext context) {
     Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+  }
+
+  static void setNewBooking(int hours) {
+    durationHours = hours;
+    bookingEndTime = DateTime.now().add(Duration(hours: hours));
+    isNotificationShown = false;
   }
 }

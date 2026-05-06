@@ -1,10 +1,8 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app.dart';
 import 'package:parkliapp/app_data.dart';
-import 'package:parkliapp/features/home/home_screen.dart'; // استيراد المخ
-import 'package:parkliapp/features/home/home_screen.dart'; // استيراد صفحة الهوم للعودة لها عند الضغط على زر الإغلاق
+import 'package:parkliapp/features/home/home_screen.dart';
 
 class ParkingTimerPage extends StatefulWidget {
   const ParkingTimerPage({super.key});
@@ -14,49 +12,67 @@ class ParkingTimerPage extends StatefulWidget {
 }
 
 class _ParkingTimerPageState extends State<ParkingTimerPage> {
-  late int _totalSeconds;
-  late int _secondsRemaining;
+  int _secondsRemaining = 0;
+  int _totalSeconds = 0;
   Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    
-    if (AppData.currentRemainingSeconds > 0) {
+    _initializeTimer();
+  }
 
-      _secondsRemaining = AppData.currentRemainingSeconds;
-      _totalSeconds = AppData.durationHours * 3600; 
-    } else {
-
-      _totalSeconds = AppData.durationHours * 3600;
-      _secondsRemaining = _totalSeconds;
-      AppData.currentRemainingSeconds = _secondsRemaining;
+  void _initializeTimer() {
+    // 1. إذا لم يكن هناك وقت نهاية محدد، اجعل كل شيء أصفاراً
+    if (AppData.bookingEndTime == null) {
+      setState(() {
+        _secondsRemaining = 0;
+        _totalSeconds = 0;
+      });
+      return;
     }
 
-    if (_secondsRemaining > 0) {
-      _startTimer();
+    // 2. احسب إجمالي الثواني بناءً على الساعات المحجوزة للعرض في الدائرة
+    _totalSeconds = AppData.durationHours * 3600;
+
+    // 3. تحديث الوقت المتبقي فوراً
+    _updateRemainingTime();
+
+    // 4. ابدأ المؤقت الدوري كل ثانية
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        _updateRemainingTime();
+      }
+    });
+  }
+
+  void _updateRemainingTime() {
+    if (AppData.bookingEndTime != null) {
+      final now = DateTime.now();
+      final difference = AppData.bookingEndTime!.difference(now).inSeconds;
+      
+      setState(() {
+        _secondsRemaining = difference > 0 ? difference : 0;
+      });
+
+      // إذا انتهى الوقت
+      if (_secondsRemaining <= 0) {
+        _timer?.cancel();
+        _onTimerFinished();
+      }
     }
   }
 
-  void _startTimer() {
-    _timer?.cancel(); 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_secondsRemaining > 0) {
-        if (mounted) {
-          setState(() {
-            _secondsRemaining--;
-            AppData.currentRemainingSeconds = _secondsRemaining;
-          });
-        }
-      } else {
-        _timer?.cancel();
-        if (mounted) {
-          setState(() {
-            AppData.durationHours = 0;
-            AppData.currentRemainingSeconds = 0;
-          });
-        }
-      }
+  void _onTimerFinished() {
+    if (!AppData.isNotificationShown) {
+      debugPrint("Time is up!");
+      // هنا تضعين كود الإشعار مستقبلاً
+      AppData.isNotificationShown = true; 
+    }
+    
+    setState(() {
+      AppData.durationHours = 0;
+      AppData.bookingEndTime = null;
     });
   }
 
@@ -66,12 +82,12 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
     super.dispose();
   }
 
-  String _formatTime(int totalSeconds) {
-    if (totalSeconds <= 0) return "00 : 00 : 00";
-    int hours = totalSeconds ~/ 3600;
-    int minutes = (totalSeconds % 3600) ~/ 60;
-    int seconds = totalSeconds % 60;
-    return "${hours.toString().padLeft(2, '0')} : ${minutes.toString().padLeft(2, '0')} : ${seconds.toString().padLeft(2, '0')}";
+  String _formatTime(int seconds) {
+    if (seconds <= 0) return "00 : 00 : 00";
+    int h = seconds ~/ 3600;
+    int m = (seconds % 3600) ~/ 60;
+    int s = seconds % 60;
+    return "${h.toString().padLeft(2, '0')} : ${m.toString().padLeft(2, '0')} : ${s.toString().padLeft(2, '0')}";
   }
 
   @override
@@ -92,26 +108,27 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
           child: SafeArea(
             child: Column(
               children: [
+                // زر الإغلاق
                 Align(
                   alignment: AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
                     child: IconButton(
                       icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                      onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const HomeScreen()),
-                          (route) => false,
-                        );
-                      },
+                      onPressed: () => Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        (route) => false,
+                      ),
                     ),
                   ),
                 ),
-                const Spacer(flex: 1),
+                const Spacer(),
+                // Stack الدائرة والوقت
                 Stack(
                   alignment: Alignment.center,
                   children: [
+                    // الدائرة الخلفية الباهتة
                     Opacity(
                       opacity: 0.1,
                       child: Container(
@@ -124,16 +141,17 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                         ),
                       ),
                     ),
+                    // الدائرة المتحركة (الرسم)
                     SizedBox(
                       width: 300,
                       height: 300,
                       child: CustomPaint(
                         painter: TimerPainter(
-                          
                           progress: _totalSeconds > 0 ? _secondsRemaining / _totalSeconds : 0,
                         ),
                       ),
                     ),
+                    // نصوص الوقت
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -179,7 +197,7 @@ class TimerPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     Paint paint = Paint()
       ..color = Colors.white
-      ..strokeWidth = 6
+      ..strokeWidth = 8
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
 

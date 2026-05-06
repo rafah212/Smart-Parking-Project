@@ -5,20 +5,74 @@ import 'package:url_launcher/url_launcher.dart'; // حزمة اختيارية ل
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
-  // دالة اختيارية لفتح تطبيق الاتصال
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    }
+  // دالة تفعيل الاتصال مع خيار تأكيد (Call)
+  Future<void> _showCallConfirmation(BuildContext context, String phoneNumber) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(phoneNumber, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.phone, color: Color(0xFF237D8C)),
+                title: Text(AppData.translate('Call', 'اتصال')),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+                  // استخدام externalApplication لضمان العمل على أندرويد
+                  await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.close, color: Colors.red),
+                title: Text(AppData.translate('Cancel', 'إلغاء')),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
-  // دالة اختيارية لفتح تطبيق الإيميل
-  Future<void> _sendEmail(String email) async {
-    final Uri launchUri = Uri(scheme: 'mailto', path: email);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
-    }
+  // دالة تفعيل الإيميل مع خيار تأكيد (Send Email)
+  Future<void> _showEmailConfirmation(BuildContext context, String email) async {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(email, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.email, color: Color(0xFF237D8C)),
+                title: Text(AppData.translate('Send Email', 'إرسال بريد')),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final Uri launchUri = Uri(scheme: 'mailto', path: email);
+                  // استخدام externalApplication لضمان العمل على أندرويد
+                  await launchUrl(launchUri, mode: LaunchMode.externalApplication);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.close, color: Colors.red),
+                title: Text(AppData.translate('Cancel', 'إلغاء')),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -65,7 +119,7 @@ class HelpSupportScreen extends StatelessWidget {
               
               // بطاقة رقم الهاتف
               GestureDetector(
-                onTap: () => _makePhoneCall('0569225194'),
+                onTap: () => _showCallConfirmation(context, '0569225194'),
                 child: _buildContactCard(
                   icon: Icons.phone_android_rounded,
                   title: AppData.translate('Phone Number', 'رقم الجوال'),
@@ -77,7 +131,7 @@ class HelpSupportScreen extends StatelessWidget {
               
               // بطاقة البريد الإلكتروني
               GestureDetector(
-                onTap: () => _sendEmail('norah.n.mu@gmail.com'),
+                onTap: () => _showEmailConfirmation(context, 'norah.n.mu@gmail.com'),
                 child: _buildContactCard(
                   icon: Icons.email_outlined,
                   title: AppData.translate('Email Address', 'البريد الإلكتروني'),
