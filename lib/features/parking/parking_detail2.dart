@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ لحفظ التاريخ
+import 'package:flutter/cupertino.dart'; 
+import 'package:parkliapp/app_data.dart';
+import 'package:intl/intl.dart';
+
+import 'dart:ui' as ui; 
 
 class ParkingDetail2 extends StatefulWidget {
   const ParkingDetail2({super.key});
@@ -9,70 +13,79 @@ class ParkingDetail2 extends StatefulWidget {
 }
 
 class _ParkingDetail2State extends State<ParkingDetail2> {
-  // الحصول على تاريخ اليوم الفعلي
   late DateTime _now;
   late int _daysInMonth;
   int? _selectedDay;
+  
+  // الوقت الافتراضي
+  DateTime _selectedDateTime = DateTime.now();
 
   @override
   void initState() {
     super.initState();
     _now = DateTime.now();
-    // حساب عدد الأيام في الشهر الحالي
     _daysInMonth = DateUtils.getDaysInMonth(_now.year, _now.month);
-    _selectedDay = _now.day; // افتراضياً نحدد يوم اليوم
+    _selectedDay = _now.day;
   }
 
-  // دالة لجلب اسم الشهر الحالي بالعربي أو الإنجليزي
   String _getMonthName() {
     List<String> monthsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     List<String> monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-    
     return AppData.translate(monthsEn[_now.month - 1], monthsAr[_now.month - 1]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      // تم التعديل هنا لإنهاء الخط الأحمر: استخدمنا ui.TextDirection
+      textDirection: AppData.isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
             children: [
               _ParkingHeader(title: AppData.translate('Parking detail', 'تفاصيل الموقف')),
-
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         width: double.infinity,
-                        height: 250,
+                        height: 180,
                         color: const Color(0xFFF3F3F3),
                         child: Center(
                           child: Image.asset(
                             'assets/images/parkdetial.png',
-                            height: 200,
+                            height: 140,
                             fit: BoxFit.contain,
                           ),
                         ),
                       ),
-
                       Padding(
                         padding: const EdgeInsets.all(24.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // عرض الشهر الحالي والسنة تلقائياً
                             Text(
                               '${_getMonthName()} ${_now.year}',
                               style: const TextStyle(color: Color(0xFF192242), fontSize: 18, fontWeight: FontWeight.bold),
                             ),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: 15),
                             _buildDaysOfWeek(),
                             const SizedBox(height: 10),
                             _buildCalendarGrid(),
+                            const SizedBox(height: 30),
+                            Text(
+                              AppData.translate('Select Time', 'اختر الوقت'),
+                              style: const TextStyle(color: Color(0xFF192242), fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 15),
+                            
+                            // الـ Wheel Picker
+                            _buildTimeWheelPicker(),
+                            
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -80,28 +93,31 @@ class _ParkingDetail2State extends State<ParkingDetail2> {
                   ),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 20),
                 child: SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // حفظ التاريخ المختار في AppData ليظهر في التيكت
-                      if (_selectedDay != null) {
-                        AppData.selectedDate = DateTime(_now.year, _now.month, _selectedDay!);
-                      }
-                      Navigator.pop(context); 
-                    },
+                    onPressed: (_selectedDay != null)
+                    ? () {
+                          AppData.selectedDate = DateTime(_now.year, _now.month, _selectedDay!);
+                          
+                          // تحويل الوقت المختار إلى نص وتخزينه في AppData
+                          String formattedTime = DateFormat('hh:mm a').format(_selectedDateTime);
+                          AppData.selectedTime = formattedTime;
+                          
+                          Navigator.pop(context); 
+                        }
+                      : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF237D8C),
+                      disabledBackgroundColor: Colors.grey[300],
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                     ),
                     child: Text(
-                      AppData.translate('Confirm Date', 'تأكيد التاريخ'),
-                      style: const TextStyle(color: Colors.
-                      white, fontSize: 16, fontWeight: FontWeight.bold),
+                      AppData.translate('Confirm Date & Time', 'تأكيد التاريخ والوقت'),
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -113,11 +129,31 @@ class _ParkingDetail2State extends State<ParkingDetail2> {
     );
   }
 
+  Widget _buildTimeWheelPicker() {
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: CupertinoDatePicker(
+        mode: CupertinoDatePickerMode.time,
+        initialDateTime: _selectedDateTime,
+        use24hFormat: false,
+        onDateTimeChanged: (DateTime newTime) {
+          setState(() {
+            _selectedDateTime = newTime;
+          });
+        },
+      ),
+    );
+  }
+
   Widget _buildDaysOfWeek() {
     final days = AppData.isArabic 
         ? ['أح', 'اث', 'ثل', 'أر', 'خم', 'جم', 'سب']
         : ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: days.map((day) => Expanded(
@@ -135,29 +171,29 @@ class _ParkingDetail2State extends State<ParkingDetail2> {
       itemCount: _daysInMonth,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 7,
-        mainAxisSpacing: 10,
-        crossAxisSpacing: 10,
+        mainAxisSpacing: 8,
+        crossAxisSpacing: 8,
       ),
       itemBuilder: (context, index) {
         int day = index + 1;
+        bool isPast = day < _now.day;
         bool isSelected = _selectedDay == day;
 
         return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedDay = day;
-            });
-          },
+          onTap: isPast ? null : () => setState(() => _selectedDay = day),
           child: Container(
             decoration: BoxDecoration(
               color: isSelected ? const Color(0xFF237D8C) : Colors.transparent,
-              borderRadius: BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(10),
+              border: isSelected ? null : Border.all(color: Colors.grey[200]!),
             ),
             child: Center(
               child: Text(
                 '$day',
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF192242),
+                  color: isPast 
+                      ? Colors.grey[300] 
+                      : (isSelected ? Colors.white : const Color(0xFF192242)),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
@@ -171,8 +207,8 @@ class _ParkingDetail2State extends State<ParkingDetail2> {
 
 class _ParkingHeader extends StatelessWidget {
   final String title;
-  const _ParkingHeader({required this.title});
-
+  const _ParkingHeader({required this.title}); 
+  
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -204,7 +240,7 @@ class _ParkingHeader extends StatelessWidget {
               padding: const EdgeInsets.only(top: 20),
               child: Text(
                 title,
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
               ),
             ),
           ),

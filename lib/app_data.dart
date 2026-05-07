@@ -9,6 +9,7 @@ class AppData {
   static String? currentBookingId;
 
   static DateTime selectedDate = DateTime.now();
+  static String? selectedTime; //n
   static int durationHours = 1; 
 
   

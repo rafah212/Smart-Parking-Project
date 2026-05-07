@@ -254,7 +254,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryRow(AppData.translate('Parking lot', 'الموقع'), placeName),
+          _buildSummaryRow(AppData.translate('Parking Locatoin', 'الموقع'), placeName),
           const SizedBox(height: 10),
           _buildSummaryRow(AppData.translate('Slot', 'الموقف'), spotLabel),
           const SizedBox(height: 10),

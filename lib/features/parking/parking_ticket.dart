@@ -6,8 +6,6 @@ import 'package:parkliapp/core/services/parking_service.dart';
 import 'package:parkliapp/core/services/vehicle_service.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
 import 'parking_timer.dart';
-
-// مكتبات التحميل الجديدة
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -37,7 +35,6 @@ class _ParkingTicketState extends State<ParkingTicket> {
     _loadTicketData();
   }
 
-  // دالة تحميل الملف الفعلية والمصححة
   Future<void> _downloadPDF() async {
     final pdf = pw.Document();
     
@@ -45,6 +42,11 @@ class _ParkingTicketState extends State<ParkingTicket> {
     final placeName = (places?['name'] ?? 'Unknown location') as String;
     final slotLabel = _booking?['spot_label'] as String? ?? _spot?.label ?? 'Unknown';
     final vehicleInfo = '${_vehicle?.plateType ?? ""} - ${_vehicle?.displayPlate ?? ""}';
+    final bookingId = AppData.currentBookingId ?? "No-ID";
+    
+    // التعديل هنا: جلب الوقت والتاريخ من AppData للـ PDF
+    final timeStr = AppData.selectedTime ?? "--:--";
+    final dateStr = _getFormattedDate();
 
     pdf.addPage(
       pw.Page(
@@ -52,19 +54,31 @@ class _ParkingTicketState extends State<ParkingTicket> {
         build: (pw.Context context) {
           return pw.Center(
             child: pw.Column(
-              mainAxisAlignment: pw.MainAxisAlignment.center, // تم تصحيح المسمى هنا
+              mainAxisAlignment: pw.MainAxisAlignment.center,
               children: [
                 pw.Text("PARKLI TICKET", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 10),
+                pw.Divider(thickness: 2),
                 pw.SizedBox(height: 20),
-                pw.Divider(),
-                pw.Text("Location: $placeName"),
-                pw.Text("Slot: $slotLabel"),
+                pw.Text("Location: $placeName", style: pw.TextStyle(fontSize: 16)),
+                pw.Text("Slot: $slotLabel", style: pw.TextStyle(fontSize: 16)),
                 pw.Text("Vehicle: $vehicleInfo"),
                 pw.Text("Duration: ${AppData.durationHours} Hours"),
-                pw.Text("Date: ${_getFormattedDate()}"),
+                pw.Text("Date: $dateStr"),
+                pw.Text("Arrival Time: $timeStr"),
+                pw.SizedBox(height: 30),
+                pw.Text("Scan to Verify", style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 10),
+                pw.BarcodeWidget(
+                  barcode: pw.Barcode.qrCode(),
+                  data: 'BookingID: $bookingId | Slot: $slotLabel | Time: $timeStr | Date: $dateStr',
+                  width: 120,
+                  height: 120,
+                ),
+                pw.SizedBox(height: 30),
                 pw.Divider(),
-                pw.SizedBox(height: 20),
-                pw.Text("Thank you for using Parkli App"),
+                pw.SizedBox(height: 10),
+                pw.Text("Thank you for using Parkli App", style: pw.TextStyle(color: PdfColors.grey)),
               ],
             ),
           );
@@ -75,7 +89,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
     try {
       await Printing.sharePdf(
         bytes: await pdf.save(), 
-        filename: 'Parkli_Ticket_${AppData.currentBookingId}.pdf'
+        filename: 'Parkli_Ticket_$bookingId.pdf'
       );
     } catch (e) {
       if (!mounted) return;
@@ -101,7 +115,8 @@ class _ParkingTicketState extends State<ParkingTicket> {
 
       if (booking == null) {
         setState(() {
-          _error = AppData.translate('Booking data not found', 'لم يتم العثور على بيانات الحجز');
+          _error = AppData.
+        translate('Booking data not found', 'لم يتم العثور على بيانات الحجز');
           _isLoading = false;
         });
         return;
@@ -129,7 +144,8 @@ class _ParkingTicketState extends State<ParkingTicket> {
       });
     }
   }
- void _goToTimer(BuildContext context) {
+
+  void _goToTimer(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ParkingTimerPage()),
@@ -188,9 +204,9 @@ class _ParkingTicketState extends State<ParkingTicket> {
                                 context: context,
                                 label: AppData.translate('Download', 'تحميل التذكرة'),
                                 color: const Color(0xFF2B2C30),
-                                onTap: _downloadPDF, // الربط بالدالة الفعلية للتحميل
+                                onTap: _downloadPDF,
                               ),
-                              const SizedBox(height: 15),
+                               const SizedBox(height: 15),
                               _buildActionButton(
                                 context: context,
                                 label: AppData.translate('Go to Timer', 'الذهاب للمؤقت'),
@@ -213,6 +229,10 @@ class _ParkingTicketState extends State<ParkingTicket> {
     final vehicleType = _vehicle?.plateType ?? AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة');
     final vehiclePlate = _vehicle?.displayPlate ?? AppData.translate('No plate selected', 'لم يتم اختيار لوحة');
     final slotLabel = _booking?['spot_label'] as String? ?? _spot?.label ?? AppData.translate('Unknown', 'غير محدد');
+    
+    // التعديل هنا: جلب الوقت والتاريخ لواجهة المستخدم (الكارد)
+    final timeStr = AppData.selectedTime ?? "--:--";
+    final dateStr = _getFormattedDate();
 
     return Container(
       width: double.infinity,
@@ -237,7 +257,8 @@ class _ParkingTicketState extends State<ParkingTicket> {
               children: [
                 _buildInfoRow(AppData.translate('VEHICLE', 'المركبة'), vehicleType, vehiclePlate),
                 const SizedBox(height: 20),
-                _buildInfoRow(AppData.translate('DURATION', 'المدة'), '${AppData.durationHours} ${AppData.translate('hours', 'ساعات')}', _getFormattedDate()),
+                // التعديل هنا: عرض الوقت والتاريخ معاً في سطر واحد
+                _buildInfoRow(AppData.translate('TIME & DATE', 'الوقت والتاريخ'), timeStr, dateStr),
               ],
             ),
           ),
@@ -302,8 +323,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
       height: 55,
       child: ElevatedButton(
         onPressed: onTap,
-        style: ElevatedButton.
-     styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27.5)), elevation: 0),
+        style: ElevatedButton.styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27.5)), elevation: 0),
         child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
     );

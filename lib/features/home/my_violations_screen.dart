@@ -10,8 +10,7 @@ class MyViolationsScreen extends StatefulWidget {
 }
 
 class _MyViolationsScreenState extends State<MyViolationsScreen> {
-  bool isVerified = false; 
-  final TextEditingController _idController = TextEditingController();
+  // تم إزالة متغير التحقق وكنترولر النص لعدم الحاجة لهما بعد الآن
 
   @override
   Widget build(BuildContext context) {
@@ -32,48 +31,8 @@ class _MyViolationsScreenState extends State<MyViolationsScreen> {
           ),
           centerTitle: true,
         ),
-        body: isVerified ? _buildViolationsList() : _buildVerificationUI(),
-      ),
-    );
-  }
-
-  Widget _buildVerificationUI() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 25),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Center(
-            child: Container(
-              width: 160, height: 160,
-              decoration: const BoxDecoration(color: Color(0xFFF5F5F5), shape: BoxShape.circle),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Icon(Icons.directions_car_filled_rounded, size: 80, color: const Color(0xFF237D8C).withOpacity(0.2)),
-                  const Icon(Icons.assignment_late_rounded, size: 60, color: Color(0xFF237D8C)),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 40),
-          Text(AppData.translate('Easily view your violations', 'استعرض مخالفاتك بكل سهولة'),
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Color(0xFF1A485F))),
-          const SizedBox(height: 15),
-          Text(AppData.translate('Verify your account through the Nafath service to get direct access to your registered violation details.',
-                  'قم بتوثيق حسابك عبر خدمة نفاذ للوصول المباشر إلى تفاصيل مخالفاتك المسجلة برقم هويتك.'),
-              textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF898989), height: 1.5)),
-          const SizedBox(height: 50),
-          SizedBox(
-            width: double.infinity, height: 55,
-            child: ElevatedButton(
-              onPressed: () => _showNafathSheet(context),
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-              child: Text(AppData.translate('Verify Account', 'توثيق الحساب'),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-            ),
-          ),
-        ],
+        // يتم استدعاء قائمة المخالفات مباشرة هنا
+        body: _buildViolationsList(),
       ),
     );
   }
@@ -82,18 +41,44 @@ class _MyViolationsScreenState extends State<MyViolationsScreen> {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
 
+    // التأكد من وجود مستخدم مسجل دخول قبل محاولة جلب البيانات
+    if (user == null) {
+      return Center(
+        child: Text(AppData.translate('Please login to view violations', 'يرجى تسجيل الدخول لعرض المخالفات')),
+      );
+    }
+
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: supabase.from('violations').stream(primaryKey: ['id']).eq('user_id', user!.id),
+      stream: supabase
+          .from('violations')
+          .stream(primaryKey: ['id'])
+          .eq('user_id', user.id),
       builder: (context, snapshot) {
-        if (snapshot.hasError) return Center(child: Text(snapshot.error.toString()));
-        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        if (snapshot.hasError) {
+          return Center(child: Text(snapshot.error.toString()));
+        }
+        
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF237D8C)));
+        }
         
         final violations = snapshot.data!;
+        
         if (violations.isEmpty) {
           return Center(
-            child: Text(AppData.translate('No violations found.', 'لا توجد مخالفات مسجلة.')),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.assignment_turned_in_rounded, size: 80, color: Colors.grey[300]),
+                const SizedBox(height: 15),
+                Text(
+                  AppData.translate('No violations found.', 'لا توجد مخالفات مسجلة.'),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                ),
+              ],
+            ),
           );
-          }
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.all(20),
@@ -109,79 +94,20 @@ class _MyViolationsScreenState extends State<MyViolationsScreen> {
                   backgroundColor: Color(0xFFFFEBEE),
                   child: Icon(Icons.report_problem, color: Colors.red),
                 ),
-                title: Text(v['violation_type'] ?? 'Violation', style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  v['violation_type'] ?? AppData.translate('Violation', 'مخالفة'), 
+                  style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
                 subtitle: Text(v['created_at'].toString().substring(0, 10)),
-                trailing: Text("${v['amount']} SAR", 
-                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+                trailing: Text(
+                  "${v['amount']} SAR", 
+                  style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)
+                ),
               ),
             );
           },
         );
       },
-    );
-  }
-
-  void _showNafathSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: Container(
-          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, top: 20, left: 20, right: 20),
-          decoration: const BoxDecoration(color: Color(0xFF0F0F0F), borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('نفاذ', style: TextStyle(color: Color(0xFF237D8C), fontSize: 45, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Text(AppData.translate('Verification via Nafath App\nPlease enter your Mobile Number', 
-                  'التحقق عبر تطبيق نفاذ\nيرجى إدخال رقم الجوال المسجل'), 
-                  textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 13)),
-              const SizedBox(height: 30),
-              TextField(
-                controller: _idController,
-                keyboardType: TextInputType.phone,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: AppData.translate('Enter Mobile Number', 'أدخل رقم الجوال'),
-                  hintStyle: const TextStyle(color: Colors.white24),
-                  filled: true, fillColor: Colors.white.withOpacity(0.05), 
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none)
-                ),
-              ),
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity, height: 50,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final supabase = Supabase.instance.client;
-                    final user = supabase.auth.currentUser;
-
-                    final userData = await supabase.from('profiles').select('phone_number').eq('id', user!.id).single();
-                    String registeredPhone = userData['phone_number'].toString();
-                    String enteredPhone = _idController.text.trim();
-
-                    if (registeredPhone.contains(enteredPhone) && enteredPhone.isNotEmpty) {
-                      Navigator.pop(context);
-                      setState(() { isVerified = true; });
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(AppData.translate('Invalid verification details', 'بيانات التحقق غير صحيحة'))),
-                      );
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  child: Text(AppData.translate('Next', 'التالي'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }
