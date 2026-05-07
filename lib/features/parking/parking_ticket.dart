@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/booking_service.dart';
@@ -5,6 +6,11 @@ import 'package:parkliapp/core/services/parking_service.dart';
 import 'package:parkliapp/core/services/vehicle_service.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
 import 'parking_timer.dart';
+
+// مكتبات التحميل الجديدة
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ParkingTicket extends StatefulWidget {
   const ParkingTicket({super.key});
@@ -31,16 +37,61 @@ class _ParkingTicketState extends State<ParkingTicket> {
     _loadTicketData();
   }
 
+  // دالة تحميل الملف الفعلية والمصححة
+  Future<void> _downloadPDF() async {
+    final pdf = pw.Document();
+    
+    final places = _booking?['places'] as Map<String, dynamic>?;
+    final placeName = (places?['name'] ?? 'Unknown location') as String;
+    final slotLabel = _booking?['spot_label'] as String? ?? _spot?.label ?? 'Unknown';
+    final vehicleInfo = '${_vehicle?.plateType ?? ""} - ${_vehicle?.displayPlate ?? ""}';
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        build: (pw.Context context) {
+          return pw.Center(
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center, // تم تصحيح المسمى هنا
+              children: [
+                pw.Text("PARKLI TICKET", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.Text("Location: $placeName"),
+                pw.Text("Slot: $slotLabel"),
+                pw.Text("Vehicle: $vehicleInfo"),
+                pw.Text("Duration: ${AppData.durationHours} Hours"),
+                pw.Text("Date: ${_getFormattedDate()}"),
+                pw.Divider(),
+                pw.SizedBox(height: 20),
+                pw.Text("Thank you for using Parkli App"),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    try {
+      await Printing.sharePdf(
+        bytes: await pdf.save(), 
+        filename: 'Parkli_Ticket_${AppData.currentBookingId}.pdf'
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error downloading file')),
+      );
+    }
+  }
+
   Future<void> _loadTicketData() async {
     try {
       final bookingId = AppData.currentBookingId;
 
       if (bookingId == null) {
         setState(() {
-          _error = AppData.translate(
-            'No booking found',
-            'لا يوجد حجز حالي',
-          );
+          _error = AppData.translate('No booking found', 'لا يوجد حجز حالي');
           _isLoading = false;
         });
         return;
@@ -50,10 +101,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
 
       if (booking == null) {
         setState(() {
-          _error = AppData.translate(
-            'Booking data not found',
-            'لم يتم العثور على بيانات الحجز',
-          );
+          _error = AppData.translate('Booking data not found', 'لم يتم العثور على بيانات الحجز');
           _isLoading = false;
         });
         return;
@@ -62,8 +110,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
       final vehicleId = AppData.selectedVehicleId;
       final spotId = booking['spot_id'] as String?;
 
-      final vehicle =
-          vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
+      final vehicle = vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
       final spot = spotId != null ? await _parkingService.getSpotById(spotId) : null;
 
       if (!mounted) return;
@@ -76,18 +123,13 @@ class _ParkingTicketState extends State<ParkingTicket> {
       });
     } catch (e) {
       if (!mounted) return;
-
       setState(() {
-        _error = AppData.translate(
-          'Failed to load ticket data',
-          'فشل تحميل بيانات التذكرة',
-        );
+        _error = AppData.translate('Failed to load ticket data', 'فشل تحميل بيانات التذكرة');
         _isLoading = false;
       });
     }
   }
-
-  void _goToTimer(BuildContext context) {
+ void _goToTimer(BuildContext context) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ParkingTimerPage()),
@@ -96,20 +138,9 @@ class _ParkingTicketState extends State<ParkingTicket> {
 
   String _getFormattedDate() {
     final date = AppData.selectedDate;
-    const monthsEn = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    const monthsAr = [
-      'يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو',
-      'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'
-    ];
-
-    final month = AppData.translate(
-      monthsEn[date.month - 1],
-      monthsAr[date.month - 1],
-    );
-
+    const monthsEn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthsAr = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+    final month = AppData.translate(monthsEn[date.month - 1], monthsAr[date.month - 1]);
     return "${date.day} $month ${date.year}";
   }
 
@@ -129,24 +160,9 @@ class _ParkingTicketState extends State<ParkingTicket> {
             ),
           ),
           child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                )
+              ? const Center(child: CircularProgressIndicator(color: Colors.white))
               : _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    )
+                  ? Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700))))
                   : Stack(
                       children: [
                         Positioned(
@@ -154,65 +170,25 @@ class _ParkingTicketState extends State<ParkingTicket> {
                           right: AppData.isArabic ? 20 : null,
                           top: 40,
                           child: IconButton(
-                            icon: const Icon(
-                              Icons.close,
-                              color: Colors.white,
-                              size: 30,
-                            ),
+                            icon: const Icon(Icons.close, color: Colors.white, size: 30),
                             onPressed: () => _goToTimer(context),
                           ),
                         ),
                         SingleChildScrollView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 80,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
                           child: Column(
                             children: [
-                              Text(
-                                AppData.translate(
-                                  'Your Parking Ticket',
-                                  'تذكرة الموقف الخاصة بك',
-                                ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
+                              Text(AppData.translate('Your Parking Ticket', 'تذكرة الموقف الخاصة بك'), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800)),
                               const SizedBox(height: 30),
                               _buildTicketCard(),
                               const SizedBox(height: 30),
-                              Text(
-                                AppData.translate(
-                                  'Please scan the code on the parking when you arrived',
-                                  'يرجى مسح الرمز الموجود عند الموقف عند وصولك',
-                                ),
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  height: 1.5,
-                                ),
-                              ),
+                              Text(AppData.translate('Please scan the code on the parking when you arrived', 'يرجى مسح الرمز الموجود عند الموقف عند وصولك'), textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.5)),
                               const SizedBox(height: 40),
                               _buildActionButton(
                                 context: context,
                                 label: AppData.translate('Download', 'تحميل التذكرة'),
                                 color: const Color(0xFF2B2C30),
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        AppData.translate(
-                                          'Downloading PDF...',
-                                          'جاري تحميل الملف...',
-                                        ),
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onTap: _downloadPDF, // الربط بالدالة الفعلية للتحميل
                               ),
                               const SizedBox(height: 15),
                               _buildActionButton(
@@ -234,43 +210,22 @@ class _ParkingTicketState extends State<ParkingTicket> {
   Widget _buildTicketCard() {
     final places = _booking?['places'] as Map<String, dynamic>?;
     final placeName = (places?['name'] ?? AppData.translate('Unknown location', 'موقع غير محدد')) as String;
-    final vehicleType = _vehicle?.plateType ??
-        AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة');
-    final vehiclePlate = _vehicle?.displayPlate ??
-        AppData.translate('No plate selected', 'لم يتم اختيار لوحة');
-    final slotLabel = _booking?['spot_label'] as String? ??
-        _spot?.label ??
-        AppData.translate('Unknown', 'غير محدد');
+    final vehicleType = _vehicle?.plateType ?? AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة');
+    final vehiclePlate = _vehicle?.displayPlate ?? AppData.translate('No plate selected', 'لم يتم اختيار لوحة');
+    final slotLabel = _booking?['spot_label'] as String? ?? _spot?.label ?? AppData.translate('Unknown', 'غير محدد');
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
               children: [
-                Text(
-                  placeName,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF192342),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(placeName, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF192342), fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
-                const Text(
-                  'Unaizah 56453',
-                  style: TextStyle(
-                    color: Color(0xFF237D8C),
-                    fontSize: 14,
-                  ),
-                ),
+                const Text('Unaizah 56453', style: TextStyle(color: Color(0xFF237D8C), fontSize: 14)),
               ],
             ),
           ),
@@ -280,48 +235,24 @@ class _ParkingTicketState extends State<ParkingTicket> {
             color: const Color(0xA3E2F7FB),
             child: Column(
               children: [
-                _buildInfoRow(
-                  AppData.translate('VEHICLE', 'المركبة'),
-                  vehicleType,
-                  vehiclePlate,
-                ),
+                _buildInfoRow(AppData.translate('VEHICLE', 'المركبة'), vehicleType, vehiclePlate),
                 const SizedBox(height: 20),
-                _buildInfoRow(
-                  AppData.translate('DURATION', 'المدة'),
-                  '${AppData.durationHours} ${AppData.translate('hours', 'ساعات')}',
-                  _getFormattedDate(),
-                ),
+                _buildInfoRow(AppData.translate('DURATION', 'المدة'), '${AppData.durationHours} ${AppData.translate('hours', 'ساعات')}', _getFormattedDate()),
               ],
             ),
           ),
           Row(
             children: [
               _buildHalfCircle(isLeft: true),
-              Expanded(
-                child: Container(
-                  height: 1,
-                  color: Colors.grey.withOpacity(0.3),
-                ),
-              ),
+              Expanded(child: Container(height: 1, color: Colors.grey.withOpacity(0.3))),
               _buildHalfCircle(isLeft: false),
             ],
           ),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 25),
-            decoration: const BoxDecoration(
-              color: Color(0x6BA1D5D9),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
-            ),
-            child: Text(
-              '${AppData.translate('Slot', 'موقف')} $slotLabel',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF192242),
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            decoration: const BoxDecoration(color: Color(0x6BA1D5D9), borderRadius: BorderRadius.vertical(bottom: Radius.circular(20))),
+            child: Text('${AppData.translate('Slot', 'موقف')} $slotLabel', textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF192242), fontSize: 32, fontWeight: FontWeight.w900)),
           ),
         ],
       ),
@@ -332,39 +263,13 @@ class _ParkingTicketState extends State<ParkingTicket> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF237D8C),
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(label, style: const TextStyle(color: Color(0xFF237D8C), fontSize: 12, fontWeight: FontWeight.bold)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(
-                val1,
-                style: const TextStyle(
-                  color: Color(0xFF192242),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            Expanded(child: Text(val1, style: const TextStyle(color: Color(0xFF192242), fontSize: 16, fontWeight: FontWeight.bold))),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                '• $val2',
-                textAlign: TextAlign.end,
-                style: const TextStyle(
-                  color: Color(0xFF192242),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+            Expanded(child: Text('• $val2', textAlign: TextAlign.end, style: const TextStyle(color: Color(0xFF192242), fontSize: 16, fontWeight: FontWeight.bold))),
           ],
         ),
       ],
@@ -374,7 +279,6 @@ class _ParkingTicketState extends State<ParkingTicket> {
   Widget _buildHalfCircle({required bool isLeft}) {
     final shouldReverse = AppData.isArabic;
     final effectiveLeft = shouldReverse ? !isLeft : isLeft;
-
     return SizedBox(
       height: 30,
       width: 15,
@@ -392,32 +296,15 @@ class _ParkingTicketState extends State<ParkingTicket> {
     );
   }
 
-  Widget _buildActionButton({
-    required BuildContext context,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildActionButton({required BuildContext context, required String label, required Color color, required VoidCallback onTap}) {
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: ElevatedButton(
         onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: color,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(27.5),
-          ),
-          elevation: 0,
-        ),
-        child: Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        style: ElevatedButton.
+     styleFrom(backgroundColor: color, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27.5)), elevation: 0),
+        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
       ),
     );
   }
