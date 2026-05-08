@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
-import '../notifications.dart'; 
+import 'package:parkliapp/app_data.dart';
 
 class HomeHeader extends StatelessWidget {
-  // إضافة المتغير للتحكم في ظهور النقطة الحمراء من الخارج
   final bool hasNewNotifications;
+  final VoidCallback? onNotificationTap;
 
   const HomeHeader({
     super.key,
-    this.hasNewNotifications = false, // القيمة الافتراضية هي عدم وجود تنبيهات
+    this.hasNewNotifications = false,
+    this.onNotificationTap,
   });
 
   @override
@@ -17,8 +17,8 @@ class HomeHeader extends StatelessWidget {
       textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Container(
         width: double.infinity,
-        height: 138,
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
+        height: 110,
+        padding: const EdgeInsets.fromLTRB(20, 25, 20, 16),
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -27,104 +27,59 @@ class HomeHeader extends StatelessWidget {
           ),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
         ),
-        child: Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const _FakeStatusBar(),
-            const SizedBox(height: 18),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    AppData.translate(
-                      'Welcome back \nFind a parking spot nearby',
-                      'أهلاً بك مجدداً \nابحث عن موقف سيارات قريب'
-                    ),
-                    style: const TextStyle(
-                      color: Color(0xFFE5E5E5),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      height: 1.35,
-                      letterSpacing: 0.7,
-                    ),
-                  ),
+            Expanded(
+              child: Text(
+                AppData.translate(
+                  'Welcome back \nFind a parking spot nearby',
+                  'أهلاً بك مجدداً \nابحث عن موقف سيارات قريب'
                 ),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const Notifications()),
-                    );
-                  },
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF3C3F46),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        const Icon(
-                          Icons.notifications,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                        // النقطة الحمراء لا تظهر إلا إذا كان هناك تنبيهات جديدة
-                        if (hasNewNotifications)
-                          Positioned(
-                            top: 8,
-                            right: AppData.isArabic ? null : 8,
-                            left: AppData.isArabic ? 8 : null,
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                style: const TextStyle(
+                  color: Color(0xFFE5E5E5),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  height: 1.3,
+                  letterSpacing: 0.7,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: onNotificationTap, // تفعيل النقر
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF3C3F46),
+                  shape: BoxShape.circle,
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(Icons.notifications, color: Colors.white, size: 20),
+                    if (hasNewNotifications)
+                      Positioned(
+                        top: 10,
+                        right: AppData.isArabic ? null : 10,
+                        left: AppData.isArabic ? 10 : null,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF3C3F46), width: 1.5),
                           ),
-                      ],
-                    ),
-                  ),
+                        ),
+                      ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _FakeStatusBar extends StatelessWidget {
-  const _FakeStatusBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          '9:41',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        Row(
-          children: [
-            const Icon(Icons.signal_cellular_alt, size: 16, color: Colors.white),
-            const SizedBox(width: 4),
-            const Icon(Icons.wifi, size: 16, color: Colors.white),
-            const SizedBox(width: 4),
-            const Icon(Icons.battery_full, size: 18, color: Colors.white),
-          ],
-        ),
-      ],
     );
   }
 }

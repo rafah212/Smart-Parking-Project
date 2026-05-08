@@ -55,6 +55,29 @@ class _NotificationsState extends State<Notifications> {
     }
   }
 
+  // دالة الحذف النهائي من الواجهة ومن قاعدة البيانات
+  Future<void> _removeNotification(int index) async {
+    final item = _notifications[index];
+
+    // 1. الحذف من الواجهة فوراً (تجربة مستخدم سريعة)
+    setState(() {
+      _notifications.removeAt(index);
+    });
+
+    try {
+      // 2. الحذف من قاعدة البيانات Supabase
+      // ملاحظة: تأكد أن اسم الجدول هو 'notifications' وأن العمود المعرف هو 'id'
+      await Supabase.instance.client
+          .from('notifications') 
+          .delete()
+          .match({'id': item.id});
+          
+    } catch (e) {
+      debugPrint('Error deleting notification from server: $e');
+      // اختياري: يمكنك إعادة الإشعار للقائمة إذا فشل الحذف في السيرفر
+    }
+  }
+
   String _timeAgo(DateTime? createdAt) {
     if (createdAt == null) {
       return AppData.translate('Now', 'الآن');
@@ -96,13 +119,13 @@ class _NotificationsState extends State<Notifications> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-
     return Directionality(
       textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
           children: [
+            // الهيدر
             Container(
               width: screenWidth,
               height: 110,
@@ -148,6 +171,7 @@ class _NotificationsState extends State<Notifications> {
                 ),
               ),
             ),
+            // قائمة الإشعارات
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -180,19 +204,14 @@ class _NotificationsState extends State<Notifications> {
                               ),
                             )
                           : ListView.separated(
-                              padding:
-                                  const EdgeInsets.only(top: 18, bottom: 20),
+                              padding: const EdgeInsets.only(top: 10, bottom: 20),
                               itemCount: _notifications.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 0),
+                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
                               itemBuilder: (context, index) {
                                 final item = _notifications[index];
                                 final isFirst = index == 0;
-
                                 return Container(
-                                  color: isFirst
-                                      ? const Color(0xFFF3F6FF)
-                                      : Colors.transparent,
+                                  color: isFirst ? const Color(0xFFF3F6FF) : Colors.transparent,
                                   child: Stack(
                                     children: [
                                       if (isFirst)
@@ -207,50 +226,60 @@ class _NotificationsState extends State<Notifications> {
                                           ),
                                         ),
                                       Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                            20, 15, 20, 15),
+                                        padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
                                         child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     _titleOf(item),
                                                     style: const TextStyle(
                                                       color: Color(0xFF237D8C),
-                                                      fontSize: 18,
-                                                      fontWeight:
-                                                          FontWeight.w700,
+                                                      fontSize: 17,
+                                                      fontWeight: FontWeight.w700,
                                                       fontFamily: 'Lato',
                                                     ),
                                                   ),
-                                                  const SizedBox(height: 6),
+                                                  const SizedBox(height: 5),
                                                   Text(
                                                     _bodyOf(item),
                                                     style: const TextStyle(
                                                       color: Color(0xFF677191),
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.w500,
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.w500,
                                                       fontFamily: 'Lato',
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    _timeAgo(item.createdAt),
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF9BA3BB),
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w500,
                                                     ),
                                                   ),
                                                 ],
                                               ),
                                             ),
-                                            const SizedBox(width: 12),
-                                            Text(
-                                              _timeAgo(item.createdAt),
-                                              textAlign: TextAlign.right,
-                                              style: const TextStyle(
-                                                color: Color(0xFF237D8C),
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.w600,
-                                                fontFamily: 'Lato',
+                                            const SizedBox(width: 10),
+                                            // أيقونة الصح للحذف النهائي
+                                            GestureDetector(
+                                              onTap: () => _removeNotification(index),
+                                              child: Container(
+                                                padding: const EdgeInsets.all(5),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withOpacity(0.1),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: const Icon(
+                                                  Icons.check,
+                                                  color: Colors.green,
+                                                  size: 18,
+                                                ),
                                               ),
                                             ),
                                           ],

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/app_data.dart';
@@ -15,6 +15,10 @@ import 'booking_screen.dart';
 import 'package:parkliapp/features/parking/parking_timer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+// استيراد الخدمات اللازمة للتحقق من الإشعارات
+import 'package:parkliapp/core/services/notifications_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'notifications.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -25,10 +29,14 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final PlaceService _placeService = PlaceService();
+  final NotificationsService _notificationsService = NotificationsService();
 
   int _currentIndex = 0;
   bool _showSearchSheet = false;
   bool _showFilterSheet = false;
+  
+  // حالة النقطة الحمراء
+  bool _hasNewNotification = false; 
 
   final MapController _mapController = MapController();
   double _selectedDistance = 40;
@@ -43,6 +51,24 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _selectedTime = AppData.translate('Now', 'الآن');
     _loadPlaces();
+    _checkNotifications(); // التحقق من وجود إشعارات عند التشغيل
+  }
+
+  // دالة ذكية للتحقق من وجود إشعارات فعلية في السيرفر
+  Future<void> _checkNotifications() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user != null) {
+      try {
+        final list = await _notificationsService.getNotifications(user.id);
+        if (mounted) {
+          setState(() {
+            _hasNewNotification = list.isNotEmpty;
+          });
+        }
+      } catch (e) {
+        debugPrint("Error checking notifications: $e");
+      }
+    }
   }
 
   void _moveToLocation(double lat, double lng) {
@@ -104,7 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (_placesError != null) {
-      return Padding(
+         return Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
           _placesError!,
@@ -127,14 +153,23 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 20),
       ],
     );
-  }
+  } 
 
   Widget _buildHomeBody() {
     return Stack(
       children: [
         Column(
           children: [
-            const HomeHeader(hasNewNotifications: true),
+            // تمرير الحالة والوظيفة للهيدر
+            HomeHeader(
+              hasNewNotifications: _hasNewNotification,
+              onNotificationTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const Notifications()),
+                ).then((_) => _checkNotifications()); // إعادة التحقق عند العودة للهوم
+              },
+            ),
             MapSection(mapController: _mapController),
             Expanded(
               child: Transform.translate(
@@ -234,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ),
+          ), 
 
         if (_showSearchSheet)
           _buildBackdrop(() => setState(() => _showSearchSheet = false)),
@@ -309,11 +344,11 @@ class _HomeScreenState extends State<HomeScreen> {
               _showSearchSheet = false;
               _showFilterSheet = false;
             });
+            // تحديث حالة الإشعارات عند التنقل بين أقسام الهوم
+            _checkNotifications(); 
           },
         ),
-        body: SafeArea(
-          child: pages[_currentIndex],
-        ),
+        body: pages[_currentIndex],
       ),
     );
   }
