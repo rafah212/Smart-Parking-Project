@@ -11,10 +11,10 @@ class AppData {
   static DateTime selectedDate = DateTime.now();
   static String? selectedTime; //n
   static int durationHours = 1; 
-
   
   static DateTime? bookingEndTime; 
-  
+  static DateTime? bookingStartTime;
+
   static bool isNotificationShown = false;
 
 
@@ -31,4 +31,7 @@ class AppData {
     bookingEndTime = DateTime.now().add(Duration(hours: hours));
     isNotificationShown = false;
   }
+
+   
+  
 }

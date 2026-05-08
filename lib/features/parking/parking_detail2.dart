@@ -100,12 +100,22 @@ class _ParkingDetail2State extends State<ParkingDetail2> {
                   height: 52,
                   child: ElevatedButton(
                     onPressed: (_selectedDay != null)
-                    ? () {
-                          AppData.selectedDate = DateTime(_now.year, _now.month, _selectedDay!);
-                          
-                          // تحويل الوقت المختار إلى نص وتخزينه في AppData
-                          String formattedTime = DateFormat('hh:mm a').format(_selectedDateTime);
-                          AppData.selectedTime = formattedTime;
+                   ? () {
+                          // 1. دمج التاريخ المختار مع الوقت المختار من الـ Wheel Picker
+                          final DateTime fullDateTime = DateTime(
+                            _now.year,
+                            _now.month,
+                            _selectedDay!,
+                            _selectedDateTime.hour,
+                            _selectedDateTime.minute,
+                          );
+
+                          // 2. تخزين القيمة الأساسية للتايمر
+                          AppData.bookingStartTime = fullDateTime;
+                          AppData.bookingEndTime = fullDateTime.add(Duration(hours: AppData.durationHours));
+                          // 3. تحديث القيم النصية (إذا كنتِ تستخدمينها للعرض فقط)
+                          AppData.selectedDate = fullDateTime;
+                          AppData.selectedTime = DateFormat('hh:mm a').format(_selectedDateTime);
                           
                           Navigator.pop(context); 
                         }

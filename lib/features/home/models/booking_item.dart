@@ -8,6 +8,9 @@ class BookingItem {
   final String status;
   final DateTime? bookedAt;
   final DateTime? createdAt;
+  final DateTime? startTime;
+  final DateTime? endTime;
+  final int? durationHours;
 
   const BookingItem({
     required this.id,
@@ -19,6 +22,9 @@ class BookingItem {
     required this.status,
     this.bookedAt,
     this.createdAt,
+    this.startTime,
+    this.endTime,
+    this.durationHours,
   });
 
   factory BookingItem.fromJoinedJson(Map<String, dynamic> json) {
@@ -32,12 +38,11 @@ class BookingItem {
       spotId: json['spot_id'] as String,
       spotLabel: (json['spot_label'] ?? 'Unknown Spot') as String,
       status: (json['status'] ?? 'upcoming') as String,
-      bookedAt: json['booked_at'] != null
-          ? DateTime.tryParse(json['booked_at'])
-          : null,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
-          : null,
+      bookedAt: json['booked_at'] != null ? DateTime.tryParse(json['booked_at']) : null,
+      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
+      startTime: json['start_time'] != null ? DateTime.tryParse(json['start_time']) : null,
+      endTime: json['end_time'] != null ? DateTime.tryParse(json['end_time']) : null,
+      durationHours: json['duration_hours'] as int?,
     );
   }
 }

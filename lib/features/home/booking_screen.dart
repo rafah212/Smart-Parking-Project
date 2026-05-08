@@ -1,10 +1,11 @@
 import 'dart:async';
-
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/booking_service.dart';
 import 'package:parkliapp/features/home/models/booking_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:ui' as ui; 
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -26,19 +27,15 @@ class _BookingScreenState extends State<BookingScreen> {
   @override
   void initState() {
     super.initState();
-    selectedTab = 'Completed';
+    selectedTab = 'Upcoming'; // تغيير الافتراضي للقادمة
     _loadBookings();
   }
 
   Future<void> _loadBookings() async {
     final user = Supabase.instance.client.auth.currentUser;
-
     if (user == null) {
       setState(() {
-        _error = AppData.translate(
-          'You need to log in first',
-          'يجب تسجيل الدخول أولاً',
-        );
+        _error = AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً');
         _isLoading = false;
       });
       return;
@@ -46,9 +43,7 @@ class _BookingScreenState extends State<BookingScreen> {
 
     try {
       final bookings = await _bookingService.getUserBookings(user.id);
-
       if (!mounted) return;
-
       setState(() {
         _allBookings = bookings;
         _isLoading = false;
@@ -56,21 +51,13 @@ class _BookingScreenState extends State<BookingScreen> {
       });
 
       await _subscription?.cancel();
-      _subscription = _bookingService.streamUserBookings(user.id).listen((_) async {
-        final fresh = await _bookingService.getUserBookings(user.id);
-
+      _subscription = _bookingService.streamUserBookings(user.id).listen((fresh) {
         if (!mounted) return;
-        setState(() {
-          _allBookings = fresh;
-        });
+        setState(() { _allBookings = fresh; });
       });
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      setState(() { _error = e.toString(); _isLoading = false; });
     }
   }
 
@@ -91,69 +78,27 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _cancelBooking(BookingItem booking) async {
     try {
-      await _bookingService.cancelBooking(
-        bookingId: booking.id,
-        spotId: booking.spotId,
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            AppData.translate(
-              'Booking cancelled successfully',
-              'تم إلغاء الحجز بنجاح',
-            ),
-          ),
-        ),
-      );
+      await _bookingService.cancelBooking(bookingId: booking.id, spotId: booking.spotId);
+      _loadBookings(); // تحديث القائمة
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   Future<void> _completeBooking(BookingItem booking) async {
     try {
-      await _bookingService.completeBooking(
-        bookingId: booking.id,
-      );
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(
-            AppData.translate(
-              'Booking marked as completed',
-              'تم تحديث الحجز إلى مكتمل',
-            ),
-          ),
-        ),
-      );
+      await _bookingService.completeBooking(bookingId: booking.id);
+      _loadBookings(); // تحديث القائمة
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final bookings = _filteredBookings;
-
     return Directionality(
-      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: AppData.isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -164,56 +109,19 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(height: 20),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF237D8C)))
                   : _error != null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        )
+                      ? Center(child: Text(_error!))
                       : bookings.isEmpty
-                          ? Center(
-                              child: Text(
-                                selectedTab == 'Upcoming'
-                                    ? AppData.translate(
-                                        'No upcoming bookings found',
-                                        'لا توجد حجوزات قادمة حالياً',
-                                      )
-                                    : selectedTab == 'Completed'
-                                        ? AppData.translate(
-                                            'No completed bookings found',
-                                            'لا توجد حجوزات مكتملة',
-                                          )
-                                        : AppData.translate(
-                                            'No cancelled bookings found',
-                                            'لا توجد حجوزات ملغاة',
-                                          ),
-                                style: const TextStyle(color: Colors.grey),
-                              ),
-                            )
+                          ? Center(child: Text(AppData.translate('No bookings found', 'لا توجد حجوزات')))
                           : ListView.builder(
                               padding: const EdgeInsets.symmetric(horizontal: 15),
                               itemCount: bookings.length,
                               itemBuilder: (context, index) {
-                                final booking = bookings[index];
-
                                 return _buildBookingItem(
-                                  booking: booking,
-                                  onCancel: booking.status == 'upcoming'
-                                      ? () => _cancelBooking(booking)
-                                      : null,
-                                  onComplete: booking.status == 'upcoming'
-                                      ? () => _completeBooking(booking)
-                                      : null,
+                                  booking: bookings[index],
+                                  onCancel: () => _cancelBooking(bookings[index]),
+                                  onComplete: () => _completeBooking(bookings[index]),
                                 );
                               },
                             ),
@@ -229,22 +137,14 @@ class _BookingScreenState extends State<BookingScreen> {
       width: double.infinity,
       height: 100,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
-        ),
+        gradient: LinearGradient(colors: [Color(0xFF195A64), Color(0xFF34B5CA)]),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.only(top: 30),
-          child: Text(
-            AppData.translate('Booking', 'حجوزاتي'),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: Text(AppData.translate('My Bookings', 'حجوزاتي'),
+              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -257,7 +157,7 @@ class _BookingScreenState extends State<BookingScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFFECF5F6),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF237D8C)),
+        border: Border.all(color: const Color(0xFF237D8C).withOpacity(0.3)),
       ),
       child: Row(
         children: [
@@ -271,129 +171,91 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Widget _buildTabItem(String key, String label) {
     final isSelected = selectedTab == key;
-
     return Expanded(
       child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedTab = key;
-          });
-        },
+        onTap: () => setState(() => selectedTab = key),
         child: Container(
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: isSelected ? const Color(0xFF237D8C) : Colors.transparent,
             borderRadius: BorderRadius.circular(7),
           ),
-          child: Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? Colors.white : const Color(0xFF5A5A5A),
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          child: Text(label,
+              style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF5A5A5A), fontSize: 13, fontWeight: FontWeight.bold)),
         ),
       ),
     );
   }
 
-  Widget _buildBookingItem({
-    required BookingItem booking,
-    VoidCallback? onCancel,
-    VoidCallback? onComplete,
-  }) {
-    final statusColor = booking.status == 'completed'
-        ? const Color(0xFF43A048)
-        : booking.status == 'cancelled'
-            ? Colors.red
-            : const Color(0xFF237D8C);
-
-    final statusText = booking.status == 'completed'
-        ? AppData.translate('Done', 'مكتمل')
-        : booking.status == 'cancelled'
-            ? AppData.translate('Cancelled', 'ملغى')
-            : AppData.translate('Upcoming', 'قادم');
+  Widget _buildBookingItem({required BookingItem booking, VoidCallback? onCancel, VoidCallback? onComplete}) {
+    final statusColor = booking.status == 'completed' ? Colors.green : booking.status == 'cancelled' ? Colors.red : const Color(0xFF237D8C);
+    
+    String formattedDate = booking.startTime != null ? DateFormat('yyyy-MM-dd').format(booking.startTime!) : '---';
+    String formattedTime = booking.startTime != null && booking.endTime != null 
+        ? '${DateFormat('hh:mm a').format(booking.startTime!)} - ${DateFormat('hh:mm a').format(booking.endTime!)}' 
+        : '---';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF237D8C), width: 0.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // التعديل هنا: Expanded يمنع الـ Overflow ويسمح للاسم بالنزول لسطر ثاني
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      booking.placeName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF414141),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${AppData.translate('Spot No.', 'رقم الموقف')} ${booking.spotLabel}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFFB8B8B8),
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  booking.placeName,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF195A64)),
                 ),
               ),
+              const SizedBox(width: 8),
               Text(
-                statusText,
-                style: TextStyle(
-                  color: statusColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
+                booking.status == 'upcoming' ? AppData.translate('Upcoming', 'قادم') : (booking.status == 'completed' ? AppData.translate('Done', 'مكتمل') : AppData.translate('Cancelled', 'ملغى')),
+                style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 14, color: Colors.grey),
+              const SizedBox(width: 5),
+              Text('${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            ],
+          ),
+          const Divider(height: 25),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [const Icon(Icons.calendar_today, size: 14, color: Color(0xFF237D8C)), const SizedBox(width: 5), Text(formattedDate, style: const TextStyle(fontSize: 12))]),
+              Row(children: [const Icon(Icons.access_time, size: 14, color: Color(0xFF237D8C)), const SizedBox(width: 5), Text(formattedTime, style: const TextStyle(fontSize: 12))]),
+            ],
+          ),
           if (booking.status == 'upcoming') ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 15),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onCancel,
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    child: Text(
-                      AppData.translate('Cancel', 'إلغاء'),
-                      style: const TextStyle(color: Colors.red),
-                    ),
+                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    child: Text(AppData.translate('Cancel', 'إلغاء'), style: const TextStyle(color: Colors.red)),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onComplete,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF237D8C),
-                    ),
-                    child: Text(
-                      AppData.translate('Complete', 'إنهاء'),
-                      style: const TextStyle(color: Colors.white),
-                    ),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                    child: Text(AppData.translate('Complete', 'إنهاء'), style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ],

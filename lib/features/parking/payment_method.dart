@@ -30,8 +30,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   bool _isPaying = false;
   String? _error;
 
-  // متغيرات بيانات البطاقة الجديدة
-  String _cardNumber = "**** ** ** ****";
+  String _cardNumber = "**** ****";
   String _cardHolder = "";
   String _cardExp = "MM/YY";
   String _cardCVV = "***";
@@ -47,16 +46,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     try {
       final placeId = AppData.selectedPlaceId;
       final spotId = AppData.selectedSpotId;
-      
-      // تعديل: جلب المركبة المختارة أو أول مركبة مضافة في حساب المستخدم
       String? vehicleId = AppData.selectedVehicleId;
 
       if (placeId == null || spotId == null) {
         setState(() {
-          _error = AppData.translate(
-            'Booking information is incomplete',
-            'بيانات الحجز غير مكتملة',
-          );
+          _error = AppData.translate('Booking information is incomplete', 'بيانات الحجز غير مكتملة');
           _isLoading = false;
         });
         return;
@@ -65,9 +59,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final place = await _placeService.getPlaceById(placeId);
       final spot = await _parkingService.getSpotById(spotId);
       
-      // إذا لم تكن هناك مركبة مختارة، نحاول جلب مركبات المستخدم وعرض أول واحدة
       if (vehicleId == null) {
-        final vehicles = await _vehicleService.getMyVehicles(Supabase.instance.client.auth.currentUser!.id) ;
+        final vehicles = await _vehicleService.getMyVehicles(Supabase.instance.client.auth.currentUser!.id);
         if (vehicles.isNotEmpty) {
           vehicleId = vehicles.first.id;
           AppData.selectedVehicleId = vehicleId;
@@ -77,7 +70,6 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final vehicle = vehicleId != null ? await _vehicleService.getVehicleById(vehicleId) : null;
 
       if (!mounted) return;
-
       setState(() {
         _place = place;
         _spot = spot;
@@ -93,7 +85,6 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     }
   }
 
-  // دالة لإظهار واجهة إدخال بيانات البطاقة
   void _showAddCardSheet() {
     final TextEditingController numberController = TextEditingController();
     final TextEditingController holderController = TextEditingController();
@@ -118,7 +109,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               children: [
                 Expanded(child: TextField(controller: expController, decoration: InputDecoration(labelText: AppData.translate('Expiry Date', 'تاريخ الانتهاء')))),
                 const SizedBox(width: 20),
-                Expanded(child: TextField(controller: cvvController, decoration: InputDecoration(labelText: 'CVV'), keyboardType: TextInputType.number)),
+                Expanded(child: TextField(controller: cvvController, decoration: const InputDecoration(labelText: 'CVV'), keyboardType: TextInputType.number)),
               ],
             ),
             const SizedBox(height: 30),
@@ -155,40 +146,46 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     return pricePerHour * AppData.durationHours;
   }
 
+  // الدالة المعدلة للربط الفعلي مع Supabase
   Future<void> _payNow() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
-      _showSnackBar(AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً'));
-      return;
-    }
-    if (_place == null || _spot == null) {
-      _showSnackBar(AppData.translate('Missing booking details', 'بيانات الحجز ناقصة'));
-      return;
-    }
-    if (!_isCardInfoAdded) {
-      _showSnackBar(AppData.translate('Please add card details first', 'يرجى إضافة بيانات البطاقة أولاً'));
-      return;
-    }
-
-    setState(() => _isPaying = true);
-    try {
-      final bookingId = await _bookingService.createBooking(
-        userId: user.id,
-        placeId: _place!.id,
-        spotId: _spot!.id,
-        spotLabel: _spot!.label,
-        bookedAt: AppData.selectedDate,
-      );
-      AppData.currentBookingId = bookingId;
-      if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()));
-    } catch (e) {
-      if (!mounted) return;
-      _showSnackBar(AppData.translate('Payment failed or the parking spot is no longer available', 'فشل الدفع أو أن الموقف لم يعد متاحًا'));
-    } finally {
-      if (mounted) setState(() => _isPaying = false);
-    }
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) {
+    _showSnackBar(AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً'));
+    return;
   }
+  if (_place == null || _spot == null) {
+    _showSnackBar(AppData.translate('Missing booking details', 'بيانات الحجز ناقصة'));
+    return;
+  }
+  if (!_isCardInfoAdded) {
+    _showSnackBar(AppData.translate('Please add card details first', 'يرجى إضافة بيانات البطاقة أولاً'));
+    return;
+  }
+
+  setState(() => _isPaying = true);
+  try {
+    // التعديل هنا: نرسل الأوقات المخزنة في AppData إلى السيرفر
+    final bookingId = await _bookingService.createBooking(
+      userId: user.id,
+      placeId: _place!.id,
+      spotId: _spot!.id,
+      spotLabel: _spot!.label,
+      bookedAt: AppData.selectedDate ?? DateTime.now(),
+      // نأخذ وقت البداية والنهاية اللي تحددوا في صفحة ParkingDetail2
+      startTime: AppData.bookingStartTime, 
+      endTime: AppData.bookingEndTime,
+    );
+    
+    AppData.currentBookingId = bookingId;
+    if (!mounted) return;
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()));
+  } catch (e) {
+    if (!mounted) return;
+    _showSnackBar(AppData.translate('Payment failed', 'فشل الدفع'));
+  } finally {
+    if (mounted) setState(() => _isPaying = false);
+  }
+}
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
@@ -216,11 +213,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                               children: [
                                 Text(AppData.translate('Select payment method', 'اختر طريقة الدفع'), style: const TextStyle(color: Color(0xFF25054D), fontSize: 22, fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 24),
-                                _buildPaymentOption('Apple pay', isAdd: true),
-                                // تم إزالة STC PAY هنا
+                                _buildPaymentOption('Apple pay'),
                                 GestureDetector(
                                   onTap: _showAddCardSheet,
-                                  child: _buildPaymentOption(AppData.translate('CARD', 'بطاقة ائتمان'), isAdd: true),
+                                  child: _buildPaymentOption(AppData.translate('CARD', 'بطاقة ائتمان')),
                                 ),
                                 const SizedBox(height: 28),
                                 _buildBookingSummary(),
@@ -298,7 +294,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  Widget _buildPaymentOption(String title, {bool isAdd = true}) {
+  Widget _buildPaymentOption(String title) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -307,7 +303,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(title, style: const TextStyle(color: Color(0xFF677191), fontSize: 16)),
-          if (isAdd) const Icon(Icons.add, color: Color(0xFF237D8C), size: 20),
+          const Icon(Icons.add, color: Color(0xFF237D8C), size: 20),
         ],
       ),
     );
@@ -384,7 +380,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
-          onPressed: (_isLoading || _isPaying || _error != null) ? null : _payNow,style: ElevatedButton.styleFrom(
+          onPressed: (_isLoading || _isPaying || _error != null) ? null : _payNow,
+          style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF237D8C),
             disabledBackgroundColor: const Color(0xFFB7D7DC),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),

@@ -20,7 +20,6 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
   final ParkingService _parkingService = ParkingService();
   final VehicleService _vehicleService = VehicleService();
 
-  // السلايدر يبدأ من 1 لتجنب الشاشة الحمراء
   double _currentValue = AppData.durationHours < 1 ? 1.0 : AppData.durationHours.toDouble();
 
   Place? _place;
@@ -93,7 +92,6 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
     );
   }
 
-  // الهيدر مع سهم الرجوع
   Widget _buildHeader(String title) {
     return Container(
       height: 80,
@@ -154,17 +152,30 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
   }
 
   Widget _rowInfo(String label, String val) {
-    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label), Text(val, style: const TextStyle(fontWeight: FontWeight.bold))]);
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            val,
+            textAlign: AppData.isArabic ? TextAlign.left : TextAlign.right,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+            softWrap: true,
+          ),
+        ),
+      ],
+    );
   }
 
-  // منطقة الأزرار بالأسفل (التقويم + الدفع)
   Widget _buildBottomActionArea() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(color: Colors.white, boxShadow: [BoxShadow(blurRadius: 5, color: Colors.black12)]),
       child: Row(
         children: [
-          // أيقونة التقويم اللي كانت مختفية
           InkWell(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ParkingDetail2())),
             child: Container(
@@ -177,7 +188,17 @@ class _ParkingDetail1State extends State<ParkingDetail1> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                AppData.bookingEndTime = DateTime.now().add(Duration(hours: AppData.durationHours));
+                // 1. تحديد وقت البداية: إذا لم يتم اختياره من التقويم، نستخدم الوقت الحالي
+                DateTime start = AppData.bookingStartTime ?? DateTime.now();
+                
+                // 2. حساب وقت النهاية: البداية + الساعات المحددة بالسلايدر
+                DateTime end = start.add(Duration(hours: AppData.durationHours));
+
+                // 3. تخزين القيم في AppData بشكل نهائي لإرسالها في صفحة الدفع
+                AppData.bookingStartTime = start;
+                AppData.bookingEndTime = end;
+
+                // 4. الانتقال لصفحة الدفع
                 Navigator.push(context, MaterialPageRoute(builder: (context) => const PaymentMethodScreen()));
               },
               style: ElevatedButton.styleFrom(

@@ -16,6 +16,8 @@ class BookingService {
           status,
           booked_at,
           created_at,
+          start_time,
+          end_time,
           places (
             name
           )
@@ -59,17 +61,26 @@ class BookingService {
               createdAt: row['created_at'] != null
                   ? DateTime.tryParse(row['created_at'])
                   : null,
+              startTime: row['start_time'] != null
+                  ? DateTime.tryParse(row['start_time'])
+                  : null,
+              endTime: row['end_time'] != null
+                  ? DateTime.tryParse(row['end_time'])
+                  : null,
             );
           }).toList();
         });
   }
 
+  // التعديل الجوهري هنا في دالة createBooking
   Future<String> createBooking({
     required String userId,
     required String placeId,
     required String spotId,
     required String spotLabel,
     required DateTime bookedAt,
+    DateTime? startTime, // الحقل الجديد 1
+    DateTime? endTime,   // الحقل الجديد 2
   }) async {
     final updatedSpot = await _supabase
         .from('parking_spots')
@@ -91,6 +102,8 @@ class BookingService {
           'spot_label': spotLabel,
           'status': 'upcoming',
           'booked_at': bookedAt.toIso8601String(),
+          'start_time': startTime?.toIso8601String(), // إرسال وقت البداية
+          'end_time': endTime?.toIso8601String(),     // إرسال وقت النهاية
         })
         .select('id')
         .single();
@@ -110,6 +123,8 @@ class BookingService {
           status,
           booked_at,
           created_at,
+          start_time,
+          end_time,
           places (
             name,
             price_label,
@@ -121,7 +136,6 @@ class BookingService {
 
     return data;
   }
-
   Future<void> cancelBooking({
     required String bookingId,
     required String spotId,

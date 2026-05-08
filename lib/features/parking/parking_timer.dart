@@ -1,8 +1,12 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/booking_service.dart';
+import 'package:parkliapp/features/home/models/booking_item.dart';
 import 'package:parkliapp/features/home/home_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+import 'dart:ui' as ui;
 
 class ParkingTimerPage extends StatefulWidget {
   const ParkingTimerPage({super.key});
@@ -12,217 +16,224 @@ class ParkingTimerPage extends StatefulWidget {
 }
 
 class _ParkingTimerPageState extends State<ParkingTimerPage> {
-  int _secondsRemaining = 0;
-  int _totalSeconds = 0;
-  Timer? _timer;
+  final BookingService _bookingService = BookingService();
+  List<BookingItem> _activeBookings = [];
+  bool _isLoading = true;
+  Timer? _globalTimer;
 
   @override
   void initState() {
     super.initState();
-    _initializeTimer();
-  }
-
-  void _initializeTimer() {
-    // 1. إذا لم يكن هناك وقت نهاية محدد، اجعل كل شيء أصفاراً
-    if (AppData.bookingEndTime == null) {
-      setState(() {
-        _secondsRemaining = 0;
-        _totalSeconds = 0;
-      });
-      return;
-    }
-
-    // 2. احسب إجمالي الثواني بناءً على الساعات المحجوزة للعرض في الدائرة
-    _totalSeconds = AppData.durationHours * 3600;
-
-    // 3. تحديث الوقت المتبقي فوراً
-    _updateRemainingTime();
-
-    // 4. ابدأ المؤقت الدوري كل ثانية
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        _updateRemainingTime();
-      }
-    });
-  }
-
-  void _updateRemainingTime() {
-    if (AppData.bookingEndTime != null) {
-      final now = DateTime.now();
-      final difference = AppData.bookingEndTime!.difference(now).inSeconds;
-      
-      setState(() {
-        _secondsRemaining = difference > 0 ? difference : 0;
-      });
-
-      // إذا انتهى الوقت
-      if (_secondsRemaining <= 0) {
-        _timer?.cancel();
-        _onTimerFinished();
-      }
-    }
-  }
-
-  void _onTimerFinished() {
-    if (!AppData.isNotificationShown) {
-      debugPrint("Time is up!");
-      // هنا تضعين كود الإشعار مستقبلاً
-      AppData.isNotificationShown = true; 
-    }
+    _loadBookingsFromSupabase();
     
-    setState(() {
-      AppData.durationHours = 0;
-      AppData.bookingEndTime = null;
+    // محرك الوقت: يحدّث الشاشة كل ثانية واحدة لجعل الوقت يتحرك
+    _globalTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {});
+      }
     });
+  }
+
+  Future<void> _loadBookingsFromSupabase() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final all = await _bookingService.getUserBookings(user.id);
+      if (!mounted) return;
+      setState(() {
+        // نجلب فقط الحجوزات القائمة (upcoming)
+        _activeBookings = all.where((b) => b.status == 'upcoming').toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) setState(() { _isLoading = false; });
+    }
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _globalTimer?.cancel();
     super.dispose();
-  }
-
-  String _formatTime(int seconds) {
-    if (seconds <= 0) return "00 : 00 : 00";
-    int h = seconds ~/ 3600;
-    int m = (seconds % 3600) ~/ 60;
-    int s = seconds % 60;
-    return "${h.toString().padLeft(2, '0')} : ${m.toString().padLeft(2, '0')} : ${s.toString().padLeft(2, '0')}";
   }
 
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection: AppData.isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
-            ),
-          ),
-          child: SafeArea(
-            child: Column(
-              children: [
-                // زر الإغلاق
-                Align(
-                  alignment: AppData.isArabic ? Alignment.topRight : Alignment.topLeft,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white, size: 30),
-                      onPressed: () => Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen()),
-                        (route) => false,
-                      ),
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                // Stack الدائرة والوقت
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // الدائرة الخلفية الباهتة
-                    Opacity(
-                      opacity: 0.1,
-                      child: Container(
-                        width: 280,
-                        height: 280,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                      ),
-                    ),
-                    // الدائرة المتحركة (الرسم)
-                    SizedBox(
-                      width: 300,
-                      height: 300,
-                      child: CustomPaint(
-                        painter: TimerPainter(
-                          progress: _totalSeconds > 0 ? _secondsRemaining / _totalSeconds : 0,
-                        ),
-                      ),
-                    ),
-                    // نصوص الوقت
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _formatTime(_secondsRemaining),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 44,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 15),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _LabelText(label: AppData.translate('Hours', 'ساعات')),
-                            const SizedBox(width: 20),
-                            _LabelText(label: AppData.translate('Minutes', 'دقائق')),
-                            const SizedBox(width: 20),
-                            _LabelText(label: AppData.translate('Seconds', 'ثوانٍ')),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                const Spacer(flex: 2),
-              ],
-            ),
+        backgroundColor: const Color(0xFFF8FBFB),
+        appBar: AppBar(
+          title: Text(AppData.translate('My Active Timers', 'مؤقتات حجوزاتي')),
+          backgroundColor: const Color(0xFF195A64),
+          elevation: 0,
+          centerTitle: true,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.white, size: 28),
+            onPressed: () {
+              // العودة للهوم ومسح مكدس الصفحات لضمان عدم الرجوع للخلف
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                (route) => false,
+              );
+            },
           ),
         ),
+        body: _isLoading 
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF237D8C)))
+          : _activeBookings.isEmpty 
+            ? _buildEmptyState()
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _activeBookings.length,
+                itemBuilder: (context, index) => _buildBookingTimerCard(_activeBookings[index]),
+              ),
       ),
     );
   }
-}
 
-class TimerPainter extends CustomPainter {
-  final double progress;
-  TimerPainter({required this.progress});
+  Widget _buildBookingTimerCard(BookingItem booking) {
+    final now = DateTime.now();
+    
+    // جلب أوقات البداية والنهاية من موديل الحجز
+    final startTime = booking.startTime ?? now;
+    final endTime = booking.endTime ?? now;
+    
+    bool hasStarted = now.isAfter(startTime);
+    Duration diff = hasStarted ? endTime.difference(now) : startTime.difference(now);
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    Paint paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 8
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+    // إخفاء البطاقة إذا انتهى وقت الحجز بالكامل
+    if (hasStarted && diff.inSeconds <= 0) return const SizedBox.shrink();
 
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(size.width / 2, size.height / 2), radius: size.width / 2),
-      -math.pi / 2,
-      2 * math.pi * progress,
-      false,
-      paint,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        border: Border.all(color: const Color(0xFF237D8C).withOpacity(0.2)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // الـ Expanded هنا يمنع مشكلة تداخل النصوص (Overflow) للاسم الطويل
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      booking.placeName, 
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold, 
+                        fontSize: 16, 
+                        color: Color(0xFF195A64)
+                      )
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}', 
+                      style: const TextStyle(color: Colors.grey, fontSize: 13)
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              // أيقونة التايمر فقط (تم حذف أيقونة التقويم بناءً على طلبك)
+              Icon(
+                Icons.timer_outlined, 
+                color: hasStarted ? const Color(0xFF237D8C) : Colors.orange
+              ),
+            ],
+          ),
+          const Divider(height: 30),
+          Column(
+            children: [
+              Text(
+                hasStarted ? AppData.translate('Remaining Time', 'الوقت المتبقي') : AppData.translate('Starts in', 'يبدأ خلال'),
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 10),
+              // الـ FittedBox يضمن بقاء أرقام التايمر داخل الإطار في جميع أحجام الشاشات
+              FittedBox(
+                child: Text(
+                  _formatDuration(diff),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold, 
+                    fontSize: 24, 
+                    color: Color(0xFF195A64),
+                    letterSpacing: 1.2,
+                    fontFamily: 'monospace'
+                  ),
+                ),
+              ),
+              const SizedBox(height: 5),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _subLabel(AppData.translate('Day', 'يوم')),
+                  _subLabel(' : '),
+                  _subLabel(AppData.translate('Hour', 'ساعة')),
+                  _subLabel(' : '),
+                  _subLabel(AppData.translate('Min', 'دقيقة')),
+                  _subLabel(' : '),
+                  _subLabel(AppData.translate('Sec', 'ثانية')),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(
+              value: hasStarted 
+                ? (diff.inSeconds / endTime.difference(startTime).inSeconds).clamp(0.0, 1.0) 
+                : 1.0,
+              backgroundColor: Colors.grey[100],
+              minHeight: 6,
+              color: hasStarted ? const Color(0xFF34B5CA) : Colors.orange[200],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
-  @override
-  bool shouldRepaint(TimerPainter oldDelegate) => oldDelegate.progress != progress;
-}
+  Widget _subLabel(String text) {
+    return Text(text, style: const TextStyle(fontSize: 10, color: Colors.grey));
+  }
 
-class _LabelText extends StatelessWidget {
-  final String label;
-  const _LabelText({required this.label});
+  String _formatDuration(Duration d) {
+    if (d.inSeconds <= 0) return "00 : 00 : 00 : 00";
 
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: const TextStyle(color: Color(0xFFE2E9FD), fontSize: 13, fontWeight: FontWeight.w500),
+    int days = d.inDays;
+    int hours = d.inHours.remainder(24);
+    int minutes = d.inMinutes.remainder(60);
+    int seconds = d.inSeconds.remainder(60);
+
+    return "${days.toString().padLeft(2, '0')} : "
+           "${hours.toString().padLeft(2, '0')} : "
+           "${minutes.toString().padLeft(2, '0')} : "
+           "${seconds.toString().padLeft(2, '0')}";
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.timer_off_outlined, size: 80, color: Colors.grey),
+          const SizedBox(height: 16),
+          Text(
+            AppData.translate('No active bookings', 'لا توجد حجوزات نشطة حالياً'),
+            style: const TextStyle(color: Colors.grey, fontSize: 16),
+          ),
+        ],
+      ),
     );
   }
 }
