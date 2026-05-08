@@ -6,12 +6,14 @@ class UserProfileData {
   final String fullName;
   final String email;
   final String phoneNumber;
+  final String? avatarUrl; 
 
   const UserProfileData({
     required this.id,
     required this.fullName,
     required this.email,
     required this.phoneNumber,
+    this.avatarUrl, 
   });
 
   factory UserProfileData.fromMap(Map<String, dynamic> map) {
@@ -20,6 +22,8 @@ class UserProfileData {
       fullName: map['full_name']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
       phoneNumber: map['phone_number']?.toString() ?? '',
+      // تم تعديل المفتاح هنا ليطابق قاعدة بياناتك (avatars_url)
+      avatarUrl: map['avatars_url']?.toString(), 
     );
   }
 }
@@ -78,13 +82,21 @@ class ProfileService {
     required String fullName,
     required String email,
     required String phoneNumber,
+    String? avatarUrl, 
   }) async {
-    await _client.from('profiles').upsert({
+    final data = {
       'id': userId,
       'full_name': fullName.trim(),
       'email': email.trim().toLowerCase(),
       'phone_number': _normalizePhone(phoneNumber),
-    });
+    };
+
+    // تم تعديل المفتاح هنا ليطابق قاعدة بياناتك (avatars_url)
+    if (avatarUrl != null) {
+      data['avatars_url'] = avatarUrl;
+    }
+
+    await _client.from('profiles').upsert(data);
   }
 
   Future<void> upsertPhoneProfile({
