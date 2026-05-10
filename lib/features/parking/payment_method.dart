@@ -225,17 +225,37 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   double _calculateTotal() {
     if (_place == null) return 0.0;
 
-    const double pricePerHour = 3.25;
+    const double price = 3.25;
+
     final name = _place!.name.toLowerCase();
+    final category = _place!.category.toLowerCase();
 
-    final isGovernment = name.contains('hospital') ||
-        name.contains('university') ||
-        _place!.name.contains('مستشفى') ||
-        _place!.name.contains('جامعة');
+    final isUniversity = name.contains('university') ||
+        name.contains('college') ||
+        name.contains('جامعة') ||
+        name.contains('كلية') ||
+        category.contains('university') ||
+        category.contains('college') ||
+        category.contains('جامعة') ||
+        category.contains('كلية');
 
-    if (isGovernment) return pricePerHour;
+    final isHospital = name.contains('hospital') ||
+        name.contains('مستشفى') ||
+        category.contains('hospital') ||
+        category.contains('مستشفى');
 
-    return pricePerHour * AppData.durationHours;
+    if (isUniversity) {
+      return 0.0;
+    }
+
+    if (isHospital) {
+      return price;
+    }
+
+    final hours = AppData.durationHours <= 0 ? 1 : AppData.durationHours;
+    final cappedHours = hours > 24 ? 24 : hours;
+
+    return price * cappedHours;
   }
 
   Future<void> _payNow() async {
