@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 import 'package:parkliapp/core/services/vehicle_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MyVehiclesScreen extends StatefulWidget {
   const MyVehiclesScreen({super.key});
@@ -12,6 +12,7 @@ class MyVehiclesScreen extends StatefulWidget {
 
 class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   final VehicleService _vehicleService = VehicleService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   List<VehicleData> myVehicles = [];
   bool isSaudiSelected = true;
@@ -48,17 +49,19 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   }
 
   Future<void> _loadVehicles() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
+      if (!mounted) return;
       setState(() {
+        myVehicles = [];
         _isLoading = false;
       });
       return;
     }
 
     try {
-      final vehicles = await _vehicleService.getMyVehicles(user.id);
+      final vehicles = await _vehicleService.getMyVehicles(session.userId);
 
       if (!mounted) return;
       setState(() {
@@ -86,8 +89,21 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
   }
 
   Future<void> _addNewVehicle() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    final session = await _appSessionService.getCurrentSession();
+
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'You need to log in first',
+              'يجب تسجيل الدخول أولاً',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
 
     if (isSaudiSelected) {
       if (_lettersController.text.trim().isEmpty ||
@@ -127,16 +143,17 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
     try {
       if (isSaudiSelected) {
         await _vehicleService.addVehicle(
-          userId: user.id,
+          userId: session.userId,
           isSaudi: true,
           plateType: selectedPlateType,
-          country: AppData.translate('Saudi Arabia', 'المملكة العربية السعودية'),
+          country:
+              AppData.translate('Saudi Arabia', 'المملكة العربية السعودية'),
           plateLetters: _lettersController.text.trim(),
           plateNumbers: _numbersController.text.trim(),
         );
       } else {
         await _vehicleService.addVehicle(
-          userId: user.id,
+          userId: session.userId,
           isSaudi: false,
           plateType: AppData.translate('Other', 'أخرى'),
           country: AppData.translate('International', 'دولي'),
@@ -337,57 +354,63 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 20),
-                    if (myVehicles.isEmpty) ...[
-                      const SizedBox(height: 30),
-                      Center(
-                        child: Container(
-                          width: 180,
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: const Color(0x1A237D8C),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: const Icon(
-                            Icons.directions_car_filled_rounded,
-                            size: 100,
-                            color: Color(0xFF237D8C),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        AppData.translate('No vehicles found', 'لا توجد مركبات'),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1A485F),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        AppData.translate(
-                          'Add a vehicle manually or verify your account to retrieve your registered vehicles automatically.',
-                          'أضف مركبة يدوياً أو وثق حسابك لسحب بيانات مركباتك المسجلة تلقائياً.',
-                        ),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF898989),
-                          height: 1.5,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      _buildVerifyCard(),
-                    ] else ...[
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: myVehicles.length,
-                          itemBuilder: (context, index) =>
-                              _buildVehicleListItem(myVehicles[index]),
-                        ),
-                      ),
-                    ],
-                    const Spacer(),
+                    Expanded(
+                      child: myVehicles.isEmpty
+                          ? SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  const SizedBox(height: 30),
+                                  Center(
+                                    child: Container(
+                                      width: 180,
+                                      height: 120,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0x1A237D8C),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: const Icon(
+                                        Icons.directions_car_filled_rounded,
+                                        size: 100,
+                                        color: Color(0xFF237D8C),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 30),
+                                  Text(
+                                    AppData.translate(
+                                      'No vehicles found',
+                                      'لا توجد مركبات',
+                                    ),
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A485F),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    AppData.translate(
+                                      'Add a vehicle manually or verify your account to retrieve your registered vehicles automatically.',
+                                      'أضف مركبة يدوياً أو وثق حسابك لسحب بيانات مركباتك المسجلة تلقائياً.',
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF898989),
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 40),
+                                  _buildVerifyCard(),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: myVehicles.length,
+                              itemBuilder: (context, index) =>
+                                  _buildVehicleListItem(myVehicles[index]),
+                            ),
+                    ),
                     if (myVehicles.isEmpty)
                       SizedBox(
                         width: double.infinity,
@@ -529,14 +552,11 @@ class _MyVehiclesScreenState extends State<MyVehiclesScreen> {
         margin: const EdgeInsets.only(bottom: 15),
         padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: isSelected
-              ? const Color(0xFFF5FBFC)
-              : Colors.white,
+          color: isSelected ? const Color(0xFFF5FBFC) : Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(
-            color: isSelected
-                ? const Color(0xFF237D8C)
-                : const Color(0xFFEEEEEE),
+            color:
+                isSelected ? const Color(0xFF237D8C) : const Color(0xFFEEEEEE),
             width: isSelected ? 1.5 : 1,
           ),
           boxShadow: [

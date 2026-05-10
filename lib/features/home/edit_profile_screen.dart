@@ -1,10 +1,11 @@
- import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data'; // ضروري لعرض الصور على الويب
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -20,9 +21,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   final ProfileService _profileService = ProfileService();
   final ImagePicker _picker = ImagePicker();
+  final AppSessionService _appSessionService = AppSessionService();
 
   File? _imageFile;
-  Uint8List? _webImage; // متغير لعرض الصورة المختار في الذاكرة (لحل مشكلة الويب)
+  Uint8List?
+      _webImage; // متغير لعرض الصورة المختار في الذاكرة (لحل مشكلة الويب)
   UserProfileData? _profile; // لتخزين بيانات البروفايل الحالية بما فيها الصورة
 
   bool _isLoading = true;
@@ -44,22 +47,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Future<void> _loadProfile() async {
     try {
-      final user = Supabase.instance.client.auth.currentUser;
+      final session = await _appSessionService.getCurrentSession();
 
-      if (user == null) {
+      if (session == null) {
         if (mounted) setState(() => _isLoading = false);
         return;
       }
 
-      final profile = await _profileService.getCurrentUserProfile(user.id);
+      final profile =
+          await _profileService.getCurrentUserProfile(session.userId);
 
       if (profile != null) {
-        _profile = profile; // حفظ البيانات لعرض الصورة الحالية
+        _profile = profile;
+
         final fullName = profile.fullName.trim();
         final nameParts = fullName.isEmpty ? <String>[] : fullName.split(' ');
 
-        if (nameParts.isNotEmpty) _firstNameController.text = nameParts.first;
-        if (nameParts.length > 1) _lastNameController.text = nameParts.sublist(1).join(' ');
+        if (nameParts.isNotEmpty) {
+          _firstNameController.text = nameParts.first;
+        }
+
+        if (nameParts.length > 1) {
+          _lastNameController.text = nameParts.sublist(1).join(' ');
+        }
+
         _phoneController.text = profile.phoneNumber;
       }
     } catch (e) {
@@ -92,15 +103,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    final session = await _appSessionService.getCurrentSession();
 
-    final String fullName = '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'.trim();
-    final String phoneNumber = _normalizeSaudiPhone(_phoneController.text.trim());
+    if (session == null) return;
+
+    final String fullName =
+        '${_firstNameController.text.trim()} ${_lastNameController.text.trim()}'
+            .trim();
+
+    final String phoneNumber =
+        _normalizeSaudiPhone(_phoneController.text.trim());
 
     if (fullName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(AppData.translate('Please enter your name', 'يرجى إدخال الاسم'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Please enter your name',
+              'يرجى إدخال الاسم',
+            ),
+          ),
+        ),
+      );
       return;
     }
 
@@ -109,36 +133,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       String? avatarUrl;
 
-      // رفع الصورة إلى Supabase Storage إذا تم اختيار صورة جديدة
       if (_webImage != null) {
-        final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final fileName =
+            '${session.userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final path = 'public/$fileName';
 
-        // الرفع باستخدام bytes لضمان التوافق مع الويب
         await Supabase.instance.client.storage.from('avatars').uploadBinary(
               path,
               _webImage!,
-              fileOptions: const FileOptions(upsert: true, contentType: 'image/jpeg'),
-        ); 
+              fileOptions: const FileOptions(
+                upsert: true,
+                contentType: 'image/jpeg',
+              ),
+            );
 
-        avatarUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
+        avatarUrl =
+            Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
       }
 
-      // تحديث البيانات في جدول profiles عبر السيرفس
       await _profileService.upsertProfile(
-        userId: user.id,
+        userId: session.userId,
         fullName: fullName,
-        email: user.email ?? '',
+        email: _profile?.email ?? session.email ?? '',
         phoneNumber: phoneNumber,
-        avatarUrl: avatarUrl, // تمرير الرابط الجديد للسيرفس
+        avatarUrl: avatarUrl,
       );
 
       if (!mounted) return;
-      Navigator.pop(context, true); // العودة وإخبار الصفحة السابقة بضرورة التحديث
+      Navigator.pop(context, true);
     } catch (e) {
       debugPrint("Save error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(AppData.translate('Failed to save changes', 'فشل حفظ التغييرات'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Failed to save changes',
+              'فشل حفظ التغييرات',
+            ),
+          ),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -154,17 +188,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF414141), size: 20),
+            icon: const Icon(Icons.arrow_back_ios_new,
+                color: Color(0xFF414141), size: 20),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
             AppData.translate('Edit Profile', 'تعديل الملف الشخصي'),
-            style: const TextStyle(color: Color(0xFF2A2A2A), fontSize: 18, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+                color: Color(0xFF2A2A2A),
+                fontSize: 18,
+                fontWeight: FontWeight.w500),
           ),
           centerTitle: true,
         ),
         body: _isLoading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFF237D8C)))
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFF237D8C)))
             : SingleChildScrollView(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -174,8 +213,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       child: Column(
                         children: [
                           Text(
-                            AppData.translate('Add profile picture (Optional)', 'إضافة صورة شخصية (اختياري)'),
-                            style: const TextStyle(fontSize: 14, color: Color(0xFF898989)),
+                            AppData.translate('Add profile picture (Optional)',
+                                'إضافة صورة شخصية (اختياري)'),
+                            style: const TextStyle(
+                                fontSize: 14, color: Color(0xFF898989)),
                           ),
                           const SizedBox(height: 15),
                           GestureDetector(
@@ -187,38 +228,64 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF5FBFC),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFF237D8C)),
+                                border:
+                                    Border.all(color: const Color(0xFF237D8C)),
                               ),
                               child: _webImage != null
-                                  ? Image.memory(_webImage!, fit: BoxFit.cover) // عرض الصورة المختارة (bytes)
-                                  : (_profile?.avatarUrl != null && _profile!.avatarUrl!.isNotEmpty)
-                                      ? Image.network(_profile!.avatarUrl!, fit: BoxFit.cover) // عرض الصورة الحالية من السيرفر
-                                      : const Icon(Icons.add_a_photo_outlined, color: Color(0xFF237D8C), size: 32),
+                                  ? Image.memory(_webImage!,
+                                      fit: BoxFit
+                                          .cover) // عرض الصورة المختارة (bytes)
+                                  : (_profile?.avatarUrl != null &&
+                                          _profile!.avatarUrl!.isNotEmpty)
+                                      ? Image.network(_profile!.avatarUrl!,
+                                          fit: BoxFit
+                                              .cover) // عرض الصورة الحالية من السيرفر
+                                      : const Icon(Icons.add_a_photo_outlined,
+                                          color: Color(0xFF237D8C), size: 32),
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(height: 30),
-                    _buildTextField(AppData.translate('First Name', 'الاسم الأول'), _firstNameController),
+                    _buildTextField(
+                        AppData.translate('First Name', 'الاسم الأول'),
+                        _firstNameController),
                     const SizedBox(height: 20),
-                    _buildTextField(AppData.translate('Last Name', 'اسم العائلة'), _lastNameController),
+                    _buildTextField(
+                        AppData.translate('Last Name', 'اسم العائلة'),
+                        _lastNameController),
                     const SizedBox(height: 20),
-                    _buildTextField(AppData.translate('Mobile Number', 'رقم الجوال'), _phoneController, keyboardType: TextInputType.phone, hint: '05xxxxxxxx'),
+                    _buildTextField(
+                        AppData.translate('Mobile Number', 'رقم الجوال'),
+                        _phoneController,
+                        keyboardType: TextInputType.phone,
+                        hint: '05xxxxxxxx'),
                     const SizedBox(height: 50),
-                   SizedBox(
+                    SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
                         onPressed: _isSaving ? null : _saveProfile,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF237D8C),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                           elevation: 0,
                         ),
                         child: _isSaving
-                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
-                            : Text(AppData.translate('Save Changes', 'حفظ التغييرات'), style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5, color: Colors.white))
+                            : Text(
+                                AppData.translate(
+                                    'Save Changes', 'حفظ التغييرات'),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -228,11 +295,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, {TextInputType keyboardType = TextInputType.text, String? hint}) {
+  Widget _buildTextField(String label, TextEditingController controller,
+      {TextInputType keyboardType = TextInputType.text, String? hint}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF414141))),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF414141))),
         const SizedBox(height: 8),
         TextField(
           controller: controller,
@@ -243,8 +315,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             hintStyle: const TextStyle(color: Color(0xFFD0D0D0), fontSize: 14),
             filled: true,
             fillColor: const Color(0xFFFAFAFA),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF237D8C))),
+            enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0))),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: Color(0xFF237D8C))),
           ),
         ),
       ],

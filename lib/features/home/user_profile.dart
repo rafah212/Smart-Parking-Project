@@ -139,25 +139,16 @@ class _UserProfileState extends State<UserProfile> {
   }
 
   Future<void> _refreshProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    await _loadProfile();
+  }
 
-    final profile = await _profileService.getCurrentUserProfile(user.id);
-
-    if (!mounted) return;
-    setState(() {
-      _profile = profile;
-    });
-  } 
-  
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return Directionality(
           textDirection:
-              AppData.
-              isArabic ? TextDirection.rtl : TextDirection.ltr,
+              AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
@@ -253,8 +244,8 @@ class _UserProfileState extends State<UserProfile> {
         );
       },
     );
-  } 
-  
+  }
+
   @override
   Widget build(BuildContext context) {
     return Directionality(
@@ -280,7 +271,7 @@ class _UserProfileState extends State<UserProfile> {
                 ),
               )
             else ...[
-             _buildProfileInfo(),
+              _buildProfileInfo(),
               const SizedBox(height: 30),
               Expanded(
                 child: RefreshIndicator(
@@ -397,8 +388,8 @@ class _UserProfileState extends State<UserProfile> {
         ),
       ),
     );
-  } 
-  
+  }
+
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
@@ -441,31 +432,32 @@ class _UserProfileState extends State<UserProfile> {
             ),
           ),
           // --- التعديل المضاف لعرض الصورة ---
-          child: (_profile?.avatarUrl != null && _profile!.avatarUrl!.isNotEmpty)
-              ? Image.network(
-                  _profile!.avatarUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Text(
-                      _displayInitial,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        color: Color(0xFF1A485F),
-                        fontWeight: FontWeight.bold,
+          child:
+              (_profile?.avatarUrl != null && _profile!.avatarUrl!.isNotEmpty)
+                  ? Image.network(
+                      _profile!.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Text(
+                          _displayInitial,
+                          style: const TextStyle(
+                            fontSize: 32,
+                            color: Color(0xFF1A485F),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        _displayInitial,
+                        style: const TextStyle(
+                          fontSize: 32,
+                          color: Color(0xFF1A485F),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                )
-              : Center(
-                  child: Text(
-                    _displayInitial,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      color: Color(0xFF1A485F),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
           // --------------------------------
         ),
         const SizedBox(height: 10),

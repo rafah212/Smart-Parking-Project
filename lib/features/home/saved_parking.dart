@@ -3,7 +3,7 @@ import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/saved_places_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 
 class SavedParking extends StatefulWidget {
   const SavedParking({super.key});
@@ -14,6 +14,7 @@ class SavedParking extends StatefulWidget {
 
 class _SavedParkingState extends State<SavedParking> {
   final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   List<Place> _savedPlaces = [];
   bool _isLoading = true;
@@ -26,9 +27,9 @@ class _SavedParkingState extends State<SavedParking> {
   }
 
   Future<void> _loadSavedPlaces() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       setState(() {
         _error = AppData.translate(
           'You need to log in first',
@@ -40,7 +41,7 @@ class _SavedParkingState extends State<SavedParking> {
     }
 
     try {
-      final places = await _savedPlacesService.getSavedPlaces(user.id);
+      final places = await _savedPlacesService.getSavedPlaces(session.userId);
 
       if (!mounted) return;
       setState(() {
@@ -58,12 +59,25 @@ class _SavedParkingState extends State<SavedParking> {
   }
 
   Future<void> _removeSavedPlace(Place place) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
+    final session = await _appSessionService.getCurrentSession();
+
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'You need to log in first',
+              'يجب تسجيل الدخول أولاً',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
       await _savedPlacesService.removeSavedPlace(
-        userId: user.id,
+        userId: session.userId,
         placeId: place.id,
       );
 
@@ -159,9 +173,8 @@ class _SavedParkingState extends State<SavedParking> {
                               final place = _savedPlaces[index];
                               return Padding(
                                 padding: EdgeInsets.only(
-                                  bottom: index == _savedPlaces.length - 1
-                                      ? 0
-                                      : 16,
+                                  bottom:
+                                      index == _savedPlaces.length - 1 ? 0 : 16,
                                 ),
                                 child: _SavedPlaceCard(
                                   place: place,

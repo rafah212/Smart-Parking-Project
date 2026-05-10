@@ -6,7 +6,7 @@ import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/widgets/parking_lot_screen.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/features/home/help_support_screen.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class PlaceDetailsScreen extends StatefulWidget {
@@ -20,6 +20,7 @@ class PlaceDetailsScreen extends StatefulWidget {
 
 class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   final SavedPlacesService _savedPlacesService = SavedPlacesService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   bool _isSaved = false;
   bool _isLoadingSavedState = true;
@@ -32,9 +33,9 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   }
 
   Future<void> _loadSavedState() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       if (!mounted) return;
       setState(() {
         _isSaved = false;
@@ -45,7 +46,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
 
     try {
       final isSaved = await _savedPlacesService.isPlaceSaved(
-        userId: user.id,
+        userId: session.userId,
         placeId: widget.place.id,
       );
 
@@ -63,14 +64,15 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
   }
 
   Future<void> _toggleSavedPlace() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,
           content: Text(
-            AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً'),
+            AppData.translate(
+                'You need to log in first', 'يجب تسجيل الدخول أولاً'),
           ),
         ),
       );
@@ -86,7 +88,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
     try {
       if (_isSaved) {
         await _savedPlacesService.removeSavedPlace(
-          userId: user.id,
+          userId: session.userId,
           placeId: widget.place.id,
         );
 
@@ -108,7 +110,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
         );
       } else {
         await _savedPlacesService.savePlace(
-          userId: user.id,
+          userId: session.userId,
           placeId: widget.place.id,
         );
 
@@ -197,7 +199,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       ),
                       children: [
                         TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.parkliapp',
                         ),
                         MarkerLayer(
@@ -244,7 +247,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                       color: const Color(0xFFF4F7F8),
                       alignment: Alignment.center,
                       child: Text(
-                        AppData.translate('Location is not available', 'الموقع غير متوفر'),
+                        AppData.translate(
+                            'Location is not available', 'الموقع غير متوفر'),
                         style: const TextStyle(
                           color: Color(0xFF607176),
                           fontSize: 16,
@@ -319,7 +323,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0x1F000000)),
+                              border:
+                                  Border.all(color: const Color(0x1F000000)),
                             ),
                             child: IconButton(
                               onPressed: _isLoadingSavedState || _isSaving
@@ -368,12 +373,14 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                           Expanded(
                             child: _ActionButton(
                               icon: Icons.call_outlined,
-                              text: AppData.translate('Call support', 'اتصال بالدعم'),
+                              text: AppData.translate(
+                                  'Call support', 'اتصال بالدعم'),
                               onTap: () {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const HelpSupportScreen(),
+                                    builder: (context) =>
+                                        const HelpSupportScreen(),
                                   ),
                                 );
                               },
@@ -383,7 +390,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                           Expanded(
                             child: _ActionButton(
                               icon: Icons.directions_outlined,
-                              text: AppData.translate('Get directions', 'الاتجاهات'),
+                              text: AppData.translate(
+                                  'Get directions', 'الاتجاهات'),
                               onTap: _openDirections,
                             ),
                           ),
@@ -412,7 +420,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => ParkingLotScreen(place: widget.place),
+                                      builder: (_) =>
+                                          ParkingLotScreen(place: widget.place),
                                     ),
                                   );
                                 },
@@ -425,7 +434,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                                   ),
                                 ),
                                 child: Text(
-                                  AppData.translate('Choose Spot', 'اختر موقفاً'),
+                                  AppData.translate(
+                                      'Choose Spot', 'اختر موقفاً'),
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w700,

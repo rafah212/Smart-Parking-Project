@@ -6,7 +6,7 @@ import 'package:parkliapp/core/services/parking_service.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/parking/parking_detail1.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 
 class ParkingLotScreen extends StatefulWidget {
   final Place place;
@@ -20,6 +20,7 @@ class ParkingLotScreen extends StatefulWidget {
 class _ParkingLotScreenState extends State<ParkingLotScreen>
     with TickerProviderStateMixin {
   late final ParkingService _parkingService;
+  final AppSessionService _appSessionService = AppSessionService();
 
   List<ParkingSpot> _allSpots = [];
   List<String> _sections = [];
@@ -153,9 +154,9 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
   Future<void> _goToBookingDetails() async {
     if (_selectedSpot == null) return;
 
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           behavior: SnackBarBehavior.floating,

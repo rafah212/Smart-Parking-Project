@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/complaint_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 
 import 'home_screen.dart';
 
@@ -16,6 +16,7 @@ class _ComplainScreenState extends State<ComplainScreen> {
   late String selectedValue;
   final List<String> complainOptions = ['Parking is not available', 'Another'];
   final TextEditingController _complainController = TextEditingController();
+  final AppSessionService _appSessionService = AppSessionService();
 
   final ComplaintService _complaintService = ComplaintService();
   bool _isSubmitting = false;
@@ -33,9 +34,9 @@ class _ComplainScreenState extends State<ComplainScreen> {
   }
 
   Future<void> _submitComplaint() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -71,7 +72,7 @@ class _ComplainScreenState extends State<ComplainScreen> {
 
     try {
       await _complaintService.submitComplaint(
-        userId: user.id,
+        userId: session.userId,
         category: selectedValue,
         message: message,
       );
@@ -106,7 +107,8 @@ class _ComplainScreenState extends State<ComplainScreen> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return Directionality(
-          textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+          textDirection:
+              AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
           child: Dialog(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -280,7 +282,8 @@ class _ComplainScreenState extends State<ComplainScreen> {
                 child: TextField(
                   controller: _complainController,
                   maxLines: 5,
-                  textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
+                  textAlign:
+                      AppData.isArabic ? TextAlign.right : TextAlign.left,
                   decoration: InputDecoration(
                     hintText: AppData.translate(
                       'Write your complain here',

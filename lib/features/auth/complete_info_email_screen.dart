@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/core/services/auth_service.dart';
+import 'package:parkliapp/core/services/local_session_service.dart';
 import 'package:parkliapp/core/services/profile_service.dart';
 import 'package:parkliapp/features/location/location_permission_screen.dart';
 
@@ -21,8 +23,12 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _confirmPasswordController;
 
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void initState() {
@@ -30,6 +36,8 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     _emailController = TextEditingController(text: widget.email);
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
   }
 
   @override
@@ -37,21 +45,57 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
     _firstNameController.dispose();
     _lastNameController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _goNext() async {
     final firstName = _firstNameController.text.trim();
     final lastName = _lastNameController.text.trim();
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
+    final password = _passwordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
 
-    if (firstName.isEmpty || lastName.isEmpty || email.isEmpty) {
+    if (firstName.isEmpty ||
+        lastName.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             AppData.translate(
               'Please complete all fields',
               'يرجى إكمال جميع الحقول',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Password must be at least 6 characters',
+              'كلمة المرور يجب أن تكون 6 خانات على الأقل',
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Passwords do not match',
+              'كلمتا المرور غير متطابقتين',
             ),
           ),
         ),
@@ -82,14 +126,24 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
         return;
       }
 
+      final authService = AuthService();
       final profileService = ProfileService();
 
+      // حفظ كلمة المرور في Supabase Auth
+      await authService.updatePassword(
+        newPassword: password,
+      );
+
+      // حفظ بيانات المستخدم في جدول profiles
       await profileService.upsertProfile(
         userId: user.id,
         fullName: '$firstName $lastName',
         email: email,
         phoneNumber: '',
       );
+
+      // تثبيت أن الجلسة الحالية جلسة إيميل
+      await LocalSessionService().saveEmailSession();
 
       if (!mounted) return;
 
@@ -102,14 +156,23 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
     } catch (e) {
       if (!mounted) return;
 
+      String message = e.toString().replaceFirst('Exception: ', '');
+
+      if (message.toLowerCase().contains('password')) {
+        message = AppData.translate(
+          'Failed to save password. Please try another password.',
+          'فشل حفظ كلمة المرور. يرجى تجربة كلمة مرور أخرى.',
+        );
+      } else {
+        message = AppData.translate(
+          'Failed to save data',
+          'فشل في حفظ البيانات',
+        );
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            AppData.translate(
-              'Failed to save data',
-              'فشل في حفظ البيانات',
-            ),
-          ),
+          content: Text(message),
         ),
       );
     } finally {
@@ -138,7 +201,10 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        AppData.translate('Complete your info', 'أكمل معلوماتك'),
+                        AppData.translate(
+                          'Complete your info',
+                          'أكمل معلوماتك',
+                        ),
                         style: const TextStyle(
                           color: Color(0xFF237D8C),
                           fontSize: 28,
@@ -182,6 +248,62 @@ class _CompleteInfoEmailScreenState extends State<CompleteInfoEmailScreen> {
                           'أدخل البريد الإلكتروني',
                         ),
                         readOnly: true,
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel(
+                        AppData.translate('Password', 'كلمة المرور'),
+                      ),
+                      const SizedBox(height: 8),
+                      _CustomTextField(
+                        controller: _passwordController,
+                        hintText: AppData.translate(
+                          'Enter password',
+                          'أدخل كلمة المرور',
+                        ),
+                        obscureText: _obscurePassword,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: const Color(0xFF237D8C),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _FieldLabel(
+                        AppData.translate(
+                          'Confirm Password',
+                          'تأكيد كلمة المرور',
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _CustomTextField(
+                        controller: _confirmPasswordController,
+                        hintText: AppData.translate(
+                          'Confirm password',
+                          'أعد إدخال كلمة المرور',
+                        ),
+                        obscureText: _obscureConfirmPassword,
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              _obscureConfirmPassword =
+                                  !_obscureConfirmPassword;
+                            });
+                          },
+                          icon: Icon(
+                            _obscureConfirmPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: const Color(0xFF237D8C),
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 28),
                       Container(
@@ -319,17 +441,22 @@ class _CustomTextField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     this.readOnly = false,
+    this.obscureText = false,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
   final String hintText;
   final bool readOnly;
+  final bool obscureText;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
       readOnly: readOnly,
+      obscureText: obscureText,
       textAlign: AppData.isArabic ? TextAlign.right : TextAlign.left,
       decoration: InputDecoration(
         hintText: hintText,
@@ -344,6 +471,7 @@ class _CustomTextField extends StatelessWidget {
           horizontal: 16,
           vertical: 15,
         ),
+        suffixIcon: suffixIcon,
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: Color(0xFFE5E5E5)),

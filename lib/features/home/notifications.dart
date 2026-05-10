@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/notifications_service.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Notifications extends StatefulWidget {
@@ -12,6 +13,7 @@ class Notifications extends StatefulWidget {
 
 class _NotificationsState extends State<Notifications> {
   final NotificationsService _notificationsService = NotificationsService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   List<AppNotificationItem> _notifications = [];
   bool _isLoading = true;
@@ -24,9 +26,9 @@ class _NotificationsState extends State<Notifications> {
   }
 
   Future<void> _loadNotifications() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final session = await _appSessionService.getCurrentSession();
 
-    if (user == null) {
+    if (session == null) {
       setState(() {
         _error = AppData.translate(
           'You need to log in first',
@@ -38,7 +40,8 @@ class _NotificationsState extends State<Notifications> {
     }
 
     try {
-      final items = await _notificationsService.getNotifications(user.id);
+      final items =
+          await _notificationsService.getNotifications(session.userId);
 
       if (!mounted) return;
       setState(() {
@@ -68,10 +71,9 @@ class _NotificationsState extends State<Notifications> {
       // 2. الحذف من قاعدة البيانات Supabase
       // ملاحظة: تأكد أن اسم الجدول هو 'notifications' وأن العمود المعرف هو 'id'
       await Supabase.instance.client
-          .from('notifications') 
+          .from('notifications')
           .delete()
           .match({'id': item.id});
-          
     } catch (e) {
       debugPrint('Error deleting notification from server: $e');
       // اختياري: يمكنك إعادة الإشعار للقائمة إذا فشل الحذف في السيرفر
@@ -204,14 +206,18 @@ class _NotificationsState extends State<Notifications> {
                               ),
                             )
                           : ListView.separated(
-                              padding: const EdgeInsets.only(top: 10, bottom: 20),
+                              padding:
+                                  const EdgeInsets.only(top: 10, bottom: 20),
                               itemCount: _notifications.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                              separatorBuilder: (_, __) => const Divider(
+                                  height: 1, color: Color(0xFFF0F0F0)),
                               itemBuilder: (context, index) {
                                 final item = _notifications[index];
                                 final isFirst = index == 0;
                                 return Container(
-                                  color: isFirst ? const Color(0xFFF3F6FF) : Colors.transparent,
+                                  color: isFirst
+                                      ? const Color(0xFFF3F6FF)
+                                      : Colors.transparent,
                                   child: Stack(
                                     children: [
                                       if (isFirst)
@@ -226,20 +232,24 @@ class _NotificationsState extends State<Notifications> {
                                           ),
                                         ),
                                       Padding(
-                                        padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
+                                        padding: const EdgeInsets.fromLTRB(
+                                            20, 15, 20, 15),
                                         child: Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     _titleOf(item),
                                                     style: const TextStyle(
                                                       color: Color(0xFF237D8C),
                                                       fontSize: 17,
-                                                      fontWeight: FontWeight.w700,
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                       fontFamily: 'Lato',
                                                     ),
                                                   ),
@@ -249,7 +259,8 @@ class _NotificationsState extends State<Notifications> {
                                                     style: const TextStyle(
                                                       color: Color(0xFF677191),
                                                       fontSize: 14,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                       fontFamily: 'Lato',
                                                     ),
                                                   ),
@@ -259,7 +270,8 @@ class _NotificationsState extends State<Notifications> {
                                                     style: const TextStyle(
                                                       color: Color(0xFF9BA3BB),
                                                       fontSize: 12,
-                                                      fontWeight: FontWeight.w500,
+                                                      fontWeight:
+                                                          FontWeight.w500,
                                                     ),
                                                   ),
                                                 ],
@@ -268,11 +280,14 @@ class _NotificationsState extends State<Notifications> {
                                             const SizedBox(width: 10),
                                             // أيقونة الصح للحذف النهائي
                                             GestureDetector(
-                                              onTap: () => _removeNotification(index),
+                                              onTap: () =>
+                                                  _removeNotification(index),
                                               child: Container(
-                                                padding: const EdgeInsets.all(5),
+                                                padding:
+                                                    const EdgeInsets.all(5),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.green.withOpacity(0.1),
+                                                  color: Colors.green
+                                                      .withOpacity(0.1),
                                                   shape: BoxShape.circle,
                                                 ),
                                                 child: const Icon(

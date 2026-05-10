@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/booking_service.dart';
 import 'package:parkliapp/features/home/models/booking_item.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:ui' as ui; 
+import 'package:parkliapp/core/services/app_session_service.dart';
+import 'dart:ui' as ui;
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({super.key});
@@ -16,6 +16,7 @@ class BookingScreen extends StatefulWidget {
 
 class _BookingScreenState extends State<BookingScreen> {
   final BookingService _bookingService = BookingService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   late String selectedTab;
   List<BookingItem> _allBookings = [];
@@ -32,17 +33,22 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Future<void> _loadBookings() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
+    final session = await _appSessionService.getCurrentSession();
+
+    if (session == null) {
       setState(() {
-        _error = AppData.translate('You need to log in first', 'يجب تسجيل الدخول أولاً');
+        _error = AppData.translate(
+          'You need to log in first',
+          'يجب تسجيل الدخول أولاً',
+        );
         _isLoading = false;
       });
       return;
     }
 
     try {
-      final bookings = await _bookingService.getUserBookings(user.id);
+      final bookings = await _bookingService.getUserBookings(session.userId);
+
       if (!mounted) return;
       setState(() {
         _allBookings = bookings;
@@ -51,13 +57,19 @@ class _BookingScreenState extends State<BookingScreen> {
       });
 
       await _subscription?.cancel();
-      _subscription = _bookingService.streamUserBookings(user.id).listen((fresh) {
+      _subscription =
+          _bookingService.streamUserBookings(session.userId).listen((fresh) {
         if (!mounted) return;
-        setState(() { _allBookings = fresh; });
+        setState(() {
+          _allBookings = fresh;
+        });
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = e.toString(); _isLoading = false; });
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -78,10 +90,12 @@ class _BookingScreenState extends State<BookingScreen> {
 
   Future<void> _cancelBooking(BookingItem booking) async {
     try {
-      await _bookingService.cancelBooking(bookingId: booking.id, spotId: booking.spotId);
+      await _bookingService.cancelBooking(
+          bookingId: booking.id, spotId: booking.spotId);
       _loadBookings(); // تحديث القائمة
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -90,7 +104,8 @@ class _BookingScreenState extends State<BookingScreen> {
       await _bookingService.completeBooking(bookingId: booking.id);
       _loadBookings(); // تحديث القائمة
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -98,7 +113,8 @@ class _BookingScreenState extends State<BookingScreen> {
   Widget build(BuildContext context) {
     final bookings = _filteredBookings;
     return Directionality(
-      textDirection: AppData.isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
+      textDirection:
+          AppData.isArabic ? ui.TextDirection.rtl : ui.TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: Column(
@@ -109,19 +125,26 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(height: 20),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Color(0xFF237D8C)))
+                  ? const Center(
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF237D8C)))
                   : _error != null
                       ? Center(child: Text(_error!))
                       : bookings.isEmpty
-                          ? Center(child: Text(AppData.translate('No bookings found', 'لا توجد حجوزات')))
+                          ? Center(
+                              child: Text(AppData.translate(
+                                  'No bookings found', 'لا توجد حجوزات')))
                           : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 15),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 15),
                               itemCount: bookings.length,
                               itemBuilder: (context, index) {
                                 return _buildBookingItem(
                                   booking: bookings[index],
-                                  onCancel: () => _cancelBooking(bookings[index]),
-                                  onComplete: () => _completeBooking(bookings[index]),
+                                  onCancel: () =>
+                                      _cancelBooking(bookings[index]),
+                                  onComplete: () =>
+                                      _completeBooking(bookings[index]),
                                 );
                               },
                             ),
@@ -137,14 +160,18 @@ class _BookingScreenState extends State<BookingScreen> {
       width: double.infinity,
       height: 100,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [Color(0xFF195A64), Color(0xFF34B5CA)]),
+        gradient:
+            LinearGradient(colors: [Color(0xFF195A64), Color(0xFF34B5CA)]),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
       ),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.only(top: 30),
           child: Text(AppData.translate('My Bookings', 'حجوزاتي'),
-              style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold)),
         ),
       ),
     );
@@ -162,7 +189,8 @@ class _BookingScreenState extends State<BookingScreen> {
       child: Row(
         children: [
           _buildTabItem('Upcoming', AppData.translate('Upcoming', 'القادمة')),
-          _buildTabItem('Completed', AppData.translate('Completed', 'المكتملة')),
+          _buildTabItem(
+              'Completed', AppData.translate('Completed', 'المكتملة')),
           _buildTabItem('Cancelled', AppData.translate('Cancelled', 'الملغاة')),
         ],
       ),
@@ -181,18 +209,30 @@ class _BookingScreenState extends State<BookingScreen> {
             borderRadius: BorderRadius.circular(7),
           ),
           child: Text(label,
-              style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF5A5A5A), fontSize: 13, fontWeight: FontWeight.bold)),
+              style: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF5A5A5A),
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold)),
         ),
       ),
     );
   }
 
-  Widget _buildBookingItem({required BookingItem booking, VoidCallback? onCancel, VoidCallback? onComplete}) {
-    final statusColor = booking.status == 'completed' ? Colors.green : booking.status == 'cancelled' ? Colors.red : const Color(0xFF237D8C);
-    
-    String formattedDate = booking.startTime != null ? DateFormat('yyyy-MM-dd').format(booking.startTime!) : '---';
-    String formattedTime = booking.startTime != null && booking.endTime != null 
-        ? '${DateFormat('hh:mm a').format(booking.startTime!)} - ${DateFormat('hh:mm a').format(booking.endTime!)}' 
+  Widget _buildBookingItem(
+      {required BookingItem booking,
+      VoidCallback? onCancel,
+      VoidCallback? onComplete}) {
+    final statusColor = booking.status == 'completed'
+        ? Colors.green
+        : booking.status == 'cancelled'
+            ? Colors.red
+            : const Color(0xFF237D8C);
+
+    String formattedDate = booking.startTime != null
+        ? DateFormat('yyyy-MM-dd').format(booking.startTime!)
+        : '---';
+    String formattedTime = booking.startTime != null && booking.endTime != null
+        ? '${DateFormat('hh:mm a').format(booking.startTime!)} - ${DateFormat('hh:mm a').format(booking.endTime!)}'
         : '---';
 
     return Container(
@@ -201,7 +241,9 @@ class _BookingScreenState extends State<BookingScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)
+        ],
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
@@ -213,13 +255,23 @@ class _BookingScreenState extends State<BookingScreen> {
               Expanded(
                 child: Text(
                   booking.placeName,
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF195A64)),
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF195A64)),
                 ),
               ),
               const SizedBox(width: 8),
               Text(
-                booking.status == 'upcoming' ? AppData.translate('Upcoming', 'قادم') : (booking.status == 'completed' ? AppData.translate('Done', 'مكتمل') : AppData.translate('Cancelled', 'ملغى')),
-                style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold),
+                booking.status == 'upcoming'
+                    ? AppData.translate('Upcoming', 'قادم')
+                    : (booking.status == 'completed'
+                        ? AppData.translate('Done', 'مكتمل')
+                        : AppData.translate('Cancelled', 'ملغى')),
+                style: TextStyle(
+                    color: statusColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -228,15 +280,26 @@ class _BookingScreenState extends State<BookingScreen> {
             children: [
               const Icon(Icons.location_on, size: 14, color: Colors.grey),
               const SizedBox(width: 5),
-              Text('${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}', style: const TextStyle(fontSize: 13, color: Colors.grey)),
+              Text('${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}',
+                  style: const TextStyle(fontSize: 13, color: Colors.grey)),
             ],
           ),
           const Divider(height: 25),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(children: [const Icon(Icons.calendar_today, size: 14, color: Color(0xFF237D8C)), const SizedBox(width: 5), Text(formattedDate, style: const TextStyle(fontSize: 12))]),
-              Row(children: [const Icon(Icons.access_time, size: 14, color: Color(0xFF237D8C)), const SizedBox(width: 5), Text(formattedTime, style: const TextStyle(fontSize: 12))]),
+              Row(children: [
+                const Icon(Icons.calendar_today,
+                    size: 14, color: Color(0xFF237D8C)),
+                const SizedBox(width: 5),
+                Text(formattedDate, style: const TextStyle(fontSize: 12))
+              ]),
+              Row(children: [
+                const Icon(Icons.access_time,
+                    size: 14, color: Color(0xFF237D8C)),
+                const SizedBox(width: 5),
+                Text(formattedTime, style: const TextStyle(fontSize: 12))
+              ]),
             ],
           ),
           if (booking.status == 'upcoming') ...[
@@ -246,16 +309,24 @@ class _BookingScreenState extends State<BookingScreen> {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: onCancel,
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.red), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: Text(AppData.translate('Cancel', 'إلغاء'), style: const TextStyle(color: Colors.red)),
+                    style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8))),
+                    child: Text(AppData.translate('Cancel', 'إلغاء'),
+                        style: const TextStyle(color: Colors.red)),
                   ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: onComplete,
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF237D8C), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                    child: Text(AppData.translate('Complete', 'إنهاء'), style: const TextStyle(color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF237D8C),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8))),
+                    child: Text(AppData.translate('Complete', 'إنهاء'),
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ),
               ],

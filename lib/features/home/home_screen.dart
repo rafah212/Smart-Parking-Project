@@ -1,4 +1,4 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/place_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/app_data.dart';
@@ -17,7 +17,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 // استيراد الخدمات اللازمة للتحقق من الإشعارات
 import 'package:parkliapp/core/services/notifications_service.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/core/services/app_session_service.dart';
 import 'notifications.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -30,13 +30,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final PlaceService _placeService = PlaceService();
   final NotificationsService _notificationsService = NotificationsService();
+  final AppSessionService _appSessionService = AppSessionService();
 
   int _currentIndex = 0;
   bool _showSearchSheet = false;
   bool _showFilterSheet = false;
-  
+
   // حالة النقطة الحمراء
-  bool _hasNewNotification = false; 
+  bool _hasNewNotification = false;
 
   final MapController _mapController = MapController();
   double _selectedDistance = 40;
@@ -56,18 +57,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // دالة ذكية للتحقق من وجود إشعارات فعلية في السيرفر
   Future<void> _checkNotifications() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user != null) {
-      try {
-        final list = await _notificationsService.getNotifications(user.id);
-        if (mounted) {
-          setState(() {
-            _hasNewNotification = list.isNotEmpty;
-          });
-        }
-      } catch (e) {
-        debugPrint("Error checking notifications: $e");
+    final session = await _appSessionService.getCurrentSession();
+
+    if (session == null) {
+      if (mounted) {
+        setState(() {
+          _hasNewNotification = false;
+        });
       }
+      return;
+    }
+
+    try {
+      final list = await _notificationsService.getNotifications(session.userId);
+
+      if (mounted) {
+        setState(() {
+          _hasNewNotification = list.isNotEmpty;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error checking notifications: $e");
     }
   }
 
@@ -114,11 +124,14 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Place> get _filteredVisitedPlaces {
     final selectedMinutes = _mapSelectedTimeToMinutes(_selectedTime);
 
-    return _allPlaces.where((place) {
-      final matchesDistance = place.distanceKm <= _selectedDistance;
-      final matchesTime = place.availableInMinutes <= selectedMinutes;
-      return matchesDistance && matchesTime;
-    }).take(4).toList();
+    return _allPlaces
+        .where((place) {
+          final matchesDistance = place.distanceKm <= _selectedDistance;
+          final matchesTime = place.availableInMinutes <= selectedMinutes;
+          return matchesDistance && matchesTime;
+        })
+        .take(4)
+        .toList();
   }
 
   Widget _buildPlacesContent() {
@@ -130,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (_placesError != null) {
-         return Padding(
+      return Padding(
         padding: const EdgeInsets.all(20),
         child: Text(
           _placesError!,
@@ -153,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 20),
       ],
     );
-  } 
+  }
 
   Widget _buildHomeBody() {
     return Stack(
@@ -166,8 +179,10 @@ class _HomeScreenState extends State<HomeScreen> {
               onNotificationTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const Notifications()),
-                ).then((_) => _checkNotifications()); // إعادة التحقق عند العودة للهوم
+                  MaterialPageRoute(
+                      builder: (context) => const Notifications()),
+                ).then((_) =>
+                    _checkNotifications()); // إعادة التحقق عند العودة للهوم
               },
             ),
             MapSection(mapController: _mapController),
@@ -178,7 +193,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   width: double.infinity,
                   decoration: const BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(30)),
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.only(bottom: 20),
@@ -221,7 +237,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-
         if (AppData.durationHours > 0)
           Positioned(
             bottom: 40,
@@ -269,8 +284,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-          ), 
-
+          ),
         if (_showSearchSheet)
           _buildBackdrop(() => setState(() => _showSearchSheet = false)),
         if (_showSearchSheet)
@@ -285,7 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-
         if (_showFilterSheet)
           _buildBackdrop(() => setState(() => _showFilterSheet = false)),
         if (_showFilterSheet)
@@ -345,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
               _showFilterSheet = false;
             });
             // تحديث حالة الإشعارات عند التنقل بين أقسام الهوم
-            _checkNotifications(); 
+            _checkNotifications();
           },
         ),
         body: pages[_currentIndex],
@@ -373,9 +386,7 @@ class _FilterButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: isActive ? const Color(0xFF237D8C) : const Color(0xFFF5FBFC),
           border: Border.all(
-            color: isActive
-                ? const Color(0xFF237D8C)
-                : const Color(0x30777777),
+            color: isActive ? const Color(0xFF237D8C) : const Color(0x30777777),
           ),
           borderRadius: BorderRadius.circular(22),
         ),
