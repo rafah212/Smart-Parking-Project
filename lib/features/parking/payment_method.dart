@@ -225,33 +225,20 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   double _calculateTotal() {
     if (_place == null) return 0.0;
 
-    const double price = 3.25;
+    final pricingType = _place!.pricingType;
+    final price = _place!.pricePerHour;
 
-    final name = _place!.name.toLowerCase();
-    final category = _place!.category.toLowerCase();
-
-    final isUniversity = name.contains('university') ||
-        name.contains('college') ||
-        name.contains('جامعة') ||
-        name.contains('كلية') ||
-        category.contains('university') ||
-        category.contains('college') ||
-        category.contains('جامعة') ||
-        category.contains('كلية');
-
-    final isHospital = name.contains('hospital') ||
-        name.contains('مستشفى') ||
-        category.contains('hospital') ||
-        category.contains('مستشفى');
-
-    if (isUniversity) {
+    // الجامعات والكليات: مجاني
+    if (pricingType == 'free') {
       return 0.0;
     }
 
-    if (isHospital) {
+    // المستشفيات: 3.75 مرة واحدة فقط
+    if (pricingType == 'flat') {
       return price;
     }
 
+    // باقي الأماكن: 3.75 لكل ساعة
     final hours = AppData.durationHours <= 0 ? 1 : AppData.durationHours;
     final cappedHours = hours > 24 ? 24 : hours;
 

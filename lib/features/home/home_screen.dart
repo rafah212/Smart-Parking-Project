@@ -185,7 +185,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     _checkNotifications()); // إعادة التحقق عند العودة للهوم
               },
             ),
-            MapSection(mapController: _mapController),
+            MapSection(
+              mapController: _mapController,
+              places: _allPlaces,
+            ),
             Expanded(
               child: Transform.translate(
                 offset: const Offset(0, -18),

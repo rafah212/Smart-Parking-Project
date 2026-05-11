@@ -3,11 +3,18 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:parkliapp/app_data.dart';
+import 'package:parkliapp/features/home/models/place.dart';
+import 'package:parkliapp/features/home/widgets/place_details_screen.dart';
 
 class MapSection extends StatefulWidget {
   final MapController? mapController;
+  final List<Place> places;
 
-  const MapSection({super.key, this.mapController});
+  const MapSection({
+    super.key,
+    this.mapController,
+    this.places = const [],
+  });
 
   @override
   State<MapSection> createState() => _MapSectionState();
@@ -23,7 +30,8 @@ class _MapSectionState extends State<MapSection> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  static const LatLng _defaultLocation = LatLng(24.7136, 46.6753);
+  static const LatLng _defaultLocation =
+      LatLng(26.0900, 43.9870); // عنيزة تقريبًا
 
   @override
   void initState() {
@@ -49,7 +57,11 @@ class _MapSectionState extends State<MapSection> {
         return;
       }
 
-      final permission = await Geolocator.checkPermission();
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
 
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
@@ -100,6 +112,30 @@ class _MapSectionState extends State<MapSection> {
     }
   }
 
+  List<Marker> _buildPlaceMarkers() {
+    return widget.places
+        .where((place) => place.lat != 0 && place.lng != 0)
+        .map(
+          (place) => Marker(
+            point: LatLng(place.lat, place.lng),
+            width: 52,
+            height: 52,
+            child: GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PlaceDetailsScreen(place: place),
+                  ),
+                );
+              },
+              child: _ParkLiPlaceMarker(place: place),
+            ),
+          ),
+        )
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentLocation = _userLatLng ?? _defaultLocation;
@@ -125,7 +161,7 @@ class _MapSectionState extends State<MapSection> {
                 mapController: _effectiveController,
                 options: MapOptions(
                   initialCenter: currentLocation,
-                  initialZoom: _userLatLng != null ? 15 : 11,
+                  initialZoom: _userLatLng != null ? 15 : 12,
                   interactionOptions: const InteractionOptions(
                     flags: InteractiveFlag.all,
                   ),
@@ -138,10 +174,11 @@ class _MapSectionState extends State<MapSection> {
                   ),
                   MarkerLayer(
                     markers: [
+                      ..._buildPlaceMarkers(),
                       Marker(
                         point: currentLocation,
-                        width: 40,
-                        height: 40,
+                        width: 42,
+                        height: 42,
                         child: const _UserLocationMarker(),
                       ),
                     ],
@@ -195,6 +232,56 @@ class _MapSectionState extends State<MapSection> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ParkLiPlaceMarker extends StatelessWidget {
+  const _ParkLiPlaceMarker({
+    required this.place,
+  });
+
+  final Place place;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: place.name,
+      child: Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: const Color(0xFF237D8C),
+            width: 2,
+          ),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x33000000),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: ClipOval(
+          child: Image.asset(
+            'assets/images/parkli_logo.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) {
+              return Container(
+                color: const Color(0xFFEAF4F5),
+                alignment: Alignment.center,
+                child: const Icon(
+                  Icons.local_parking_rounded,
+                  color: Color(0xFF237D8C),
+                  size: 24,
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

@@ -13,6 +13,10 @@ class Place {
   final bool isNearby;
   final int availableInMinutes;
 
+  // جديد
+  final String pricingType; // free, flat, hourly
+  final double pricePerHour;
+
   const Place({
     required this.id,
     required this.name,
@@ -27,6 +31,8 @@ class Place {
     required this.imagePath,
     this.isNearby = false,
     this.availableInMinutes = 0,
+    this.pricingType = 'hourly',
+    this.pricePerHour = 3.75,
   });
 
   factory Place.fromJson(
@@ -34,7 +40,11 @@ class Place {
     int availableSlots = 0,
     int totalSlots = 0,
   }) {
-    final distance = (json['distance_km'] ?? 0).toDouble();
+    final distance = (json['distance_km'] as num?)?.toDouble() ?? 0.0;
+
+    final pricingType = (json['pricing_type'] ?? 'hourly').toString();
+
+    final pricePerHour = (json['price_per_hour'] as num?)?.toDouble() ?? 3.75;
 
     return Place(
       id: json['id'] as String,
@@ -44,12 +54,14 @@ class Place {
       availableSlots: availableSlots,
       totalSlots: totalSlots,
       distanceKm: distance,
-      priceLabel: (json['price_label'] ?? 'FREE') as String,
-      lat: (json['lat'] ?? 0).toDouble(),
-      lng: (json['lng'] ?? 0).toDouble(),
+      priceLabel: (json['price_label'] ?? '3.75 SR/h') as String,
+      lat: (json['lat'] as num?)?.toDouble() ?? 0.0,
+      lng: (json['lng'] as num?)?.toDouble() ?? 0.0,
       imagePath: (json['image_path'] ?? '') as String,
       isNearby: distance <= 5,
       availableInMinutes: 0,
+      pricingType: pricingType,
+      pricePerHour: pricePerHour,
     );
   }
 
@@ -67,6 +79,8 @@ class Place {
     String? imagePath,
     bool? isNearby,
     int? availableInMinutes,
+    String? pricingType,
+    double? pricePerHour,
   }) {
     return Place(
       id: id ?? this.id,
@@ -82,6 +96,8 @@ class Place {
       imagePath: imagePath ?? this.imagePath,
       isNearby: isNearby ?? this.isNearby,
       availableInMinutes: availableInMinutes ?? this.availableInMinutes,
+      pricingType: pricingType ?? this.pricingType,
+      pricePerHour: pricePerHour ?? this.pricePerHour,
     );
   }
 }

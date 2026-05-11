@@ -31,22 +31,62 @@ class HomeHeader extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: Text(
-                AppData.translate(
-                  'Welcome back \nFind a parking spot nearby',
-                  'أهلاً بك مجدداً \nابحث عن موقف سيارات قريب'
-                ),
-                style: const TextStyle(
-                  color: Color(0xFFE5E5E5),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  height: 1.3,
-                  letterSpacing: 0.7,
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: AppData.isArabic
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    textDirection: AppData.isArabic
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    children: [
+                      Text(
+                        AppData.translate(
+                          'Welcome back',
+                          'أهلاً بك مجدداً',
+                        ),
+                        style: const TextStyle(
+                          color: Color(0xFFE5E5E5),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          height: 1.3,
+                          letterSpacing: 0.7,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        '👋',
+                        style: TextStyle(
+                          fontSize: 22,
+                          height: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppData.translate(
+                      'Find a parking spot nearby',
+                      'ابحث عن موقف سيارات قريب',
+                    ),
+                    textAlign:
+                        AppData.isArabic ? TextAlign.right : TextAlign.left,
+                    style: const TextStyle(
+                      color: Color(0xFFE5E5E5),
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                ],
               ),
             ),
             GestureDetector(
-              onTap: onNotificationTap, // تفعيل النقر
+              onTap: onNotificationTap,
               child: Container(
                 width: 40,
                 height: 40,
@@ -57,7 +97,11 @@ class HomeHeader extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Icon(Icons.notifications, color: Colors.white, size: 20),
+                    const Icon(
+                      Icons.notifications,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                     if (hasNewNotifications)
                       Positioned(
                         top: 10,
@@ -69,7 +113,10 @@ class HomeHeader extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF3C3F46), width: 1.5),
+                            border: Border.all(
+                              color: const Color(0xFF3C3F46),
+                              width: 1.5,
+                            ),
                           ),
                         ),
                       ),
