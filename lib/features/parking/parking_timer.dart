@@ -114,8 +114,8 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
     final now = DateTime.now();
 
     // جلب أوقات البداية والنهاية من موديل الحجز
-    final startTime = booking.startTime ?? now;
-    final endTime = booking.endTime ?? now;
+    final startTime = (booking.startTime ?? now).toLocal();
+    final endTime = (booking.endTime ?? now).toLocal();
 
     bool hasStarted = now.isAfter(startTime);
     Duration diff =

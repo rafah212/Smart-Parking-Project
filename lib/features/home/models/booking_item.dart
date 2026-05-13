@@ -34,14 +34,24 @@ class BookingItem {
       id: json['id'] as String,
       userId: json['user_id'] as String,
       placeId: json['place_id'] as String,
-      placeName: place != null ? (place['name'] ?? 'Unknown Place') as String : 'Unknown Place',
+      placeName: place != null
+          ? (place['name'] ?? 'Unknown Place') as String
+          : 'Unknown Place',
       spotId: json['spot_id'] as String,
       spotLabel: (json['spot_label'] ?? 'Unknown Spot') as String,
       status: (json['status'] ?? 'upcoming') as String,
-      bookedAt: json['booked_at'] != null ? DateTime.tryParse(json['booked_at']) : null,
-      createdAt: json['created_at'] != null ? DateTime.tryParse(json['created_at']) : null,
-      startTime: json['start_time'] != null ? DateTime.tryParse(json['start_time']) : null,
-      endTime: json['end_time'] != null ? DateTime.tryParse(json['end_time']) : null,
+      bookedAt: json['booked_at'] != null
+          ? DateTime.tryParse(json['booked_at'])?.toLocal()
+          : null,
+      createdAt: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])?.toLocal()
+          : null,
+      startTime: json['start_time'] != null
+          ? DateTime.tryParse(json['start_time'])?.toLocal()
+          : null,
+      endTime: json['end_time'] != null
+          ? DateTime.tryParse(json['end_time'])?.toLocal()
+          : null,
       durationHours: json['duration_hours'] as int?,
     );
   }

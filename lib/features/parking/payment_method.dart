@@ -86,8 +86,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final spot = await _parkingService.getSpotById(spotId);
 
       if (vehicleId == null) {
-        final vehicles =
-            await _vehicleService.getMyVehicles(session.userId);
+        final vehicles = await _vehicleService.getMyVehicles(session.userId);
 
         if (vehicles.isNotEmpty) {
           vehicleId = vehicles.first.id;
@@ -123,24 +122,19 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 
   void _showAddCardSheet() {
-    final TextEditingController numberController =
-        TextEditingController();
+    final TextEditingController numberController = TextEditingController();
 
-    final TextEditingController holderController =
-        TextEditingController();
+    final TextEditingController holderController = TextEditingController();
 
-    final TextEditingController expController =
-        TextEditingController();
+    final TextEditingController expController = TextEditingController();
 
-    final TextEditingController cvvController =
-        TextEditingController();
+    final TextEditingController cvvController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
@@ -231,28 +225,21 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      const Color(0xFF237D8C),
+                  backgroundColor: const Color(0xFF237D8C),
                   shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
                 onPressed: () {
-                  final cleanCard =
-                      numberController.text.replaceAll(' ', '');
+                  final cleanCard = numberController.text.replaceAll(' ', '');
 
-                  final isCardValid =
-                      cleanCard.length == 16;
+                  final isCardValid = cleanCard.length == 16;
 
-                  final isHolderValid =
-                      holderController.text.trim().isNotEmpty;
+                  final isHolderValid = holderController.text.trim().isNotEmpty;
 
-                  final isExpValid =
-                      expController.text.length == 5;
+                  final isExpValid = expController.text.length == 5;
 
-                  final isCvvValid =
-                      cvvController.text.length == 3;
+                  final isCvvValid = cvvController.text.length == 3;
 
                   if (!isCardValid ||
                       !isHolderValid ||
@@ -306,19 +293,15 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       return price;
     }
 
-    final hours = AppData.durationHours <= 0
-        ? 1
-        : AppData.durationHours;
+    final hours = AppData.durationHours <= 0 ? 1 : AppData.durationHours;
 
-    final cappedHours =
-        hours > 24 ? 24 : hours;
+    final cappedHours = hours > 24 ? 24 : hours;
 
     return price * cappedHours;
   }
 
   Future<void> _payNow() async {
-    final session =
-        await _appSessionService.getCurrentSession();
+    final session = await _appSessionService.getCurrentSession();
 
     if (session == null) {
       _showSnackBar(
@@ -356,19 +339,14 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     setState(() => _isPaying = true);
 
     try {
-      final bookingId =
-          await _bookingService.createBooking(
+      final bookingId = await _bookingService.createBooking(
         userId: session.userId,
         placeId: _place!.id,
         spotId: _spot!.id,
         spotLabel: _spot!.label,
-        bookedAt:
-            AppData.selectedDate ??
-                DateTime.now(),
-        startTime:
-            AppData.bookingStartTime,
-        endTime:
-            AppData.bookingEndTime,
+        bookedAt: AppData.selectedDate ?? DateTime.now(),
+        startTime: AppData.bookingStartTime,
+        endTime: AppData.bookingEndTime,
       );
 
       AppData.currentBookingId = bookingId;
@@ -378,8 +356,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) =>
-              const PaymentSuccessScreen(),
+          builder: (context) => const PaymentSuccessScreen(),
         ),
       );
     } catch (e) {
@@ -409,10 +386,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final totalPrice = _calculateTotal();
 
     return Directionality(
-      textDirection:
-          AppData.isArabic
-              ? TextDirection.rtl
-              : TextDirection.ltr,
+      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
@@ -427,83 +401,61 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child:
-                            CircularProgressIndicator(
-                          color:
-                              Color(0xFF237D8C),
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF237D8C),
                         ),
                       )
                     : _error != null
                         ? Center(
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.all(
-                                   24),
+                              padding: const EdgeInsets.all(24),
                               child: Text(
                                 _error!,
-                                textAlign:
-                                    TextAlign.center,
-                                style:
-                                    const TextStyle(
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
                           )
                         : SingleChildScrollView(
-                            padding:
-                                const EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 30,
                             ),
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   AppData.translate(
                                     'Select payment method',
                                     'اختر طريقة الدفع',
                                   ),
-                                  style:
-                                      const TextStyle(
-                                    color: Color(
-                                        0xFF25054D),
+                                  style: const TextStyle(
+                                    color: Color(0xFF25054D),
                                     fontSize: 22,
-                                    fontWeight:
-                                        FontWeight
-                                            .w600,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                                const SizedBox(
-                                    height: 24),
-                                _buildPaymentOption(
-                                    'Apple pay'),
+                                const SizedBox(height: 24),
+                                _buildPaymentOption('Apple pay'),
                                 GestureDetector(
-                                  onTap:
-                                      _showAddCardSheet,
-                                  child:
-                                      _buildPaymentOption(
+                                  onTap: _showAddCardSheet,
+                                  child: _buildPaymentOption(
                                     AppData.translate(
                                       'CARD',
                                       'بطاقة ائتمان',
                                     ),
                                   ),
                                 ),
-                                const SizedBox(
-                                    height: 28),
+                                const SizedBox(height: 28),
                                 _buildBookingSummary(),
-                                const SizedBox(
-                                    height: 30),
+                                const SizedBox(height: 30),
                                 _buildCreditCardView(),
-                                const SizedBox(
-                                    height: 40),
-                                _buildTotalCard(
-                                    totalPrice),
+                                const SizedBox(height: 40),
+                                _buildTotalCard(totalPrice),
                               ],
                             ),
                           ),
@@ -517,19 +469,17 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 
   Widget _buildBookingSummary() {
-    final placeName =
-        _place?.name ??
-            AppData.translate(
-              'Unknown location',
-              'موقع غير محدد',
-            );
+    final placeName = _place?.name ??
+        AppData.translate(
+          'Unknown location',
+          'موقع غير محدد',
+        );
 
-    final spotLabel =
-        _spot?.label ??
-            AppData.translate(
-              'Unknown slot',
-              'موقف غير محدد',
-            );
+    final spotLabel = _spot?.label ??
+        AppData.translate(
+          'Unknown slot',
+          'موقف غير محدد',
+        );
 
     final vehicleText = _vehicle == null
         ? AppData.translate(
@@ -543,15 +493,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FCFD),
-        borderRadius:
-            BorderRadius.circular(14),
-            border: Border.all(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
           color: const Color(0xFFE5E5E5),
         ),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildSummaryRow(
             AppData.translate(
@@ -589,12 +537,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  Widget _buildSummaryRow(
-      String label,
-      String value) {
+  Widget _buildSummaryRow(String label, String value) {
     return Row(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           flex: 3,
@@ -612,10 +557,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           flex: 5,
           child: Text(
             value,
-            textAlign:
-                AppData.isArabic
-                    ? TextAlign.left
-                    : TextAlign.right,
+            textAlign: AppData.isArabic ? TextAlign.left : TextAlign.right,
             style: const TextStyle(
               color: Color(0xFF1A485F),
               fontSize: 14,
@@ -649,8 +591,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         ),
       ),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             AppData.translate(
@@ -678,24 +619,20 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   Widget _buildPaymentOption(String title) {
     return Container(
-      margin:
-          const EdgeInsets.only(bottom: 12),
-      padding:
-          const EdgeInsets.symmetric(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 14,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FCFD),
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: const Color(0xFFE5E5E5),
         ),
       ),
       child: Row(
-        mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
@@ -717,8 +654,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   Widget _buildCreditCardView() {
     return Center(
       child: ConstrainedBox(
-        constraints:
-            const BoxConstraints(
+        constraints: const BoxConstraints(
           maxWidth: 350,
         ),
         child: Container(
@@ -726,12 +662,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           height: 200,
           decoration: BoxDecoration(
             color: const Color(0xFF567DF4),
-            borderRadius:
-                BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(
-                    0.1),
+                color: Colors.black.withOpacity(0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               )
@@ -740,38 +674,26 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           child: Stack(
             children: [
               Positioned(
-                right: AppData.isArabic
-                    ? null
-                    : -50,
-                left: AppData.isArabic
-                    ? -50
-                    : null,
+                right: AppData.isArabic ? null : -50,
+                left: AppData.isArabic ? -50 : null,
                 top: -80,
                 child: Container(
                   width: 250,
                   height: 250,
-                  decoration:
-                      const BoxDecoration(
+                  decoration: const BoxDecoration(
                     color: Color(0xFF192242),
                     shape: BoxShape.circle,
                   ),
                 ),
               ),
               Padding(
-                padding:
-                    const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(20.0),
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .start,
-                  mainAxisAlignment:
-                      MainAxisAlignment
-                          .spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment
-                              .spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildCardDataColumn(
                           'CVV',
@@ -786,28 +708,22 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     ),
                     Text(
                       _cardNumber,
-                      style:
-                          const TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                         letterSpacing: 2,
                       ),
                     ),
                     Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment
-                              .spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         _buildCardDataColumn(
                           AppData.translate(
                             'HOLDER',
                             'صاحب البطاقة',
                           ),
-                          _cardHolder.isEmpty
-                              ? "---"
-                              : _cardHolder,
+                          _cardHolder.isEmpty ? "---" : _cardHolder,
                         ),
                         _buildCardDataColumn(
                           'EXP',
@@ -825,12 +741,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  Widget _buildCardDataColumn(
-      String label,
-      String value) {
+  Widget _buildCardDataColumn(String label, String value) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -851,30 +764,23 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       ],
     );
   }
-      Widget _buildBottomPayButton(
-      BuildContext context) {
+
+  Widget _buildBottomPayButton(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(24.0),
       child: SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
           onPressed:
-              (_isLoading ||
-                      _isPaying ||
-                      _error != null ||
-                      !_isCardInfoAdded)
+              (_isLoading || _isPaying || _error != null || !_isCardInfoAdded)
                   ? null
                   : _payNow,
           style: ElevatedButton.styleFrom(
-            backgroundColor:
-                const Color(0xFF237D8C),
-            disabledBackgroundColor:
-                const Color(0xFFB7D7DC),
+            backgroundColor: const Color(0xFF237D8C),
+            disabledBackgroundColor: const Color(0xFFB7D7DC),
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(28),
+              borderRadius: BorderRadius.circular(28),
             ),
             elevation: 0,
           ),
@@ -882,8 +788,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               ? const SizedBox(
                   width: 22,
                   height: 22,
-                  child:
-                      CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeWidth: 2.2,
                     color: Colors.white,
                   ),
@@ -896,8 +801,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
         ),
@@ -906,15 +810,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 }
 
-class _CardNumberFormatter
-    extends TextInputFormatter {
+class _CardNumberFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    String text =
-        newValue.text.replaceAll(' ', '');
+    String text = newValue.text.replaceAll(' ', '');
 
     if (text.length > 16) {
       text = text.substring(0, 16);
@@ -922,36 +824,30 @@ class _CardNumberFormatter
 
     String formatted = '';
 
-    for (int i = 0;
-        i < text.length;
-        i++) {
+    for (int i = 0; i < text.length; i++) {
       formatted += text[i];
 
-      if ((i + 1) % 4 == 0 &&
-          i + 1 != text.length) {
+      if ((i + 1) % 4 == 0 && i + 1 != text.length) {
         formatted += ' ';
       }
     }
 
     return TextEditingValue(
       text: formatted,
-      selection:
-          TextSelection.collapsed(
+      selection: TextSelection.collapsed(
         offset: formatted.length,
       ),
     );
   }
 }
 
-class _ExpiryDateFormatter
-    extends TextInputFormatter {
+class _ExpiryDateFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    String text =
-        newValue.text.replaceAll('/', '');
+    String text = newValue.text.replaceAll('/', '');
 
     if (text.length > 4) {
       text = text.substring(0, 4);
@@ -960,16 +856,14 @@ class _ExpiryDateFormatter
     String formatted = '';
 
     if (text.length >= 2) {
-      formatted =
-          '${text.substring(0, 2)}/${text.substring(2)}';
+      formatted = '${text.substring(0, 2)}/${text.substring(2)}';
     } else {
       formatted = text;
     }
 
     return TextEditingValue(
       text: formatted,
-      selection:
-          TextSelection.collapsed(
+      selection: TextSelection.collapsed(
         offset: formatted.length,
       ),
     );
@@ -990,21 +884,14 @@ class _CustomHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            Color(0xFF195A64),
-            Color(0xFF34B5CA)
-          ],
+          colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
         ),
       ),
       child: Stack(
         children: [
           Positioned(
-            left: AppData.isArabic
-                ? null
-                : 10,
-            right: AppData.isArabic
-                ? 10
-                : null,
+            left: AppData.isArabic ? null : 10,
+            right: AppData.isArabic ? 10 : null,
             top: 0,
             bottom: 0,
             child: IconButton(
@@ -1015,8 +902,7 @@ class _CustomHeader extends StatelessWidget {
                 color: Colors.white,
                 size: 20,
               ),
-              onPressed: () =>
-                  Navigator.pop(context),
+              onPressed: () => Navigator.pop(context),
             ),
           ),
           Center(
@@ -1025,8 +911,7 @@ class _CustomHeader extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
-                fontWeight:
-                    FontWeight.bold,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),

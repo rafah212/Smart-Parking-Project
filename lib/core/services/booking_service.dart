@@ -37,50 +37,50 @@ class BookingService {
         .eq('user_id', userId)
         .order('created_at')
         .map((rows) {
-          final sorted = [...rows];
-          sorted.sort((a, b) {
-            final aDate =
-                DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
-            final bDate =
-                DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
-            return bDate.compareTo(aDate);
-          });
+      final sorted = [...rows];
 
-          return sorted.map((row) {
-            return BookingItem(
-              id: row['id'] as String,
-              userId: row['user_id'] as String,
-              placeId: row['place_id'] as String,
-              placeName: 'Loading...',
-              spotId: row['spot_id'] as String,
-              spotLabel: (row['spot_label'] ?? 'Unknown Spot') as String,
-              status: (row['status'] ?? 'upcoming') as String,
-              bookedAt: row['booked_at'] != null
-                  ? DateTime.tryParse(row['booked_at'])
-                  : null,
-              createdAt: row['created_at'] != null
-                  ? DateTime.tryParse(row['created_at'])
-                  : null,
-              startTime: row['start_time'] != null
-                  ? DateTime.tryParse(row['start_time'])
-                  : null,
-              endTime: row['end_time'] != null
-                  ? DateTime.tryParse(row['end_time'])
-                  : null,
-            );
-          }).toList();
-        });
+      sorted.sort((a, b) {
+        final aDate =
+            DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
+        final bDate =
+            DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
+        return bDate.compareTo(aDate);
+      });
+
+      return sorted.map((row) {
+        return BookingItem(
+          id: row['id'] as String,
+          userId: row['user_id'] as String,
+          placeId: row['place_id'] as String,
+          placeName: 'Loading...',
+          spotId: row['spot_id'] as String,
+          spotLabel: (row['spot_label'] ?? 'Unknown Spot') as String,
+          status: (row['status'] ?? 'upcoming') as String,
+          bookedAt: row['booked_at'] != null
+              ? DateTime.tryParse(row['booked_at'])?.toLocal()
+              : null,
+          createdAt: row['created_at'] != null
+              ? DateTime.tryParse(row['created_at'])?.toLocal()
+              : null,
+          startTime: row['start_time'] != null
+              ? DateTime.tryParse(row['start_time'])?.toLocal()
+              : null,
+          endTime: row['end_time'] != null
+              ? DateTime.tryParse(row['end_time'])?.toLocal()
+              : null,
+        );
+      }).toList();
+    });
   }
 
-  // التعديل الجوهري هنا في دالة createBooking
   Future<String> createBooking({
     required String userId,
     required String placeId,
     required String spotId,
     required String spotLabel,
     required DateTime bookedAt,
-    DateTime? startTime, // الحقل الجديد 1
-    DateTime? endTime,   // الحقل الجديد 2
+    DateTime? startTime,
+    DateTime? endTime,
   }) async {
     final updatedSpot = await _supabase
         .from('parking_spots')
@@ -101,9 +101,9 @@ class BookingService {
           'spot_id': spotId,
           'spot_label': spotLabel,
           'status': 'upcoming',
-          'booked_at': bookedAt.toIso8601String(),
-          'start_time': startTime?.toIso8601String(), // إرسال وقت البداية
-          'end_time': endTime?.toIso8601String(),     // إرسال وقت النهاية
+          'booked_at': bookedAt.toUtc().toIso8601String(),
+          'start_time': startTime?.toUtc().toIso8601String(),
+          'end_time': endTime?.toUtc().toIso8601String(),
         })
         .select('id')
         .single();
@@ -136,6 +136,7 @@ class BookingService {
 
     return data;
   }
+
   Future<void> cancelBooking({
     required String bookingId,
     required String spotId,
