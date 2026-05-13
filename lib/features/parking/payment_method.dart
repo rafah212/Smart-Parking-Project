@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:parkliapp/app_data.dart';
 import 'package:parkliapp/core/services/app_session_service.dart';
 import 'package:parkliapp/core/services/booking_service.dart';
@@ -49,13 +50,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
       if (session == null) {
         if (!mounted) return;
+
         setState(() {
           _error = AppData.translate(
             'You need to log in first',
             'يجب تسجيل الدخول أولاً',
           );
+
           _isLoading = false;
         });
+
         return;
       }
 
@@ -65,13 +69,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
       if (placeId == null || spotId == null) {
         if (!mounted) return;
+
         setState(() {
           _error = AppData.translate(
             'Booking information is incomplete',
             'بيانات الحجز غير مكتملة',
           );
+
           _isLoading = false;
         });
+
         return;
       }
 
@@ -79,7 +86,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       final spot = await _parkingService.getSpotById(spotId);
 
       if (vehicleId == null) {
-        final vehicles = await _vehicleService.getMyVehicles(session.userId);
+        final vehicles =
+            await _vehicleService.getMyVehicles(session.userId);
 
         if (vehicles.isNotEmpty) {
           vehicleId = vehicles.first.id;
@@ -108,22 +116,31 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           'Failed to load payment details',
           'فشل تحميل بيانات الدفع',
         );
+
         _isLoading = false;
       });
     }
   }
 
   void _showAddCardSheet() {
-    final TextEditingController numberController = TextEditingController();
-    final TextEditingController holderController = TextEditingController();
-    final TextEditingController expController = TextEditingController();
-    final TextEditingController cvvController = TextEditingController();
+    final TextEditingController numberController =
+        TextEditingController();
+
+    final TextEditingController holderController =
+        TextEditingController();
+
+    final TextEditingController expController =
+        TextEditingController();
+
+    final TextEditingController cvvController =
+        TextEditingController();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(25)),
       ),
       builder: (context) => Padding(
         padding: EdgeInsets.only(
@@ -136,7 +153,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              AppData.translate('Enter Card Details', 'أدخل بيانات البطاقة'),
+              AppData.translate(
+                'Enter Card Details',
+                'أدخل بيانات البطاقة',
+              ),
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -147,14 +167,26 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             TextField(
               controller: numberController,
               decoration: InputDecoration(
-                labelText: AppData.translate('Card Number', 'رقم البطاقة'),
+                labelText: AppData.translate(
+                  'Card Number',
+                  'رقم البطاقة',
+                ),
+                hintText: '1234 5678 1234 5678',
               ),
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(16),
+                _CardNumberFormatter(),
+              ],
             ),
             TextField(
               controller: holderController,
               decoration: InputDecoration(
-                labelText: AppData.translate('Holder Name', 'اسم صاحب البطاقة'),
+                labelText: AppData.translate(
+                  'Holder Name',
+                  'اسم صاحب البطاقة',
+                ),
               ),
             ),
             Row(
@@ -167,15 +199,29 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                         'Expiry Date',
                         'تاريخ الانتهاء',
                       ),
+                      hintText: 'MM/YY',
                     ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                      _ExpiryDateFormatter(),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 20),
                 Expanded(
                   child: TextField(
                     controller: cvvController,
-                    decoration: const InputDecoration(labelText: 'CVV'),
+                    decoration: const InputDecoration(
+                      labelText: 'CVV',
+                      hintText: '123',
+                    ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(3),
+                    ],
                   ),
                 ),
               ],
@@ -185,25 +231,47 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF237D8C),
+                  backgroundColor:
+                      const Color(0xFF237D8C),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                   ),
                 ),
                 onPressed: () {
+                  final cleanCard =
+                      numberController.text.replaceAll(' ', '');
+
+                  final isCardValid =
+                      cleanCard.length == 16;
+
+                  final isHolderValid =
+                      holderController.text.trim().isNotEmpty;
+
+                  final isExpValid =
+                      expController.text.length == 5;
+
+                  final isCvvValid =
+                      cvvController.text.length == 3;
+
+                  if (!isCardValid ||
+                      !isHolderValid ||
+                      !isExpValid ||
+                      !isCvvValid) {
+                    _showSnackBar(
+                      AppData.translate(
+                        'Please fill all fields correctly',
+                        'يرجى تعبئة جميع الخانات بشكل صحيح',
+                      ),
+                    );
+                    return;
+                  }
+
                   setState(() {
-                    _cardNumber = numberController.text.isEmpty
-                        ? _cardNumber
-                        : numberController.text;
-                    _cardHolder = holderController.text.isEmpty
-                        ? _cardHolder
-                        : holderController.text;
-                    _cardExp = expController.text.isEmpty
-                        ? _cardExp
-                        : expController.text;
-                    _cardCVV = cvvController.text.isEmpty
-                        ? _cardCVV
-                        : cvvController.text;
+                    _cardNumber = numberController.text;
+                    _cardHolder = holderController.text;
+                    _cardExp = expController.text;
+                    _cardCVV = cvvController.text;
                     _isCardInfoAdded = true;
                   });
 
@@ -211,7 +279,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 },
                 child: Text(
                   AppData.translate('Save', 'حفظ'),
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ),
@@ -228,25 +298,27 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final pricingType = _place!.pricingType;
     final price = _place!.pricePerHour;
 
-    // الجامعات والكليات: مجاني
     if (pricingType == 'free') {
       return 0.0;
     }
 
-    // المستشفيات: 3.75 مرة واحدة فقط
     if (pricingType == 'flat') {
       return price;
     }
 
-    // باقي الأماكن: 3.75 لكل ساعة
-    final hours = AppData.durationHours <= 0 ? 1 : AppData.durationHours;
-    final cappedHours = hours > 24 ? 24 : hours;
+    final hours = AppData.durationHours <= 0
+        ? 1
+        : AppData.durationHours;
+
+    final cappedHours =
+        hours > 24 ? 24 : hours;
 
     return price * cappedHours;
   }
 
   Future<void> _payNow() async {
-    final session = await _appSessionService.getCurrentSession();
+    final session =
+        await _appSessionService.getCurrentSession();
 
     if (session == null) {
       _showSnackBar(
@@ -255,6 +327,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           'يجب تسجيل الدخول أولاً',
         ),
       );
+
       return;
     }
 
@@ -265,6 +338,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           'بيانات الحجز ناقصة',
         ),
       );
+
       return;
     }
 
@@ -275,20 +349,26 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           'يرجى إضافة بيانات البطاقة أولاً',
         ),
       );
+
       return;
     }
 
     setState(() => _isPaying = true);
 
     try {
-      final bookingId = await _bookingService.createBooking(
+      final bookingId =
+          await _bookingService.createBooking(
         userId: session.userId,
         placeId: _place!.id,
         spotId: _spot!.id,
         spotLabel: _spot!.label,
-        bookedAt: AppData.selectedDate ?? DateTime.now(),
-        startTime: AppData.bookingStartTime,
-        endTime: AppData.bookingEndTime,
+        bookedAt:
+            AppData.selectedDate ??
+                DateTime.now(),
+        startTime:
+            AppData.bookingStartTime,
+        endTime:
+            AppData.bookingEndTime,
       );
 
       AppData.currentBookingId = bookingId;
@@ -298,7 +378,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const PaymentSuccessScreen(),
+          builder: (context) =>
+              const PaymentSuccessScreen(),
         ),
       );
     } catch (e) {
@@ -328,70 +409,101 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     final totalPrice = _calculateTotal();
 
     return Directionality(
-      textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
+      textDirection:
+          AppData.isArabic
+              ? TextDirection.rtl
+              : TextDirection.ltr,
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
           child: Column(
             children: [
               _CustomHeader(
-                title: AppData.translate('Payment method', 'طريقة الدفع'),
+                title: AppData.translate(
+                  'Payment method',
+                  'طريقة الدفع',
+                ),
               ),
               Expanded(
                 child: _isLoading
                     ? const Center(
-                        child: CircularProgressIndicator(
-                          color: Color(0xFF237D8C),
+                        child:
+                            CircularProgressIndicator(
+                          color:
+                              Color(0xFF237D8C),
                         ),
                       )
                     : _error != null
                         ? Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(24),
+                              padding:
+                                  const EdgeInsets.all(
+                                   24),
                               child: Text(
                                 _error!,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
+                                textAlign:
+                                    TextAlign.center,
+                                style:
+                                    const TextStyle(
                                   color: Colors.red,
                                   fontSize: 15,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight:
+                                      FontWeight.w600,
                                 ),
                               ),
                             ),
                           )
                         : SingleChildScrollView(
-                            padding: const EdgeInsets.symmetric(
+                            padding:
+                                const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 30,
                             ),
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
                               children: [
                                 Text(
                                   AppData.translate(
                                     'Select payment method',
                                     'اختر طريقة الدفع',
                                   ),
-                                  style: const TextStyle(
-                                    color: Color(0xFF25054D),
+                                  style:
+                                      const TextStyle(
+                                    color: Color(
+                                        0xFF25054D),
                                     fontSize: 22,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight:
+                                        FontWeight
+                                            .w600,
                                   ),
                                 ),
-                                const SizedBox(height: 24),
-                                _buildPaymentOption('Apple pay'),
+                                const SizedBox(
+                                    height: 24),
+                                _buildPaymentOption(
+                                    'Apple pay'),
                                 GestureDetector(
-                                  onTap: _showAddCardSheet,
-                                  child: _buildPaymentOption(
-                                    AppData.translate('CARD', 'بطاقة ائتمان'),
+                                  onTap:
+                                      _showAddCardSheet,
+                                  child:
+                                      _buildPaymentOption(
+                                    AppData.translate(
+                                      'CARD',
+                                      'بطاقة ائتمان',
+                                    ),
                                   ),
                                 ),
-                                const SizedBox(height: 28),
+                                const SizedBox(
+                                    height: 28),
                                 _buildBookingSummary(),
-                                const SizedBox(height: 30),
+                                const SizedBox(
+                                    height: 30),
                                 _buildCreditCardView(),
-                                const SizedBox(height: 40),
-                                _buildTotalCard(totalPrice),
+                                const SizedBox(
+                                    height: 40),
+                                _buildTotalCard(
+                                    totalPrice),
                               ],
                             ),
                           ),
@@ -406,13 +518,24 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   Widget _buildBookingSummary() {
     final placeName =
-        _place?.name ?? AppData.translate('Unknown location', 'موقع غير محدد');
+        _place?.name ??
+            AppData.translate(
+              'Unknown location',
+              'موقع غير محدد',
+            );
 
     final spotLabel =
-        _spot?.label ?? AppData.translate('Unknown slot', 'موقف غير محدد');
+        _spot?.label ??
+            AppData.translate(
+              'Unknown slot',
+              'موقف غير محدد',
+            );
 
     final vehicleText = _vehicle == null
-        ? AppData.translate('No vehicle selected', 'لم يتم اختيار مركبة')
+        ? AppData.translate(
+            'No vehicle selected',
+            'لم يتم اختيار مركبة',
+          )
         : '${_vehicle!.plateType} • ${_vehicle!.displayPlate}';
 
     return Container(
@@ -420,29 +543,45 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FCFD),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        borderRadius:
+            BorderRadius.circular(14),
+            border: Border.all(
+          color: const Color(0xFFE5E5E5),
+        ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           _buildSummaryRow(
-            AppData.translate('Parking Location', 'الموقع'),
+            AppData.translate(
+              'Parking Location',
+              'الموقع',
+            ),
             placeName,
           ),
           const SizedBox(height: 10),
           _buildSummaryRow(
-            AppData.translate('Slot', 'الموقف'),
+            AppData.translate(
+              'Slot',
+              'الموقف',
+            ),
             spotLabel,
           ),
           const SizedBox(height: 10),
           _buildSummaryRow(
-            AppData.translate('Vehicle', 'المركبة'),
+            AppData.translate(
+              'Vehicle',
+              'المركبة',
+            ),
             vehicleText,
           ),
           const SizedBox(height: 10),
           _buildSummaryRow(
-            AppData.translate('Duration', 'المدة'),
+            AppData.translate(
+              'Duration',
+              'المدة',
+            ),
             '${AppData.durationHours} ${AppData.translate('hours', 'ساعات')}',
           ),
         ],
@@ -450,9 +589,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  Widget _buildSummaryRow(String label, String value) {
+  Widget _buildSummaryRow(
+      String label,
+      String value) {
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         Expanded(
           flex: 3,
@@ -470,7 +612,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           flex: 5,
           child: Text(
             value,
-            textAlign: AppData.isArabic ? TextAlign.left : TextAlign.right,
+            textAlign:
+                AppData.isArabic
+                    ? TextAlign.left
+                    : TextAlign.right,
             style: const TextStyle(
               color: Color(0xFF1A485F),
               fontSize: 14,
@@ -504,10 +649,14 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            AppData.translate('TOTAL', 'الإجمالي'),
+            AppData.translate(
+              'TOTAL',
+              'الإجمالي',
+            ),
             style: const TextStyle(
               color: Color(0xFF677191),
               fontSize: 16,
@@ -529,15 +678,24 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   Widget _buildPaymentOption(String title) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin:
+          const EdgeInsets.only(bottom: 12),
+      padding:
+          const EdgeInsets.symmetric(
+        horizontal: 16,
+        vertical: 14,
+      ),
       decoration: BoxDecoration(
         color: const Color(0xFFF7FCFD),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E5E5)),
+        borderRadius:
+            BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE5E5E5),
+        ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment:
+            MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
@@ -559,16 +717,21 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   Widget _buildCreditCardView() {
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 350),
+        constraints:
+            const BoxConstraints(
+          maxWidth: 350,
+        ),
         child: Container(
           width: double.infinity,
           height: 200,
           decoration: BoxDecoration(
             color: const Color(0xFF567DF4),
-            borderRadius: BorderRadius.circular(15),
+            borderRadius:
+                BorderRadius.circular(15),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withOpacity(
+                    0.1),
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               )
@@ -577,28 +740,43 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           child: Stack(
             children: [
               Positioned(
-                right: AppData.isArabic ? null : -50,
-                left: AppData.isArabic ? -50 : null,
+                right: AppData.isArabic
+                    ? null
+                    : -50,
+                left: AppData.isArabic
+                    ? -50
+                    : null,
                 top: -80,
                 child: Container(
                   width: 250,
                   height: 250,
-                  decoration: const BoxDecoration(
+                  decoration:
+                      const BoxDecoration(
                     color: Color(0xFF192242),
                     shape: BoxShape.circle,
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding:
+                    const EdgeInsets.all(20.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment:
+                      CrossAxisAlignment
+                          .start,
+                  mainAxisAlignment:
+                      MainAxisAlignment
+                          .spaceBetween,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment:
+                          MainAxisAlignment
+                              .spaceBetween,
                       children: [
-                        _buildCardDataColumn('CVV', _cardCVV),
+                        _buildCardDataColumn(
+                          'CVV',
+                          _cardCVV,
+                        ),
                         const Icon(
                           Icons.credit_card,
                           size: 25,
@@ -608,21 +786,33 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     ),
                     Text(
                       _cardNumber,
-                      style: const TextStyle(
+                      style:
+                          const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                            FontWeight.bold,
                         letterSpacing: 2,
                       ),
                     ),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment:
+                          MainAxisAlignment
+                              .spaceBetween,
                       children: [
                         _buildCardDataColumn(
-                          AppData.translate('HOLDER', 'صاحب البطاقة'),
-                          _cardHolder.isEmpty ? "---" : _cardHolder,
+                          AppData.translate(
+                            'HOLDER',
+                            'صاحب البطاقة',
+                          ),
+                          _cardHolder.isEmpty
+                              ? "---"
+                              : _cardHolder,
                         ),
-                        _buildCardDataColumn('EXP', _cardExp),
+                        _buildCardDataColumn(
+                          'EXP',
+                          _cardExp,
+                        ),
                       ],
                     ),
                   ],
@@ -635,9 +825,12 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  Widget _buildCardDataColumn(String label, String value) {
+  Widget _buildCardDataColumn(
+      String label,
+      String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -658,21 +851,30 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       ],
     );
   }
-
-  Widget _buildBottomPayButton(BuildContext context) {
+      Widget _buildBottomPayButton(
+      BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding:
+          const EdgeInsets.all(24.0),
       child: SizedBox(
         width: double.infinity,
         height: 52,
         child: ElevatedButton(
           onPressed:
-              (_isLoading || _isPaying || _error != null) ? null : _payNow,
+              (_isLoading ||
+                      _isPaying ||
+                      _error != null ||
+                      !_isCardInfoAdded)
+                  ? null
+                  : _payNow,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF237D8C),
-            disabledBackgroundColor: const Color(0xFFB7D7DC),
+            backgroundColor:
+                const Color(0xFF237D8C),
+            disabledBackgroundColor:
+                const Color(0xFFB7D7DC),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
+              borderRadius:
+                  BorderRadius.circular(28),
             ),
             elevation: 0,
           ),
@@ -680,17 +882,22 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               ? const SizedBox(
                   width: 22,
                   height: 22,
-                  child: CircularProgressIndicator(
+                  child:
+                      CircularProgressIndicator(
                     strokeWidth: 2.2,
                     color: Colors.white,
                   ),
                 )
               : Text(
-                  AppData.translate('Pay', 'ادفع الآن'),
+                  AppData.translate(
+                    'Pay',
+                    'ادفع الآن',
+                  ),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
         ),
@@ -699,10 +906,82 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 }
 
+class _CardNumberFormatter
+    extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text =
+        newValue.text.replaceAll(' ', '');
+
+    if (text.length > 16) {
+      text = text.substring(0, 16);
+    }
+
+    String formatted = '';
+
+    for (int i = 0;
+        i < text.length;
+        i++) {
+      formatted += text[i];
+
+      if ((i + 1) % 4 == 0 &&
+          i + 1 != text.length) {
+        formatted += ' ';
+      }
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection:
+          TextSelection.collapsed(
+        offset: formatted.length,
+      ),
+    );
+  }
+}
+
+class _ExpiryDateFormatter
+    extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text =
+        newValue.text.replaceAll('/', '');
+
+    if (text.length > 4) {
+      text = text.substring(0, 4);
+    }
+
+    String formatted = '';
+
+    if (text.length >= 2) {
+      formatted =
+          '${text.substring(0, 2)}/${text.substring(2)}';
+    } else {
+      formatted = text;
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection:
+          TextSelection.collapsed(
+        offset: formatted.length,
+      ),
+    );
+  }
+}
+
 class _CustomHeader extends StatelessWidget {
   final String title;
 
-  const _CustomHeader({required this.title});
+  const _CustomHeader({
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -711,14 +990,21 @@ class _CustomHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF195A64), Color(0xFF34B5CA)],
+          colors: [
+            Color(0xFF195A64),
+            Color(0xFF34B5CA)
+          ],
         ),
       ),
       child: Stack(
         children: [
           Positioned(
-            left: AppData.isArabic ? null : 10,
-            right: AppData.isArabic ? 10 : null,
+            left: AppData.isArabic
+                ? null
+                : 10,
+            right: AppData.isArabic
+                ? 10
+                : null,
             top: 0,
             bottom: 0,
             child: IconButton(
@@ -729,7 +1015,8 @@ class _CustomHeader extends StatelessWidget {
                 color: Colors.white,
                 size: 20,
               ),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () =>
+                  Navigator.pop(context),
             ),
           ),
           Center(
@@ -738,7 +1025,8 @@ class _CustomHeader extends StatelessWidget {
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
           ),
