@@ -91,8 +91,8 @@ class _SavedParkingState extends State<SavedParking> {
           behavior: SnackBarBehavior.floating,
           content: Text(
             AppData.translate(
-              '${place.name} removed from saved',
-              'تمت إزالة ${place.name} من المحفوظات',
+              '${place.displayName} removed from saved',
+              'تمت إزالة ${place.displayName} من المحفوظات',
             ),
           ),
         ),
@@ -238,7 +238,7 @@ class _SavedPlaceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    place.name,
+                    place.displayName,
                     style: const TextStyle(
                       color: Color(0xFF414141),
                       fontSize: 14,

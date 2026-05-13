@@ -355,7 +355,7 @@ class _PopularCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 alignment: AppData.isArabic ? Alignment.centerRight : Alignment.centerLeft,
                 child: Text(
-                  place.name,
+                  place.displayName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -419,7 +419,7 @@ class _NearbyPlaceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    place.name,
+                    place.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

@@ -113,7 +113,7 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
   Widget _buildBookingTimerCard(BookingItem booking) {
     final now = DateTime.now();
 
-    // جلب أوقات البداية والنهاية من موديل الحجز
+    //  أوقات البداية والنهاية من موديل الحجز
     final startTime = (booking.startTime ?? now).toLocal();
     final endTime = (booking.endTime ?? now).toLocal();
 
@@ -144,7 +144,7 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(booking.placeName,
+                    Text(booking.displayPlaceName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -160,7 +160,7 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                 ),
               ),
               const SizedBox(width: 10),
-              // أيقونة التايمر فقط (تم حذف أيقونة التقويم بناءً على طلبك)
+              // أيقونة التايمر فقط 
               Icon(Icons.timer_outlined,
                   color: hasStarted ? const Color(0xFF237D8C) : Colors.orange),
             ],

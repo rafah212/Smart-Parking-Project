@@ -234,7 +234,7 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
         body: SafeArea(
           child: Column(
             children: [
-              _ParkingHeader(title: widget.place.name),
+              _ParkingHeader(title: widget.place.displayName),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
                 child: Column(
@@ -318,7 +318,7 @@ class _ParkingLotScreenState extends State<ParkingLotScreen>
                               ),
               ),
               _BottomBookingBar(
-                placeName: widget.place.name,
+                placeName: widget.place.displayName,
                 sectionLabel: _currentSectionLabel,
                 distanceKm: widget.place.distanceKm,
                 priceLabel: widget.place.priceLabel,

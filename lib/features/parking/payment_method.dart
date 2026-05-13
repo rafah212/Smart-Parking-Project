@@ -9,6 +9,8 @@ import 'package:parkliapp/core/services/vehicle_service.dart';
 import 'package:parkliapp/features/home/models/place.dart';
 import 'package:parkliapp/features/home/models/parking_spot.dart';
 import 'package:parkliapp/features/parking/payment_success.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:parkliapp/features/home/my_vehicles_screen.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   const PaymentMethodScreen({super.key});
@@ -92,6 +94,40 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           vehicleId = vehicles.first.id;
           AppData.selectedVehicleId = vehicleId;
         }
+      }
+
+      if (vehicleId == null) {
+        if (!mounted) return;
+
+        setState(() {
+          _error = AppData.translate(
+            'Please add a vehicle before completing your booking.',
+            'يرجى إضافة مركبة قبل إتمام الحجز.',
+          );
+          _isLoading = false;
+        });
+
+        Future.delayed(const Duration(milliseconds: 600), () async {
+          if (!mounted) return;
+
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const MyVehiclesScreen(),
+            ),
+          );
+
+          if (!mounted) return;
+
+          setState(() {
+            _isLoading = true;
+            _error = null;
+          });
+
+          await _loadPaymentDetails();
+        });
+
+        return;
       }
 
       final vehicle = vehicleId != null
@@ -350,6 +386,19 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       );
 
       AppData.currentBookingId = bookingId;
+
+      await Supabase.instance.client.from('notifications').insert({
+        'user_id': session.userId,
+        'title': AppData.translate(
+          'Booking confirmed',
+          'تم تأكيد الحجز',
+        ),
+        'body': AppData.translate(
+          'Your parking timer has started. Please leave or renew your booking before the timer ends to avoid penalties.',
+          'بدأ مؤقت الحجز. يرجى مغادرة الموقف أو تجديد الحجز قبل انتهاء الوقت لتجنب المخالفة.',
+        ),
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      });
 
       if (!mounted) return;
 

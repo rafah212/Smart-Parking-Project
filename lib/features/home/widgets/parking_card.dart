@@ -60,7 +60,7 @@ class ParkingCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: SizedBox(
-                height: 72,
+                height: AppData.isArabic ? 84 : 72,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -68,7 +68,7 @@ class ParkingCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            place.name,
+                            place.displayName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
@@ -89,7 +89,7 @@ class ParkingCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
                     Text(
                       place.branchName.isNotEmpty
                           ? place.branchName
@@ -102,14 +102,14 @@ class ParkingCard extends StatelessWidget {
                         fontWeight: FontWeight.w400,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 5),
                     Text(
                       '${place.availableSlots}/${place.totalSlots} ${AppData.translate('Total slots available', 'إجمالي المواقف المتاحة')}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Color(0xFF237D8C),
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                       ),
                     ),

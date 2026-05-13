@@ -102,8 +102,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             behavior: SnackBarBehavior.floating,
             content: Text(
               AppData.translate(
-                '${widget.place.name} removed from saved',
-                'تمت إزالة ${widget.place.name} من المحفوظات',
+                '${widget.place.displayName} removed from saved',
+                'تمت إزالة ${widget.place.displayName} من المحفوظات',
               ),
             ),
           ),
@@ -124,8 +124,8 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
             behavior: SnackBarBehavior.floating,
             content: Text(
               AppData.translate(
-                '${widget.place.name} saved successfully',
-                'تم حفظ ${widget.place.name} بنجاح',
+                '${widget.place.displayName} saved successfully',
+                'تم حفظ ${widget.place.displayName} بنجاح',
               ),
             ),
           ),
@@ -277,7 +277,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                   const SizedBox(height: 12),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 13),
-                    child: _SearchPreviewBar(text: widget.place.name),
+                    child: _SearchPreviewBar(text: widget.place.displayName),
                   ),
                 ],
               ),
@@ -309,7 +309,7 @@ class _PlaceDetailsScreenState extends State<PlaceDetailsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              widget.place.name,
+                              widget.place.displayName,
                               style: const TextStyle(
                                 color: Color(0xFF1A485F),
                                 fontSize: 16,

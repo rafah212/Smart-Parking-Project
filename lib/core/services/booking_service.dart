@@ -5,9 +5,7 @@ class BookingService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   Future<List<BookingItem>> getUserBookings(String userId) async {
-    final data = await _supabase
-        .from('bookings')
-        .select('''
+    final data = await _supabase.from('bookings').select('''
           id,
           user_id,
           place_id,
@@ -19,11 +17,10 @@ class BookingService {
           start_time,
           end_time,
           places (
-            name
+            name,
+            name_ar
           )
-        ''')
-        .eq('user_id', userId)
-        .order('created_at', ascending: false);
+        ''').eq('user_id', userId).order('created_at', ascending: false);
 
     return (data as List)
         .map((e) => BookingItem.fromJoinedJson(e as Map<String, dynamic>))
@@ -37,40 +34,41 @@ class BookingService {
         .eq('user_id', userId)
         .order('created_at')
         .map((rows) {
-      final sorted = [...rows];
+          final sorted = [...rows];
 
-      sorted.sort((a, b) {
-        final aDate =
-            DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
-        final bDate =
-            DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
-        return bDate.compareTo(aDate);
-      });
+          sorted.sort((a, b) {
+            final aDate =
+                DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(2000);
+            final bDate =
+                DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(2000);
+            return bDate.compareTo(aDate);
+          });
 
-      return sorted.map((row) {
-        return BookingItem(
-          id: row['id'] as String,
-          userId: row['user_id'] as String,
-          placeId: row['place_id'] as String,
-          placeName: 'Loading...',
-          spotId: row['spot_id'] as String,
-          spotLabel: (row['spot_label'] ?? 'Unknown Spot') as String,
-          status: (row['status'] ?? 'upcoming') as String,
-          bookedAt: row['booked_at'] != null
-              ? DateTime.tryParse(row['booked_at'])?.toLocal()
-              : null,
-          createdAt: row['created_at'] != null
-              ? DateTime.tryParse(row['created_at'])?.toLocal()
-              : null,
-          startTime: row['start_time'] != null
-              ? DateTime.tryParse(row['start_time'])?.toLocal()
-              : null,
-          endTime: row['end_time'] != null
-              ? DateTime.tryParse(row['end_time'])?.toLocal()
-              : null,
-        );
-      }).toList();
-    });
+          return sorted.map((row) {
+            return BookingItem(
+              id: row['id'] as String,
+              userId: row['user_id'] as String,
+              placeId: row['place_id'] as String,
+              placeName: 'Loading...',
+              placeNameAr: 'جارٍ التحميل...',
+              spotId: row['spot_id'] as String,
+              spotLabel: (row['spot_label'] ?? 'Unknown Spot') as String,
+              status: (row['status'] ?? 'upcoming') as String,
+              bookedAt: row['booked_at'] != null
+                  ? DateTime.tryParse(row['booked_at'])?.toLocal()
+                  : null,
+              createdAt: row['created_at'] != null
+                  ? DateTime.tryParse(row['created_at'])?.toLocal()
+                  : null,
+              startTime: row['start_time'] != null
+                  ? DateTime.tryParse(row['start_time'])?.toLocal()
+                  : null,
+              endTime: row['end_time'] != null
+                  ? DateTime.tryParse(row['end_time'])?.toLocal()
+                  : null,
+            );
+          }).toList();
+        });
   }
 
   Future<String> createBooking({
@@ -112,9 +110,7 @@ class BookingService {
   }
 
   Future<Map<String, dynamic>?> getBookingById(String bookingId) async {
-    final data = await _supabase
-        .from('bookings')
-        .select('''
+    final data = await _supabase.from('bookings').select('''
           id,
           user_id,
           place_id,
@@ -130,9 +126,7 @@ class BookingService {
             price_label,
             distance_km
           )
-        ''')
-        .eq('id', bookingId)
-        .maybeSingle();
+        ''').eq('id', bookingId).maybeSingle();
 
     return data;
   }
@@ -143,13 +137,11 @@ class BookingService {
   }) async {
     await _supabase
         .from('bookings')
-        .update({'status': 'cancelled'})
-        .eq('id', bookingId);
+        .update({'status': 'cancelled'}).eq('id', bookingId);
 
     await _supabase
         .from('parking_spots')
-        .update({'status': 'available'})
-        .eq('id', spotId);
+        .update({'status': 'available'}).eq('id', spotId);
   }
 
   Future<void> completeBooking({
@@ -157,7 +149,6 @@ class BookingService {
   }) async {
     await _supabase
         .from('bookings')
-        .update({'status': 'completed'})
-        .eq('id', bookingId);
+        .update({'status': 'completed'}).eq('id', bookingId);
   }
 }

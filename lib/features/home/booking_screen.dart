@@ -50,19 +50,11 @@ class _BookingScreenState extends State<BookingScreen> {
       final bookings = await _bookingService.getUserBookings(session.userId);
 
       if (!mounted) return;
+
       setState(() {
         _allBookings = bookings;
         _isLoading = false;
         _error = null;
-      });
-
-      await _subscription?.cancel();
-      _subscription =
-          _bookingService.streamUserBookings(session.userId).listen((fresh) {
-        if (!mounted) return;
-        setState(() {
-          _allBookings = fresh;
-        });
       });
     } catch (e) {
       if (!mounted) return;
@@ -251,10 +243,9 @@ class _BookingScreenState extends State<BookingScreen> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // التعديل هنا: Expanded يمنع الـ Overflow ويسمح للاسم بالنزول لسطر ثاني
               Expanded(
                 child: Text(
-                  booking.placeName,
+                  booking.displayPlaceName,
                   style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,

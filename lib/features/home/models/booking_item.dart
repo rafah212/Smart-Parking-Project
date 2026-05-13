@@ -1,8 +1,11 @@
+import 'package:parkliapp/app_data.dart';
+
 class BookingItem {
   final String id;
   final String userId;
   final String placeId;
   final String placeName;
+  final String placeNameAr;
   final String spotId;
   final String spotLabel;
   final String status;
@@ -17,6 +20,7 @@ class BookingItem {
     required this.userId,
     required this.placeId,
     required this.placeName,
+    required this.placeNameAr,
     required this.spotId,
     required this.spotLabel,
     required this.status,
@@ -26,6 +30,9 @@ class BookingItem {
     this.endTime,
     this.durationHours,
   });
+
+  String get displayPlaceName =>
+      AppData.isArabic ? placeNameAr : placeName;
 
   factory BookingItem.fromJoinedJson(Map<String, dynamic> json) {
     final place = json['places'];
@@ -37,6 +44,9 @@ class BookingItem {
       placeName: place != null
           ? (place['name'] ?? 'Unknown Place') as String
           : 'Unknown Place',
+      placeNameAr: place != null
+          ? (place['name_ar'] ?? place['name'] ?? 'مكان غير معروف') as String
+          : 'مكان غير معروف',
       spotId: json['spot_id'] as String,
       spotLabel: (json['spot_label'] ?? 'Unknown Spot') as String,
       status: (json['status'] ?? 'upcoming') as String,

@@ -248,7 +248,7 @@ class _ParkLiPlaceMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: place.name,
+      message: place.displayName,
       child: Container(
         padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(

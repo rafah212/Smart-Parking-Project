@@ -1,6 +1,9 @@
+import 'package:parkliapp/app_data.dart';
+
 class Place {
   final String id;
   final String name;
+  final String nameAr;
   final String category;
   final String branchName;
   final int availableSlots;
@@ -13,13 +16,13 @@ class Place {
   final bool isNearby;
   final int availableInMinutes;
 
-  // جديد
-  final String pricingType; // free, flat, hourly
+  final String pricingType;
   final double pricePerHour;
 
   const Place({
     required this.id,
     required this.name,
+    required this.nameAr,
     required this.category,
     required this.branchName,
     required this.availableSlots,
@@ -41,14 +44,13 @@ class Place {
     int totalSlots = 0,
   }) {
     final distance = (json['distance_km'] as num?)?.toDouble() ?? 0.0;
-
     final pricingType = (json['pricing_type'] ?? 'hourly').toString();
-
     final pricePerHour = (json['price_per_hour'] as num?)?.toDouble() ?? 3.75;
 
     return Place(
       id: json['id'] as String,
       name: (json['name'] ?? '') as String,
+      nameAr: (json['name_ar'] ?? json['name'] ?? '') as String,
       category: (json['category'] ?? '') as String,
       branchName: (json['branch_name'] ?? '') as String,
       availableSlots: availableSlots,
@@ -65,9 +67,12 @@ class Place {
     );
   }
 
+  String get displayName => AppData.isArabic ? nameAr : name;
+
   Place copyWith({
     String? id,
     String? name,
+    String? nameAr,
     String? category,
     String? branchName,
     int? availableSlots,
@@ -85,6 +90,7 @@ class Place {
     return Place(
       id: id ?? this.id,
       name: name ?? this.name,
+      nameAr: nameAr ?? this.nameAr,
       category: category ?? this.category,
       branchName: branchName ?? this.branchName,
       availableSlots: availableSlots ?? this.availableSlots,

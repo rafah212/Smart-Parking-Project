@@ -71,6 +71,7 @@ class _HomeSearchSheetState extends State<HomeSearchSheet> {
 
     final results = _allPlaces.where((place) {
       return place.name.toLowerCase().contains(query) ||
+          place.nameAr.toLowerCase().contains(query) ||
           place.branchName.toLowerCase().contains(query) ||
           place.category.toLowerCase().contains(query);
     }).toList();
@@ -372,7 +373,7 @@ class _NearbyPlaceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    place.name,
+                    place.displayName,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
