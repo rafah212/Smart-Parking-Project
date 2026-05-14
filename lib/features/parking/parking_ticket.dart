@@ -44,7 +44,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
     final vehicleInfo = '${_vehicle?.plateType ?? ""} - ${_vehicle?.displayPlate ?? ""}';
     final bookingId = AppData.currentBookingId ?? "No-ID";
     
-    // التعديل هنا: جلب الوقت والتاريخ من AppData للـ PDF
+    // التعديل هنا:  الوقت والتاريخ  AppData للـ PDF
     final timeStr = AppData.selectedTime ?? "--:--";
     final dateStr = _getFormattedDate();
 
@@ -230,7 +230,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
     final vehiclePlate = _vehicle?.displayPlate ?? AppData.translate('No plate selected', 'لم يتم اختيار لوحة');
     final slotLabel = _booking?['spot_label'] as String? ?? _spot?.label ?? AppData.translate('Unknown', 'غير محدد');
     
-    // التعديل هنا: جلب الوقت والتاريخ لواجهة المستخدم (الكارد)
+    // التعديل هنا:  الوقت والتاريخ لواجهة المستخدم (الكارد)
     final timeStr = AppData.selectedTime ?? "--:--";
     final dateStr = _getFormattedDate();
 
@@ -257,7 +257,7 @@ class _ParkingTicketState extends State<ParkingTicket> {
               children: [
                 _buildInfoRow(AppData.translate('VEHICLE', 'المركبة'), vehicleType, vehiclePlate),
                 const SizedBox(height: 20),
-                // التعديل هنا: عرض الوقت والتاريخ معاً في سطر واحد
+                // التعديل هنا: عرض الوقت والتاريخ  في سطر واحد
                 _buildInfoRow(AppData.translate('TIME & DATE', 'الوقت والتاريخ'), timeStr, dateStr),
               ],
             ),

@@ -50,7 +50,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(25),
             child: Container(
-              // --- رجعنا الحجم الأصلي اللي كان في كودك ---
               width: 375, 
               height: 812,
               decoration: const BoxDecoration(
@@ -155,7 +154,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// الـ Dot و الـ Pill كما هي في كودك الأصلي
 class _Dot extends StatelessWidget {
   final bool isActive;
   const _Dot({required this.isActive});

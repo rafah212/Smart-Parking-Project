@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 import 'parking_ticket.dart'; 
 
 class PaymentSuccessScreen extends StatefulWidget {
@@ -13,7 +13,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   @override
   void initState() {
     super.initState();
-    // المؤقت: ينتظر 3 ثواني ثم ينقل المستخدم للتذكرة تلقائياً
+    //  ينتظر 3 ثواني ثم ينقل المستخدم للتذكرة تلقائياً
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.pushReplacement(
@@ -102,7 +102,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                     
                     const SizedBox(height: 20),
                     
-                    // مؤشر تحميل بسيط يوضح قرب ظهور التذكرة
+                    //  تحميل بسيط يوضح قرب ظهور التذكرة
                     const SizedBox(
                       width: 20,
                       height: 20,

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:parkliapp/core/services/auth_service.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class ForgotPasswordCheckEmail extends StatefulWidget {
   final String email;
@@ -136,7 +136,7 @@ class _ForgotPasswordCheckEmailState extends State<ForgotPasswordCheckEmail> {
                 ),
               ),
               
-              // التذييل السفلي (Footer)
+              //   (Footer)
               Container(
                 width: double.infinity,
                 height: 60,

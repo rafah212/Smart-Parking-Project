@@ -4,7 +4,7 @@ class AppTheme {
   static ThemeData get light {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: 'Inter', // غيريه لو بتستخدمين خط ثاني
+      fontFamily: 'Inter', //ممكن نغيره بعدين لو نبي خط ثاني  
     );
   }
 }

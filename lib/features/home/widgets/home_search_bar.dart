@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart';   
 
 class HomeSearchBar extends StatelessWidget {
   final VoidCallback? onTap;
@@ -9,7 +9,7 @@ class HomeSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Directionality(
-      // لضمان أن الأيقونة تظهر على اليمين في العربي واليسار في الإنجليزي
+      // نتأكد أن الأيقونة تظهر على اليمين في العربي واليسار في الإنجليزي
       textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: InkWell(
         onTap: onTap,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class OnboardingPage3Content extends StatelessWidget {
   const OnboardingPage3Content({super.key, this.onCreateAccount, this.onLogin});

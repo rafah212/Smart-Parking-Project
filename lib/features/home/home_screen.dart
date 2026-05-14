@@ -15,7 +15,6 @@ import 'booking_screen.dart';
 import 'package:parkliapp/features/parking/parking_timer.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-// استيراد الخدمات اللازمة للتحقق من الإشعارات
 import 'package:parkliapp/core/services/notifications_service.dart';
 import 'package:parkliapp/core/services/app_session_service.dart';
 import 'notifications.dart';
@@ -52,10 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _selectedTime = AppData.translate('Now', 'الآن');
     _loadPlaces();
-    _checkNotifications(); // التحقق من وجود إشعارات عند التشغيل
+    _checkNotifications(); // نتأكد من وجود إشعارات عند التشغيل
   }
 
-  // دالة ذكية للتحقق من وجود إشعارات فعلية في السيرفر
+  // دالة  للتحقق من وجود إشعارات فعلية في السيرفر
   Future<void> _checkNotifications() async {
     final session = await _appSessionService.getCurrentSession();
 

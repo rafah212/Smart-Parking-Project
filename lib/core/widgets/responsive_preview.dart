@@ -13,7 +13,7 @@ class ResponsivePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 1. نغلف الشاشة كاملة باتجاه اللغة المختار من المخ
+    // 1. نغلف الشاشة كاملة باتجاه اللغة المختارة
     return Directionality(
       textDirection: AppData.isArabic ? TextDirection.rtl : TextDirection.ltr,
       child: Scaffold(

@@ -84,6 +84,17 @@ class _BookingScreenState extends State<BookingScreen> {
     try {
       await _bookingService.cancelBooking(
           bookingId: booking.id, spotId: booking.spotId);
+      final session = await _appSessionService.getCurrentSession();
+
+      if (session != null) {
+        await _bookingService.createNotification(
+          userId: session.userId,
+          titleEn: 'Booking cancelled',
+          titleAr: 'تم إلغاء الحجز',
+          bodyEn: 'Your parking booking has been cancelled successfully.',
+          bodyAr: 'تم إلغاء حجز الموقف بنجاح.',
+        );
+      }
       _loadBookings(); // تحديث القائمة
     } catch (e) {
       ScaffoldMessenger.of(context)

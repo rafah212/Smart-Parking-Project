@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
-import 'package:url_launcher/url_launcher.dart'; // حزمة اختيارية لفتح الاتصال/الإيميل
+import 'package:parkliapp/app_data.dart'; 
+import 'package:url_launcher/url_launcher.dart'; //  اختيارية لفتح الاتصال/الإيميل
 
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
@@ -24,7 +24,7 @@ class HelpSupportScreen extends StatelessWidget {
                 onTap: () async {
                   Navigator.pop(context);
                   final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-                  // استخدام externalApplication لضمان العمل على أندرويد
+                  //   نتأكد انه يشتغل على أندرويد
                   await launchUrl(launchUri, mode: LaunchMode.externalApplication);
                 },
               ),
@@ -59,7 +59,7 @@ class HelpSupportScreen extends StatelessWidget {
                 onTap: () async {
                   Navigator.pop(context);
                   final Uri launchUri = Uri(scheme: 'mailto', path: email);
-                  // استخدام externalApplication لضمان العمل على أندرويد
+                  // استخدام أندرويد
                   await launchUrl(launchUri, mode: LaunchMode.externalApplication);
                 },
               ),

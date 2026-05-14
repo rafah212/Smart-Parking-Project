@@ -22,7 +22,6 @@ class UserProfileData {
       fullName: map['full_name']?.toString() ?? '',
       email: map['email']?.toString() ?? '',
       phoneNumber: map['phone_number']?.toString() ?? '',
-      // تم تعديل المفتاح هنا ليطابق قاعدة بياناتك (avatars_url)
       avatarUrl: map['avatars_url']?.toString(), 
     );
   }
@@ -91,7 +90,6 @@ class ProfileService {
       'phone_number': _normalizePhone(phoneNumber),
     };
 
-    // تم تعديل المفتاح هنا ليطابق قاعدة بياناتك (avatars_url)
     if (avatarUrl != null) {
       data['avatars_url'] = avatarUrl;
     }

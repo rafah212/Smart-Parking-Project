@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class HomeBottomNav extends StatelessWidget {
   const HomeBottomNav({

@@ -35,10 +35,10 @@ class NotificationsService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
   Future<List<AppNotificationItem>> getNotifications(String userId) async {
-    final data = await _supabase
+    final data = await Supabase.instance.client
         .from('notifications')
         .select()
-        .eq('user_id', userId)
+        .or('user_id.eq.$userId,user_id.is.null')
         .order('created_at', ascending: false);
 
     return (data as List)
@@ -49,8 +49,7 @@ class NotificationsService {
   Future<void> markAsRead(String notificationId) async {
     await _supabase
         .from('notifications')
-        .update({'is_read': true})
-        .eq('id', notificationId);
+        .update({'is_read': true}).eq('id', notificationId);
   }
 
   Future<void> createNotification({

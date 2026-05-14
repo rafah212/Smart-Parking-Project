@@ -86,7 +86,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
 
     if (selectedImage != null) {
-      // قراءة الصورة كـ Bytes لتعمل على المتصفح والجوال
+      // قراءة الصورة كـ Bytes  على المتصفح والجوال
       final bytes = await selectedImage.readAsBytes();
       setState(() {
         _webImage = bytes;

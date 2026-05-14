@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:parkliapp/features/home/home_screen.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({super.key});

@@ -5,7 +5,6 @@ import 'package:parkliapp/core/services/booking_service.dart';
 import 'package:parkliapp/features/home/models/booking_item.dart';
 import 'package:parkliapp/features/home/home_screen.dart';
 import 'package:parkliapp/core/services/app_session_service.dart';
-import 'package:intl/intl.dart';
 import 'dart:ui' as ui;
 
 class ParkingTimerPage extends StatefulWidget {
@@ -18,6 +17,10 @@ class ParkingTimerPage extends StatefulWidget {
 class _ParkingTimerPageState extends State<ParkingTimerPage> {
   final BookingService _bookingService = BookingService();
   final AppSessionService _appSessionService = AppSessionService();
+
+  final Set<String> _tenMinuteAlertSent = {};
+  final Set<String> _expiredAlertSent = {};
+
   List<BookingItem> _activeBookings = [];
   bool _isLoading = true;
   Timer? _globalTimer;
@@ -27,7 +30,6 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
     super.initState();
     _loadBookingsFromSupabase();
 
-    // محرك الوقت: يحدّث الشاشة كل ثانية واحدة لجعل الوقت يتحرك
     _globalTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {});
@@ -65,6 +67,95 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
     }
   }
 
+  Future<void> _extendBooking(BookingItem booking) async {
+    final currentEndTime = booking.endTime ?? DateTime.now();
+    final newEndTime = currentEndTime.add(const Duration(hours: 1));
+
+    try {
+      await _bookingService.extendBooking(
+        bookingId: booking.id,
+        newEndTime: newEndTime,
+      );
+
+      final session = await _appSessionService.getCurrentSession();
+
+      if (session != null) {
+        await _bookingService.createNotification(
+          userId: session.userId,
+          titleEn: 'Booking extended',
+          titleAr: 'تم تمديد الحجز',
+          bodyEn: 'Your parking booking has been extended for one more hour.',
+          bodyAr: 'تم تمديد حجز الموقف لمدة ساعة إضافية.',
+        );
+      }
+
+      await _loadBookingsFromSupabase();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Booking extended successfully',
+              'تم تمديد الحجز بنجاح',
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppData.translate(
+              'Failed to extend booking',
+              'فشل تمديد الحجز',
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _checkTimerNotifications(
+    BookingItem booking,
+    Duration diff,
+    bool hasStarted,
+  ) async {
+    if (!hasStarted) return;
+
+    final session = await _appSessionService.getCurrentSession();
+    if (session == null) return;
+
+    if (diff.inMinutes == 10 && !_tenMinuteAlertSent.contains(booking.id)) {
+      _tenMinuteAlertSent.add(booking.id);
+
+      await _bookingService.createNotification(
+        userId: session.userId,
+        titleEn: 'Booking ending soon',
+        titleAr: 'الحجز سينتهي قريباً',
+        bodyEn: 'Your parking booking will end in 10 minutes.',
+        bodyAr: 'سينتهي حجز الموقف بعد 10 دقائق.',
+      );
+    }
+
+    if (diff.inSeconds <= 0 && !_expiredAlertSent.contains(booking.id)) {
+      _expiredAlertSent.add(booking.id);
+
+      await _bookingService.createNotification(
+        userId: session.userId,
+        titleEn: 'Booking ended',
+        titleAr: 'انتهى الحجز',
+        bodyEn:
+            'Your parking session has ended. Please leave or renew your booking to avoid penalties.',
+        bodyAr:
+            'انتهى وقت الحجز. يرجى مغادرة الموقف أو تجديد الحجز لتجنب المخالفة.',
+      );
+    }
+  }
+
   @override
   void dispose() {
     _globalTimer?.cancel();
@@ -86,7 +177,6 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
           leading: IconButton(
             icon: const Icon(Icons.close, color: Colors.white, size: 28),
             onPressed: () {
-              // العودة للهوم ومسح مكدس الصفحات لضمان عدم الرجوع للخلف
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const HomeScreen()),
@@ -97,7 +187,8 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
         ),
         body: _isLoading
             ? const Center(
-                child: CircularProgressIndicator(color: Color(0xFF237D8C)))
+                child: CircularProgressIndicator(color: Color(0xFF237D8C)),
+              )
             : _activeBookings.isEmpty
                 ? _buildEmptyState()
                 : ListView.builder(
@@ -113,16 +204,23 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
   Widget _buildBookingTimerCard(BookingItem booking) {
     final now = DateTime.now();
 
-    //  أوقات البداية والنهاية من موديل الحجز
     final startTime = (booking.startTime ?? now).toLocal();
     final endTime = (booking.endTime ?? now).toLocal();
 
-    bool hasStarted = now.isAfter(startTime);
-    Duration diff =
+    final bool hasStarted = now.isAfter(startTime);
+    final Duration diff =
         hasStarted ? endTime.difference(now) : startTime.difference(now);
 
-    // إخفاء البطاقة إذا انتهى وقت الحجز بالكامل
-    if (hasStarted && diff.inSeconds <= 0) return const SizedBox.shrink();
+    _checkTimerNotifications(booking, diff, hasStarted);
+
+    if (hasStarted && diff.inSeconds <= -300) {
+      return const SizedBox.shrink();
+    }
+
+    final totalSeconds = endTime.difference(startTime).inSeconds;
+    final progressValue = hasStarted && totalSeconds > 0
+        ? (diff.inSeconds / totalSeconds).clamp(0.0, 1.0)
+        : 1.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -131,7 +229,7 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
         border: Border.all(color: const Color(0xFF237D8C).withOpacity(0.2)),
       ),
@@ -139,30 +237,33 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
         children: [
           Row(
             children: [
-              // الـ Expanded هنا يمنع مشكلة تداخل النصوص (Overflow) للاسم الطويل
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(booking.displayPlaceName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Color(0xFF195A64))),
+                    Text(
+                      booking.displayPlaceName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF195A64),
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                        '${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}',
-                        style:
-                            const TextStyle(color: Colors.grey, fontSize: 13)),
+                      '${AppData.translate('Spot', 'موقف')}: ${booking.spotLabel}',
+                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              // أيقونة التايمر فقط 
-              Icon(Icons.timer_outlined,
-                  color: hasStarted ? const Color(0xFF237D8C) : Colors.orange),
+              Icon(
+                Icons.timer_outlined,
+                color: hasStarted ? const Color(0xFF237D8C) : Colors.orange,
+              ),
             ],
           ),
           const Divider(height: 30),
@@ -175,16 +276,16 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
                 style: const TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 10),
-              // الـ FittedBox يضمن بقاء أرقام التايمر داخل الإطار في جميع أحجام الشاشات
               FittedBox(
                 child: Text(
                   _formatDuration(diff),
                   style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                      color: Color(0xFF195A64),
-                      letterSpacing: 1.2,
-                      fontFamily: 'monospace'),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
+                    color: Color(0xFF195A64),
+                    letterSpacing: 1.2,
+                    fontFamily: 'monospace',
+                  ),
                 ),
               ),
               const SizedBox(height: 5),
@@ -206,15 +307,30 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
-              value: hasStarted
-                  ? (diff.inSeconds / endTime.difference(startTime).inSeconds)
-                      .clamp(0.0, 1.0)
-                  : 1.0,
+              value: progressValue,
               backgroundColor: Colors.grey[100],
               minHeight: 6,
               color: hasStarted ? const Color(0xFF34B5CA) : Colors.orange[200],
             ),
           ),
+          const SizedBox(height: 15),
+          if (hasStarted)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _extendBooking(booking),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF237D8C),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  AppData.translate('Extend Booking', 'تمديد الحجز'),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -227,10 +343,10 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
   String _formatDuration(Duration d) {
     if (d.inSeconds <= 0) return "00 : 00 : 00 : 00";
 
-    int days = d.inDays;
-    int hours = d.inHours.remainder(24);
-    int minutes = d.inMinutes.remainder(60);
-    int seconds = d.inSeconds.remainder(60);
+    final int days = d.inDays;
+    final int hours = d.inHours.remainder(24);
+    final int minutes = d.inMinutes.remainder(60);
+    final int seconds = d.inSeconds.remainder(60);
 
     return "${days.toString().padLeft(2, '0')} : "
         "${hours.toString().padLeft(2, '0')} : "
@@ -247,7 +363,9 @@ class _ParkingTimerPageState extends State<ParkingTimerPage> {
           const SizedBox(height: 16),
           Text(
             AppData.translate(
-                'No active bookings', 'لا توجد حجوزات نشطة حالياً'),
+              'No active bookings',
+              'لا توجد حجوزات نشطة حالياً',
+            ),
             style: const TextStyle(color: Colors.grey, fontSize: 16),
           ),
         ],

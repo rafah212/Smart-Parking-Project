@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class OnboardingPage1Content extends StatelessWidget {
   const OnboardingPage1Content({super.key});
@@ -49,7 +49,7 @@ class OnboardingPage1Content extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Colors.white, // رجعناها أبيض نفس كودك الأصلي
+                color: Colors.white, 
                 fontSize: 14,
                 fontWeight: FontWeight.w400,
                 height: 1.3,

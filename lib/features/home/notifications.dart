@@ -69,14 +69,12 @@ class _NotificationsState extends State<Notifications> {
 
     try {
       // 2. الحذف من قاعدة البيانات Supabase
-      // ملاحظة: تأكد أن اسم الجدول هو 'notifications' وأن العمود المعرف هو 'id'
       await Supabase.instance.client
           .from('notifications')
           .delete()
           .match({'id': item.id});
     } catch (e) {
       debugPrint('Error deleting notification from server: $e');
-      // اختياري: يمكنك إعادة الإشعار للقائمة إذا فشل الحذف في السيرفر
     }
   }
 

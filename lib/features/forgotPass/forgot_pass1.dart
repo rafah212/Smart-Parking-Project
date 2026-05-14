@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'check_email.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class ForgotPassword1 extends StatefulWidget {
   const ForgotPassword1({super.key});

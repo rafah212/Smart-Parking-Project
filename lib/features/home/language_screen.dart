@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
-import 'home_screen.dart'; // استيراد الرئيسية للتحويل إليها
+import 'package:parkliapp/app_data.dart'; 
+import 'home_screen.dart'; // استيراد الرئيسية  
 
 class LanguageScreen extends StatefulWidget {
   const LanguageScreen({super.key});
@@ -11,9 +11,9 @@ class LanguageScreen extends StatefulWidget {
 
 class _LanguageScreenState extends State<LanguageScreen> {
   
-  // دالة إظهار نافذة التأكيد وتغيير اللغة
+  // دالة  نافذة التأكيد وتغيير اللغة
   void _showLanguageDialog(String languageCode) {
-    // تحديد النصوص بناءً على اللغة التي اختارها المستخدم حالاً
+    // تحديد النصوص  حسب اللغة اللي اختارها المستخدم 
     bool isArabicChoice = languageCode == 'ar';
     String title = isArabicChoice ? 'تغيير اللغة' : 'Change Language';
     String message = isArabicChoice 
@@ -26,7 +26,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
       context: context,
       builder: (context) {
         return Directionality(
-          // نجعل اتجاه النافذة يتبع الخيار الجديد ليعرف المستخدم كيف ستكون الواجهة
+          //  اتجاه النافذة يتبع الخيار الجديد ليعرف المستخدم كيف ستكون الواجهة
           textDirection: isArabicChoice ? TextDirection.rtl : TextDirection.ltr,
           child: AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
@@ -42,7 +42,7 @@ class _LanguageScreenState extends State<LanguageScreen> {
               ElevatedButton(
                 onPressed: () {
                   setState(() {
-                    AppData.isArabic = (languageCode == 'ar'); // تحديث اللغة في المخ
+                    AppData.isArabic = (languageCode == 'ar'); // تحديث اللغة  
                   });
                   
                   // العودة للرئيسية وتصفير الـ Stack

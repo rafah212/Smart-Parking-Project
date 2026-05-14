@@ -1,6 +1,6 @@
 import 'package:parkliapp/features/home/models/booking_item.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:parkliapp/app_data.dart';
 class BookingService {
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -151,4 +151,28 @@ class BookingService {
         .from('bookings')
         .update({'status': 'completed'}).eq('id', bookingId);
   }
+
+  Future<void> extendBooking({
+    required String bookingId,
+    required DateTime newEndTime,
+  }) async {
+    await _supabase.from('bookings').update({
+      'end_time': newEndTime.toUtc().toIso8601String(),
+    }).eq('id', bookingId);
+  }
+
+  Future<void> createNotification({
+  required String userId,
+  required String titleEn,
+  required String titleAr,
+  required String bodyEn,
+  required String bodyAr,
+}) async {
+  await _supabase.from('notifications').insert({
+    'user_id': userId,
+    'title': AppData.translate(titleEn, titleAr),
+    'body': AppData.translate(bodyEn, bodyAr),
+    'created_at': DateTime.now().toUtc().toIso8601String(),
+  });
+}
 }

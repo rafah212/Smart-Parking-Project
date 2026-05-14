@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:parkliapp/app_data.dart'; // استيراد المخ
+import 'package:parkliapp/app_data.dart'; 
 
 class HomeFilterSheet extends StatefulWidget {
   final ScrollController scrollController;
@@ -25,7 +25,7 @@ class _HomeFilterSheetState extends State<HomeFilterSheet> {
   late double _distance;
   late String _selectedTime;
 
-  // قائمة الخيارات المعربة برمجياً
+  // قائمة الخيارات العربيه 
   List<String> get _timeOptions => [
     AppData.translate('Now', 'الآن'),
     AppData.translate('15 min', '١٥ دقيقة'),

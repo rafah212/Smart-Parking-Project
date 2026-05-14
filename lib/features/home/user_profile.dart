@@ -422,7 +422,7 @@ class _UserProfileState extends State<UserProfile> {
         Container(
           width: 80,
           height: 80,
-          clipBehavior: Clip.antiAlias, // لضمان قص الصورة بشكل دائري
+          clipBehavior: Clip.antiAlias, //  قص الصورة بشكل دائري
           decoration: BoxDecoration(
             color: const Color(0x2666B0BD),
             shape: BoxShape.circle,
@@ -431,7 +431,7 @@ class _UserProfileState extends State<UserProfile> {
               width: 1,
             ),
           ),
-          // --- التعديل المضاف لعرض الصورة ---
+          // --- التعديل  لعرض الصورة ---
           child:
               (_profile?.avatarUrl != null && _profile!.avatarUrl!.isNotEmpty)
                   ? Image.network(
